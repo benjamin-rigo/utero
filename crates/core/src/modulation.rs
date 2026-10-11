@@ -323,8 +323,8 @@ impl Modulator {
 
 pub const MOD_SLOTS: usize = 16;
 pub const MAX_ROUTES: usize = 64;
-pub const MOD_TRACKS: usize = 13;
-pub const MOD_PARAMS: usize = 16;
+pub const MOD_ROWS: usize = 22;
+pub const MOD_PARAMS: usize = 24;
 
 /// Per-sample fade of route amounts (~10 ms at 48 kHz): adding or removing a route never clicks.
 const ROUTE_FADE: f32 = 0.002;
@@ -352,7 +352,7 @@ struct RouteSlot {
 pub struct ModMatrix {
     mods: [Modulator; MOD_SLOTS],
     routes: [Option<RouteSlot>; MAX_ROUTES],
-    sums: [[f32; MOD_PARAMS]; MOD_TRACKS],
+    sums: [[f32; MOD_PARAMS]; MOD_ROWS],
 }
 
 impl Default for ModMatrix {
@@ -366,7 +366,7 @@ impl ModMatrix {
         ModMatrix {
             mods: core::array::from_fn(|i| Modulator::new(0x000A_11CE + i as u32)),
             routes: [None; MAX_ROUTES],
-            sums: [[0.0; MOD_PARAMS]; MOD_TRACKS],
+            sums: [[0.0; MOD_PARAMS]; MOD_ROWS],
         }
     }
 
@@ -390,7 +390,7 @@ impl ModMatrix {
 
     pub fn set_route(&mut self, index: usize, route: Route) {
         let valid = (route.src as usize) < MOD_SLOTS
-            && (route.target.track as usize) < MOD_TRACKS
+            && (route.target.track as usize) < MOD_ROWS
             && (route.target.param as usize) < MOD_PARAMS
             && route.amount.is_finite();
         let Some(slot) = self.routes.get_mut(index) else { return };
@@ -436,7 +436,7 @@ impl ModMatrix {
             let inc = if s.sync { 1.0 / (SYNC_BARS[s.rate_index as usize] * samples_per_bar) } else { s.hz / sample_rate };
             m.next(inc);
         }
-        self.sums = [[0.0; MOD_PARAMS]; MOD_TRACKS];
+        self.sums = [[0.0; MOD_PARAMS]; MOD_ROWS];
         for slot in &mut self.routes {
             let Some(rs) = slot else { continue };
             let target = if rs.live { rs.route.amount } else { 0.0 };
