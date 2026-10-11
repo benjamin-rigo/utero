@@ -22,7 +22,7 @@ describe('mixer state', () => {
     expect(s.master.params).toHaveLength(11)
     expect(s.tracks[7].params).toHaveLength(9)
     expect(s.tracks[8].name).toBe('LD1')
-    expect([s.muteQuantize, s.editMode]).toEqual([true, 'trig'])
+    expect(s.muteQuantize).toBe(true)
   })
 
   test('connect sends machine, bus and master params plus bus mutes', () => {
@@ -77,11 +77,5 @@ describe('mixer state', () => {
     store.setStepNote(0, 0, 50)
     expect(store.getState().tracks[0].steps[0].note).toBe(29)
     expect(sent).toHaveLength(1)
-  })
-
-  test('edit mode switches', () => {
-    const { store } = fresh()
-    store.setEditMode('note')
-    expect(store.getState().editMode).toBe('note')
   })
 })

@@ -38,7 +38,6 @@ export function initialState(): AppState {
     })),
     master: { params: MASTER_PARAMS.map((p) => p.default) },
     muteQuantize: true,
-    editMode: 'trig',
   }
 }
 
@@ -198,9 +197,6 @@ export function createStore(initial: AppState = initialState()) {
       const step = { ...state.tracks[t].steps[s], note: clamp(Math.round(note), 0, 127) }
       updateTrack(t, (tr) => ({ ...tr, steps: tr.steps.map((st, i) => (i === s ? step : st)) }))
       send(cmdSetStep(t, s, step))
-    },
-    setEditMode(mode: 'trig' | 'note') {
-      set({ ...state, editMode: mode })
     },
     toggleMute(b: number) {
       const muted = !state.buses[b].muted

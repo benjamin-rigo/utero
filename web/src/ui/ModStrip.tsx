@@ -69,7 +69,7 @@ export function ModStrip({ state, frame, store }: Props) {
                 e.dataTransfer.effectAllowed = 'link'
               }}
               className={[
-                'relative flex h-9 min-w-0 flex-col justify-between rounded border px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc',
+                'relative flex h-9 min-w-0 overflow-hidden rounded border outline-none focus-visible:ring-2 focus-visible:ring-acc',
                 off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-400'
                   : 'cursor-grab border-sky-950 bg-[#0a141a]',
                 slot === i && !off ? (mapping ? 'ring-2 ring-mod' : 'ring-1 ring-mod') : '',
@@ -77,12 +77,12 @@ export function ModStrip({ state, frame, store }: Props) {
               ].join(' ')}>
               {off ? '+' : (
                 <>
-                  <span className="truncate text-[9px] text-mod">{modLabel(i, m)}</span>
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-3 w-full" aria-hidden="true">
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
                     <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-mod" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
                     <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
                       className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                   </svg>
+                  <span className="relative self-start truncate bg-[#0a141a]/70 px-1 text-[9px] text-mod">{modLabel(i, m)}</span>
                   {targets > 0 && (
                     <span className="absolute top-0.5 right-0.5 rounded-full bg-mod px-1 text-[8px] leading-tight text-black">{targets}</span>
                   )}

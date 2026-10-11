@@ -45,7 +45,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
     <>
       <div className="flex items-center gap-2 border-b border-zinc-800 p-2">
         <b className="text-acc">{state.tracks[t].name}</b>
-        <span className="text-zinc-400">{machine.name}</span>
+        {machine.name !== state.tracks[t].name && <span className="text-zinc-400">{machine.name}</span>}
       </div>
       <div role="tablist" className="flex border-b border-zinc-800">
         {machine.pages.map((pg, i) => (

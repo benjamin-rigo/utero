@@ -95,7 +95,6 @@ export interface AppState {
   buses: BusState[]
   master: MasterState
   muteQuantize: boolean
-  editMode: 'trig' | 'note'
 }
 
 export interface BusState {

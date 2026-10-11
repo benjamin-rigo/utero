@@ -13,7 +13,7 @@ function Harness({ store }: { store: Store }) {
   const state = useSyncExternalStore(store.subscribe, store.getState)
   return (
     <SequencerMatrix state={state} playheads={IDLE} onToggle={store.toggleStep} onSetLength={store.setLength}
-      onSetSpeed={store.setSpeed} onSelect={store.select} onSetMode={store.setEditMode} onSetNote={store.setStepNote} />
+      onSetSpeed={store.setSpeed} onSelect={store.select} onSetNote={store.setStepNote} />
   )
 }
 
@@ -23,16 +23,16 @@ function setup() {
   return store
 }
 
-test('the mode switch toggles between TRIG and NOTE', () => {
+test('clicking a step writes a trig and selects its row', () => {
   const store = setup()
-  fireEvent.click(screen.getByRole('button', { name: 'NOTE' }))
-  expect(store.getState().editMode).toBe('note')
-  expect(screen.getByRole('button', { name: 'NOTE' }).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(screen.getByRole('button', { name: /^BASS step 2,/ }))
+  expect(store.getState().tracks[7].steps[1].trig).toBe(true)
+  expect(store.getState().selected).toBe(7)
 })
 
-test('arrow keys move a BASS step note in NOTE mode', () => {
+test('arrow keys move the note of a melodic trig right away', () => {
   const store = setup()
-  act(() => store.setEditMode('note'))
+  act(() => store.toggleStep(7, 0))
   const step = screen.getByRole('button', { name: /^BASS step 1,/ })
   fireEvent.keyDown(step, { key: 'ArrowUp' })
   expect(store.getState().tracks[7].steps[0].note).toBe(30)
@@ -40,25 +40,48 @@ test('arrow keys move a BASS step note in NOTE mode', () => {
   expect(store.getState().tracks[7].steps[0].note).toBe(42)
 })
 
-test('clicking a step in NOTE mode does not toggle it', () => {
+test('dragging up on an empty melodic step writes a trig and raises its note', () => {
   const store = setup()
-  act(() => store.setEditMode('note'))
-  fireEvent.click(screen.getByRole('button', { name: /^BASS step 2,/ }))
-  expect(store.getState().tracks[7].steps[1].trig).toBe(false)
+  const step = screen.getByRole('button', { name: /^BASS step 3,/ })
+  fireEvent.pointerDown(step, { clientY: 100, pointerId: 1 })
+  fireEvent.pointerMove(step, { clientY: 76, pointerId: 1 })
+  fireEvent.pointerUp(step, { pointerId: 1 })
+  fireEvent.click(step)
+  expect(store.getState().tracks[7].steps[2]).toMatchObject({ trig: true, note: 32 })
 })
 
-test('kick steps ignore note edits', () => {
-  const store = setup()
-  act(() => store.setEditMode('note'))
+test('arrows walk the grid on kick steps and off-trig steps', () => {
+  setup()
   const kick = screen.getByRole('button', { name: 'KICK step 1' })
-  expect(kick.getAttribute('aria-disabled')).toBe('true')
-  fireEvent.keyDown(kick, { key: 'ArrowUp' })
-  expect(store.getState().tracks[0].steps[0].note).toBe(29)
+  kick.focus()
+  fireEvent.keyDown(kick, { key: 'ArrowRight' })
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'KICK step 2' }))
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'KCK2 step 2' }))
 })
 
-test('trig steps show their note name in NOTE mode', () => {
+test('trig steps show their note name', () => {
   const store = setup()
   act(() => store.toggleStep(7, 0))
-  act(() => store.setEditMode('note'))
   expect(screen.getByRole('button', { name: 'BASS step 1, F1' }).textContent).toBe('F1')
+})
+
+test('length: ⌥+click sets the end, the length slider takes arrows', () => {
+  const store = setup()
+  fireEvent.click(screen.getByRole('button', { name: 'KICK step 8' }), { altKey: true })
+  expect(store.getState().tracks[0].length).toBe(8)
+  expect(store.getState().tracks[0].steps[7].trig).toBe(false)
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'KICK length' }), { key: 'ArrowRight' })
+  expect(store.getState().tracks[0].length).toBe(9)
+})
+
+test('the row rate knob walks the speeds in musical order', () => {
+  const store = setup()
+  const rate = screen.getByRole('slider', { name: 'KICK rate' })
+  expect(rate.getAttribute('aria-valuetext')).toBe('1/16')
+  fireEvent.keyDown(rate, { key: 'ArrowRight' })
+  expect(store.getState().tracks[0].speed).toBe(6)
+  fireEvent.keyDown(rate, { key: 'ArrowLeft' })
+  fireEvent.keyDown(rate, { key: 'ArrowLeft' })
+  expect(store.getState().tracks[0].speed).toBe(5)
 })

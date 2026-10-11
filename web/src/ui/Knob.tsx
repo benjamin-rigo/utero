@@ -32,8 +32,8 @@ export interface KnobProps {
   onModAmount?(delta: number): void
   onDropModulator?(slot: number): void
   onSelect?(): void
-  /** 'sm' renders 40 px (mixer), default 56 px. */
-  size?: 'md' | 'sm'
+  /** 'sm' renders 40 px (mixer), 'xs' a bare 24 px dial (no label/value; the caller shows them), default 56 px. */
+  size?: 'md' | 'sm' | 'xs'
   /** Accessible name when the visible label is not unique (e.g. 'KICK filter'). */
   ariaLabel?: string
   /** Shows the value in real units (dB, Hz, ms…); defaults to 0–100. */
@@ -86,8 +86,8 @@ export function Knob({
         aria-valuetext={map
           ? `${map.label} amount ${signed(map.amount)}`
           : `${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
-        width={size === 'sm' ? 40 : SIZE}
-        height={size === 'sm' ? 40 : SIZE}
+        width={size === 'xs' ? 24 : size === 'sm' ? 40 : SIZE}
+        height={size === 'xs' ? 24 : size === 'sm' ? 40 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
         onPointerEnter={() => onHover?.(true)}
@@ -155,6 +155,8 @@ export function Knob({
         )}
         <circle cx={dot.x} cy={dot.y} r={2} className="fill-zinc-100" />
       </svg>
+{size !== 'xs' && (
+        <>
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
         className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-mod' : 'text-zinc-400'}`}>
         {label}
@@ -163,6 +165,8 @@ export function Knob({
       <span className={`${size === 'sm' ? 'text-[10px]' : 'text-sm'} tabular-nums ${map ? 'text-mod' : ''}`}>
         {map ? signed(map.amount) : format ? format(display) : pct(display)}
       </span>
+        </>
+      )}
     </div>
   )
 }

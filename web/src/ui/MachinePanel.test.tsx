@@ -76,7 +76,7 @@ test('a route from a switched-off modulator is labelled (off), not "+ add"', () 
 test('BASS shows 8 knobs and a SUB OCT switch', () => {
   const store = setup()
   act(() => store.select(7))
-  expect(screen.getByText('BASS', { selector: 'span' })).toBeTruthy()
+  expect(screen.queryByText('BASS', { selector: 'span' })).toBeNull()
   for (const n of ['SUB', 'CHAR', 'BRIGHT', 'PLUCK', 'GRIT', 'DECAY', 'FM', 'LEVEL']) expect(screen.getByRole('slider', { name: n })).toBeTruthy()
   fireEvent.keyDown(screen.getByRole('slider', { name: 'DECAY' }), { key: 'End' })
   expect(store.getState().tracks[7].params[5]).toBe(1)
