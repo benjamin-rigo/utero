@@ -1,4 +1,5 @@
 pub mod dsp;
+pub mod kick;
 pub mod params;
 pub mod rng;
 pub mod seq;
