@@ -39,10 +39,17 @@ test('shape buttons edit the selected modulator', () => {
   expect(store.getState().modulators[0].shape).toBe(1)
 })
 
-test('rate select uses the sync list', () => {
+test('the RATE knob steps through the sync list, or sweeps Hz', () => {
   const store = setup()
-  fireEvent.change(screen.getByLabelText('Rate'), { target: { value: '9' } })
+  const rate = () => screen.getByRole('slider', { name: 'RATE' })
+  expect(rate().getAttribute('aria-valuetext')).toBe('4 BAR')
+  fireEvent.keyDown(rate(), { key: 'End' })
   expect(store.getState().modulators[0].rateIndex).toBe(9)
+  expect(rate().getAttribute('aria-valuetext')).toBe('32 BAR')
+  fireEvent.click(screen.getByRole('button', { name: 'SYNC' }))
+  expect(rate().getAttribute('aria-valuetext')).toBe('1.00 Hz')
+  fireEvent.keyDown(rate(), { key: 'End' })
+  expect(store.getState().modulators[0].hz).toBeCloseTo(40)
 })
 
 test('dragging a tile carries its slot', () => {

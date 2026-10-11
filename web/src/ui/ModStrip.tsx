@@ -13,6 +13,12 @@ const H = 24
 const toY = (v: number) => (1 - (v + 1) / 2) * (H - 2) + 1
 const pathOf = (values: number[]) =>
   values.map((v, i) => `${i === 0 ? 'M' : 'L'}${((i / (values.length - 1)) * W).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+const HZ_MIN = 0.01
+const HZ_MAX = 40
+const SYNC_LAST = SYNC_LABELS.length - 1
+const hzOf = (v: number) => HZ_MIN * (HZ_MAX / HZ_MIN) ** v
+const normOfHz = (hz: number) => Math.log(hz / HZ_MIN) / Math.log(HZ_MAX / HZ_MIN)
+const formatHz = (hz: number) => `${hz < 10 ? hz.toFixed(2) : hz.toFixed(1)} Hz`
 const select = 'rounded bg-zinc-900 px-1 py-0.5 text-zinc-200 outline-none focus-visible:ring-2 focus-visible:ring-acc'
 const toggle = (on: boolean) =>
   `rounded border px-1.5 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${on ? 'border-mod text-mod' : 'border-zinc-700 text-zinc-400'}`
@@ -104,14 +110,6 @@ function ModEditor({ slot, m, tracks, store }: EditorProps) {
             <button type="button" className={toggle(m.sync)} aria-pressed={m.sync} onClick={() => update({ sync: !m.sync })}>
               {m.sync ? 'SYNC' : 'HZ'}
             </button>
-            {m.sync ? (
-              <select aria-label="Rate" value={m.rateIndex} className={select} onChange={(e) => update({ rateIndex: Number(e.target.value) })}>
-                {SYNC_LABELS.map((l, i) => <option key={l} value={i}>{l}</option>)}
-              </select>
-            ) : (
-              <input aria-label="Rate in Hz" type="number" min={0.01} max={40} step={0.01} value={m.hz} className={`${select} w-16`}
-                onChange={(e) => { if (Number.isFinite(e.target.valueAsNumber)) update({ hz: e.target.valueAsNumber }) }} />
-            )}
           </>
         )}
         {m.kind === 2 && (
@@ -142,6 +140,13 @@ function ModEditor({ slot, m, tracks, store }: EditorProps) {
       {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
       {m.kind !== 0 && (
         <div className="flex items-end gap-1">
+          {timed && (m.sync ? (
+            <Knob label="RATE" value={m.rateIndex / SYNC_LAST} defaultValue={6 / SYNC_LAST}
+              format={(v) => SYNC_LABELS[Math.round(v * SYNC_LAST)]} onChange={(v) => update({ rateIndex: Math.round(v * SYNC_LAST) })} />
+          ) : (
+            <Knob label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
+              format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
+          ))}
           {timed && <Knob label="PHASE" value={m.phase} defaultValue={0} onChange={(v) => update({ phase: v })} />}
           <Knob label="SMOOTH" value={m.smooth} defaultValue={0} onChange={(v) => update({ smooth: v })} />
           <Knob label="DEPTH" value={m.depth} defaultValue={1} onChange={(v) => update({ depth: v })} />
