@@ -1,6 +1,7 @@
 pub mod dsp;
 pub mod engine;
 pub mod kick;
+pub mod macros;
 pub mod modulation;
 pub mod params;
 pub mod rng;
