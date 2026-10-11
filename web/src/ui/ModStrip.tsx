@@ -54,7 +54,7 @@ export function ModStrip({ state, frame, store }: Props) {
               }}
               className={[
                 'relative flex min-w-0 flex-col justify-between rounded border px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc',
-                off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-500'
+                off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-400'
                   : 'cursor-grab border-sky-950 bg-[#0a141a]',
                 slot === i && !off ? 'ring-1 ring-mod' : '',
               ].join(' ')}>
@@ -62,7 +62,7 @@ export function ModStrip({ state, frame, store }: Props) {
                 <>
                   <div className="flex justify-between gap-1 text-[9px]">
                     <span className="truncate text-mod">{modLabel(i, m)}</span>
-                    <span className="truncate text-sky-700">{rateLabel(m)}</span>
+                    <span className="truncate text-sky-400">{rateLabel(m)}</span>
                   </div>
                   <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-5 w-full" aria-hidden="true">
                     <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-mod" strokeWidth={1.2} />
@@ -92,7 +92,7 @@ function ModEditor({ slot, m, tracks, store }: EditorProps) {
   const update = (patch: Parameters<Store['updateModulator']>[1]) => store.updateModulator(slot, patch)
   const timed = m.kind === 1 || m.kind === 3
   return (
-    <div className="flex min-h-0 flex-col gap-1 rounded border border-mod/60 bg-[#0a141a] p-1.5 text-[10px]">
+    <div className="flex min-h-0 flex-col gap-1 overflow-y-auto rounded border border-mod/60 bg-[#0a141a] p-1.5 text-[10px]">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-mod">{modLabel(slot, m)}</span>
         <select aria-label="Modulator type" value={m.kind} className={select}
@@ -132,7 +132,7 @@ function ModEditor({ slot, m, tracks, store }: EditorProps) {
               className={[
                 'rounded px-1 outline-none focus-visible:ring-2 focus-visible:ring-acc',
                 i === FAVORITE_SHAPE_COUNT ? 'ml-2' : '',
-                m.shape === s.code ? 'bg-sky-950 text-mod' : i < FAVORITE_SHAPE_COUNT ? 'text-zinc-200' : 'text-zinc-500',
+                m.shape === s.code ? 'bg-sky-950 text-mod' : i < FAVORITE_SHAPE_COUNT ? 'text-zinc-200' : 'text-zinc-400',
               ].join(' ')}>
               {s.label}
             </button>
@@ -152,7 +152,7 @@ function ModEditor({ slot, m, tracks, store }: EditorProps) {
               </select>
               <select aria-label="Trigger source" value={m.trigSrc} className={select} onChange={(e) => update({ trigSrc: Number(e.target.value) })}>
                 <option value={-1}>TRIG —</option>
-                {tracks.map((t, i) => <option key={t} value={i}>{t}</option>)}
+                {tracks.map((t, i) => <option key={i} value={i}>{t}</option>)}
               </select>
             </div>
           )}
