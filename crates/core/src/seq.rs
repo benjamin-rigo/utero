@@ -1,0 +1,251 @@
+use crate::rng::Rng;
+
+pub const MAX_STEPS: usize = 64;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cond {
+    None,
+    Ab { a: u8, b: u8 },
+    Fill,
+    NotFill,
+    Pre,
+    NotPre,
+    Nei,
+    First,
+}
+
+impl Cond {
+    /// Codes mirror `CondCode` in web/src/state/types.ts.
+    pub fn from_code(code: u8, a: u8, b: u8) -> Cond {
+        match code {
+            1 => Cond::Ab { a, b },
+            2 => Cond::Fill,
+            3 => Cond::NotFill,
+            4 => Cond::Pre,
+            5 => Cond::NotPre,
+            6 => Cond::Nei,
+            7 => Cond::First,
+            _ => Cond::None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Step {
+    pub trig: bool,
+    pub vel: f32,
+    pub prob: u8,
+    pub cond: Cond,
+    /// Offset in 1/24 of a step.
+    pub micro: i8,
+}
+
+impl Default for Step {
+    fn default() -> Self {
+        Step { trig: false, vel: 1.0, prob: 100, cond: Cond::None, micro: 0 }
+    }
+}
+
+pub struct CondCtx<'a> {
+    pub fill: bool,
+    pub neighbor: bool,
+    pub rng: &'a mut Rng,
+}
+
+pub fn speed_ticks(code: u8) -> u64 {
+    match code {
+        0 => 12,
+        1 => 24,
+        2 => 48,
+        3 => 96,
+        4 => 384,
+        5 => 16,
+        6 => 32,
+        _ => 24,
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Track {
+    steps: [Step; MAX_STEPS],
+    length: u8,
+    speed: u8,
+    playhead: u16,
+    last_cond: bool,
+}
+
+impl Default for Track {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Track {
+    pub fn new() -> Self {
+        Track { steps: [Step::default(); MAX_STEPS], length: 16, speed: 1, playhead: 0, last_cond: false }
+    }
+
+    pub fn set_step(&mut self, i: usize, step: Step) {
+        if let Some(s) = self.steps.get_mut(i) {
+            *s = Step {
+                micro: step.micro.clamp(-11, 11),
+                prob: step.prob.min(100),
+                vel: if step.vel.is_finite() { step.vel.clamp(0.0, 1.0) } else { 1.0 },
+                ..step
+            };
+        }
+    }
+
+    pub fn set_length(&mut self, len: u8) {
+        self.length = len.clamp(1, MAX_STEPS as u8);
+        self.playhead %= self.length as u16;
+    }
+
+    pub fn set_speed(&mut self, code: u8) {
+        self.speed = code;
+    }
+
+    pub fn length(&self) -> u8 {
+        self.length
+    }
+
+    pub fn playhead(&self) -> u16 {
+        self.playhead
+    }
+
+    pub fn last_cond(&self) -> bool {
+        self.last_cond
+    }
+
+    pub fn reset(&mut self) {
+        self.playhead = 0;
+        self.last_cond = false;
+    }
+
+    /// Stateless position (tick / step_ticks) makes polymeter and length changes safe.
+    pub fn on_tick(&mut self, tick: u64, ctx: &mut CondCtx) -> Option<f32> {
+        let st = speed_ticks(self.speed);
+        let len = self.length as u64;
+        let abs_step = tick / st;
+        if tick % st == 0 {
+            self.playhead = (abs_step % len) as u16;
+        }
+        // A step with negative µtime fires inside the previous step's window.
+        for cand in [abs_step, abs_step + 1] {
+            let step = self.steps[(cand % len) as usize];
+            if !step.trig {
+                continue;
+            }
+            let at = (cand * st) as i64 + (step.micro as i64 * st as i64) / 24;
+            if at == tick as i64 && self.evaluate(&step, cand / len, ctx) {
+                return Some(step.vel);
+            }
+        }
+        None
+    }
+
+    fn evaluate(&mut self, _step: &Step, _iteration: u64, _ctx: &mut CondCtx) -> bool {
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    pub(crate) fn trig() -> Step {
+        Step { trig: true, ..Step::default() }
+    }
+
+    pub(crate) fn run(track: &mut Track, ticks: u64, fill: bool, neighbor: bool, rng: &mut Rng) -> Vec<u64> {
+        (0..ticks)
+            .filter(|&t| {
+                let mut ctx = CondCtx { fill, neighbor, rng };
+                track.on_tick(t, &mut ctx).is_some()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn four_on_the_floor_fires_every_quarter() {
+        let mut t = Track::new();
+        for s in [0, 4, 8, 12] {
+            t.set_step(s, trig());
+        }
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut t, 384, false, false, &mut rng), vec![0, 96, 192, 288]);
+    }
+
+    #[test]
+    fn polymeter_length_three_wraps() {
+        let mut t = Track::new();
+        t.set_length(3);
+        t.set_step(0, trig());
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut t, 24 * 9, false, false, &mut rng), vec![0, 72, 144]);
+    }
+
+    #[test]
+    fn eighth_speed_doubles_step_duration() {
+        let mut t = Track::new();
+        t.set_speed(2);
+        t.set_step(1, trig());
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut t, 100, false, false, &mut rng), vec![48]);
+    }
+
+    #[test]
+    fn positive_microtime_delays_trig() {
+        let mut t = Track::new();
+        t.set_step(0, Step { micro: 6, ..trig() });
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut t, 24, false, false, &mut rng), vec![6]);
+    }
+
+    #[test]
+    fn negative_microtime_pulls_trig_early() {
+        let mut t = Track::new();
+        t.set_step(1, Step { micro: -6, ..trig() });
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut t, 48, false, false, &mut rng), vec![18]);
+    }
+
+    #[test]
+    fn microtime_is_clamped_below_half_a_step() {
+        let mut t = Track::new();
+        t.set_step(0, Step { micro: 100, ..trig() });
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut t, 24, false, false, &mut rng), vec![11]);
+    }
+
+    #[test]
+    fn playhead_follows_steps() {
+        let mut t = Track::new();
+        let mut rng = Rng::new(1);
+        run(&mut t, 24 * 5 + 1, false, false, &mut rng);
+        assert_eq!(t.playhead(), 5);
+    }
+
+    #[test]
+    fn shorter_length_wraps_playhead() {
+        let mut t = Track::new();
+        let mut rng = Rng::new(1);
+        run(&mut t, 24 * 10 + 1, false, false, &mut rng);
+        assert_eq!(t.playhead(), 10);
+        t.set_length(4);
+        assert!(t.playhead() < 4);
+        let mut ctx = CondCtx { fill: false, neighbor: false, rng: &mut rng };
+        t.on_tick(24 * 11, &mut ctx);
+        assert_eq!(t.playhead(), 3);
+    }
+
+    #[test]
+    fn length_is_clamped_and_bad_step_index_ignored() {
+        let mut t = Track::new();
+        t.set_length(0);
+        assert_eq!(t.length(), 1);
+        t.set_length(200);
+        assert_eq!(t.length(), 64);
+        t.set_step(500, trig());
+    }
+}
