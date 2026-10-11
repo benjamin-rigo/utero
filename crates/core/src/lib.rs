@@ -1,3 +1,4 @@
+pub mod bus;
 pub mod dsp;
 pub mod engine;
 pub mod kick;
