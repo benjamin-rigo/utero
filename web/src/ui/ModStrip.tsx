@@ -1,7 +1,7 @@
 import { useEffect, type PointerEvent } from 'react'
 import { modOutputOf } from '@/audio/snapshot'
 import {
-  MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
+  DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
 } from '@/state/modulation'
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
@@ -174,7 +174,7 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
       {m.kind !== 0 && (
         <div className="flex items-center gap-1">
           {timed && (m.sync ? (
-            <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={6} onIndex={(i) => update({ rateIndex: i })} />
+            <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
           ) : (
             <Knob label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
               format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />

@@ -5,7 +5,13 @@ use crate::rng::Rng;
 pub const STEP_COUNT: usize = 16;
 
 /// Sync rates in 4/4 bars. Index order is mirrored by SYNC_LABELS in web/src/state/modulation.ts.
-pub const SYNC_BARS: [f32; 10] = [0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0];
+const T: f32 = 2.0 / 3.0;
+/// Sync divisions in bars, shortest first, with triplets (×2/3) and dotted (×1.5) between the straights:
+/// 1/16T 1/16 1/8T 1/16D 1/8 1/4T 1/8D 1/4 1/2T 1/4D 1/2 1T 1/2D 1 1D 2 4 8 16 32.
+pub const SYNC_BARS: [f32; 20] = [
+    0.0625 * T, 0.0625, 0.125 * T, 0.093_75, 0.125, 0.25 * T, 0.1875, 0.25, 0.5 * T, 0.375,
+    0.5, T, 0.75, 1.0, 1.5, 2.0, 4.0, 8.0, 16.0, 32.0,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModKind {
@@ -113,7 +119,7 @@ impl Default for ModSettings {
             shape: Shape::Sin,
             color: NoiseColor::White,
             sync: true,
-            rate_index: 6,
+            rate_index: 16,
             hz: 1.0,
             phase: 0.0,
             bipolar: true,
@@ -641,9 +647,20 @@ mod tests {
     fn sync_rate_follows_bpm() {
         let mut m = ModMatrix::new();
         // Unipolar ramp = phase; 1 bar at 120 bpm = 2 s = 96 000 samples.
-        m.set_modulator(0, ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, bipolar: false, rate_index: 4, ..ModSettings::default() });
+        m.set_modulator(0, ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, bipolar: false, rate_index: 13, ..ModSettings::default() });
         advance(&mut m, 48_000);
         assert!((m.output(0) - 0.5).abs() < 0.01, "{}", m.output(0));
+    }
+
+    #[test]
+    fn triplet_and_dotted_rates() {
+        // 120 bpm: 1/4T = 1/6 bar = 16 000 samples, 1/4D = 3/8 bar = 36 000 samples
+        for (index, half) in [(5_u8, 8_000), (9, 18_000)] {
+            let mut m = ModMatrix::new();
+            m.set_modulator(0, ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, bipolar: false, rate_index: index, ..ModSettings::default() });
+            advance(&mut m, half);
+            assert!((m.output(0) - 0.5).abs() < 0.01, "index {index}: {}", m.output(0));
+        }
     }
 
     #[test]
@@ -691,7 +708,7 @@ mod tests {
     #[test]
     fn sanitized_settings_are_safe() {
         let s = ModSettings { rate_index: 255, hz: f32::NAN, phase: f32::INFINITY, smooth: -3.0, depth: 9.0, trig_src: -100, ..ModSettings::default() }.sanitized();
-        assert_eq!(s.rate_index, 9);
+        assert_eq!(s.rate_index, 19);
         assert_eq!(s.hz, 1.0);
         assert_eq!(s.phase, 0.0);
         assert_eq!(s.smooth, 0.0);

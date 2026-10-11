@@ -3,7 +3,7 @@ import { defaultModulator, initialModulators, modLabel, previewShape, rateLabel,
 
 test('defaults: 4 bar sync, bipolar, off', () => {
   const m = defaultModulator()
-  expect([m.kind, m.sync, m.rateIndex, m.bipolar, m.depth]).toEqual([0, true, 6, true, 1])
+  expect([m.kind, m.sync, m.rateIndex, m.bipolar, m.depth]).toEqual([0, true, 16, true, 1])
 })
 
 test('initial bank has LFO SIN, GLIDE, S&H and pink NOISE', () => {

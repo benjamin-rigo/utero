@@ -61,7 +61,7 @@ test('a click selects a tile, a second click toggles map mode, Escape or OFF lea
 test('RATE steps one sync division per arrow press', () => {
   const store = setup()
   fireEvent.keyDown(screen.getByRole('slider', { name: 'RATE' }), { key: 'ArrowRight' })
-  expect(store.getState().modulators[0].rateIndex).toBe(7)
+  expect(store.getState().modulators[0].rateIndex).toBe(17)
 })
 
 test('the RATE knob steps through the sync list, or sweeps Hz', () => {
@@ -69,7 +69,7 @@ test('the RATE knob steps through the sync list, or sweeps Hz', () => {
   const rate = () => screen.getByRole('slider', { name: 'RATE' })
   expect(rate().getAttribute('aria-valuetext')).toBe('4 BAR')
   fireEvent.keyDown(rate(), { key: 'End' })
-  expect(store.getState().modulators[0].rateIndex).toBe(9)
+  expect(store.getState().modulators[0].rateIndex).toBe(19)
   expect(rate().getAttribute('aria-valuetext')).toBe('32 BAR')
   fireEvent.click(screen.getByRole('button', { name: 'SYNC' }))
   expect(rate().getAttribute('aria-valuetext')).toBe('1.00 Hz')

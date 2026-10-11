@@ -8,7 +8,11 @@ export const MACRO_TARGETS = 16
 export const MOD_DRAG_TYPE = 'application/x-utero-mod'
 
 /** Index order mirrors SYNC_BARS in crates/core/src/modulation.rs. */
-export const SYNC_LABELS = ['1/16', '1/8', '1/4', '1/2', '1 BAR', '2 BAR', '4 BAR', '8 BAR', '16 BAR', '32 BAR']
+export const SYNC_LABELS = [
+  '1/16T', '1/16', '1/8T', '1/16D', '1/8', '1/4T', '1/8D', '1/4', '1/2T', '1/4D',
+  '1/2', '1T', '1/2D', '1 BAR', '1D', '2 BAR', '4 BAR', '8 BAR', '16 BAR', '32 BAR',
+]
+export const DEFAULT_RATE = SYNC_LABELS.indexOf('4 BAR')
 /** Codes mirror Shape::from_code; the favourites (SIN, GLIDE, S&H) come first. */
 export const SHAPES = [
   { code: 0, label: 'SIN' }, { code: 1, label: 'GLIDE' }, { code: 2, label: 'S&H' },
@@ -22,16 +26,16 @@ export const TRIG_MODES = ['FREE', 'RETRIG', 'ONESHOT']
 
 export function defaultModulator(): ModulatorState {
   return {
-    kind: 0, shape: 0, color: 0, sync: true, rateIndex: 6, hz: 1, phase: 0, bipolar: true,
+    kind: 0, shape: 0, color: 0, sync: true, rateIndex: DEFAULT_RATE, hz: 1, phase: 0, bipolar: true,
     trigMode: 0, trigSrc: -1, smooth: 0, depth: 1, steps: Array(STEP_COUNT).fill(0), stepLen: STEP_COUNT,
   }
 }
 
 export function initialModulators(): ModulatorState[] {
   const mods = Array.from({ length: MOD_SLOTS }, defaultModulator)
-  mods[0] = { ...mods[0], kind: 1, shape: 0, rateIndex: 6 }
-  mods[1] = { ...mods[1], kind: 1, shape: 1, rateIndex: 7 }
-  mods[2] = { ...mods[2], kind: 1, shape: 2, rateIndex: 2 }
+  mods[0] = { ...mods[0], kind: 1, shape: 0, rateIndex: DEFAULT_RATE }
+  mods[1] = { ...mods[1], kind: 1, shape: 1, rateIndex: SYNC_LABELS.indexOf('8 BAR') }
+  mods[2] = { ...mods[2], kind: 1, shape: 2, rateIndex: SYNC_LABELS.indexOf('1/4') }
   mods[3] = { ...mods[3], kind: 2, color: 1 }
   return mods
 }
