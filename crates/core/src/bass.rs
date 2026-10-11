@@ -31,6 +31,7 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
 ];
 
 const XOVER_HZ: f32 = 90.0;
+const HEADROOM: f32 = 0.4;
 const REESE_CENTS: f32 = 25.0;
 
 pub fn bass_params(sample_rate: f32) -> ParamBank {
@@ -126,11 +127,12 @@ impl BassVoice {
         let n = self.rng.bipolar();
         self.noise_lp += (n - self.noise_lp) * 0.05;
         self.glide.set_time(p.get(GLIDE), sr);
-        let semis = self.glide.next() + self.noise_lp * noise_amt * 0.15;
+        let base = self.glide.next();
+        let semis = base + self.noise_lp * noise_amt * 0.15;
         let freq = midi_to_hz(semis);
 
-        // clean sine sub, never processed
-        let sub_freq = midi_to_hz(semis - 12.0 * p.get(SUB_OCT).round());
+        // clean sine sub, never processed (no jitter either)
+        let sub_freq = midi_to_hz(base - 12.0 * p.get(SUB_OCT).round());
         self.sub_phase += sub_freq / sr;
         if self.sub_phase >= 1.0 {
             self.sub_phase -= 1.0;
@@ -162,7 +164,8 @@ impl BassVoice {
         let filtered = self.filter.process(x, cutoff, damp, sr).lp;
         let upper = self.drive.process(filtered.clamp(-4.0, 4.0), dirt);
 
-        let out = ((upper + sub) * self.amp * self.vel * fader_gain(p.get(LEVEL))).clamp(-1.0, 1.0);
+        // scaled-down mix leaves headroom so default settings never reach the safety clamp
+        let out = ((upper + sub) * HEADROOM * self.amp * self.vel * fader_gain(p.get(LEVEL))).clamp(-1.0, 1.0);
 
         if self.attack {
             self.amp += (1.0 - self.amp) * self.att_coef;
@@ -194,6 +197,18 @@ mod tests {
     use super::*;
 
     const SR: f32 = 48_000.0;
+
+    #[test]
+    fn defaults_leave_headroom() {
+        for note in [29, 41, 53] {
+            let p = settled(&[]);
+            let mut rng = Rng::new(3);
+            let mut v = BassVoice::new(SR, 9);
+            v.trigger(1.0, note, &p, &mut rng);
+            let peak = render(&mut v, &p, 24_000).iter().fold(0.0_f32, |m, s| m.max(s.abs()));
+            assert!(peak < 0.8, "note {note} peak {peak}");
+        }
+    }
 
     fn settled(edits: &[(usize, f32)]) -> ParamBank {
         let mut p = bass_params(SR);

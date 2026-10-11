@@ -82,4 +82,7 @@ test('BASS shows 8 knobs and a SUB OCT switch', () => {
   expect(store.getState().tracks[7].params[8]).toBe(1)
   fireEvent.keyDown(screen.getByRole('radio', { name: '−2' }), { key: 'ArrowLeft' })
   expect(store.getState().tracks[7].params[8]).toBe(0.5)
+  expect(document.activeElement?.textContent).toBe('−1')
+  fireEvent.keyDown(screen.getByRole('radio', { name: '−1' }), { key: 'Home' })
+  expect(store.getState().tracks[7].params[8]).toBe(0)
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { MACHINES, type MachineDef } from '@/state/machines'
 import { modLabel } from '@/state/modulation'
 import { rowParams, type Store } from '@/state/store'
@@ -65,6 +65,12 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
         const last = opts.length - 1
         const idx = Math.round((rowParams(state, t)[sw.param] ?? meta.default) * last)
         const pick = (i: number) => store.setParam(t, sw.param, Math.min(last, Math.max(0, i)) / last)
+        const move = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+          e.preventDefault()
+          const n = Math.min(last, Math.max(0, i))
+          pick(n)
+          ;(e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[n])?.focus()
+        }
         return (
           <div key={sw.param} role="radiogroup" aria-label={sw.label} className="flex items-center gap-1 px-2 pt-2 text-[10px]">
             <span className="mr-1 text-zinc-400">{sw.label}</span>
@@ -72,8 +78,10 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
               <button key={o} type="button" role="radio" aria-checked={i === idx} tabIndex={i === idx ? 0 : -1}
                 onClick={() => pick(i)}
                 onKeyDown={(e) => {
-                  const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
-                  if (d) { e.preventDefault(); pick(idx + d) }
+                  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(e, idx + 1)
+                  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(e, idx - 1)
+                  else if (e.key === 'Home') move(e, 0)
+                  else if (e.key === 'End') move(e, last)
                 }}
                 className={`min-w-8 rounded border px-2 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${i === idx ? 'border-acc text-acc' : 'border-zinc-700 text-zinc-300'}`}>
                 {o}
