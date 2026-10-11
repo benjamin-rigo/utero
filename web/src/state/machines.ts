@@ -31,7 +31,7 @@ export const BASS_PARAMS: ParamMeta[] = [
   { name: 'DECAY', default: 0.5, display: ms(30, 4000) },
   { name: 'FM', default: 0, display: { kind: 'pct' } },
   { name: 'LEVEL', default: 0.8, display: db },
-  { name: 'SUB OCT', default: 0, display: { kind: 'choice', options: ['0', '−1'] } },
+  { name: 'SUB OCT', default: 0.5, display: { kind: 'choice', options: ['−1', '0', '+1'] } },
 ]
 /** Mirrors BUS_PARAMS in crates/core/src/bus.rs. */
 export const BUS_PARAMS: ParamMeta[] = [

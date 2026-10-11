@@ -6,7 +6,7 @@ const names = ['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'BASS', 'LD1',
 
 test('param tables mirror the engine', () => {
   expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'NOISE', 'TONE', 'LEVEL'])
-  expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.35, 0.45, 0.4, 0.2, 0.5, 0, 0.8, 0])
+  expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.35, 0.45, 0.4, 0.2, 0.5, 0, 0.8, 0.5])
   expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8])
   expect(MASTER_PARAMS.map((p) => p.default)).toEqual([0.2, 0.6, 0.5, 1, 0.1, 0.5, 0.5, 0, 0.975, 0, 0.8])
 })
@@ -41,7 +41,8 @@ test('values are shown in real units', () => {
   expect(formatParam(KICK_PARAMS[4], 0.3)).toBe('30%')
   expect(formatParam(KICK_PARAMS[7], 0.8)).toBe('+0.0 dB')
   expect(formatParam(KICK_PARAMS[6], 1)).toBe('12.0 kHz')
-  expect(formatParam(BASS_PARAMS[8], 1)).toBe('−1')
+  expect(formatParam(BASS_PARAMS[8], 0)).toBe('−1')
+  expect(formatParam(BASS_PARAMS[8], 1)).toBe('+1')
   expect(formatParam(BUS_PARAMS[0], 0.5)).toBe('OFF')
   expect(formatParam(BUS_PARAMS[0], 0)).toBe('LP 20 Hz')
   expect(formatParam(BUS_PARAMS[0], 1)).toBe('HP 20.0 kHz')

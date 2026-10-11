@@ -13,7 +13,7 @@ pub const GRIT: usize = 4;
 pub const DECAY: usize = 5;
 pub const FM: usize = 6;
 pub const LEVEL: usize = 7;
-/// Switch, not a knob: the sub plays at the step note (0) or one octave under it (1).
+/// Switch, not a knob: the sub plays one octave under (−1), at (0) or over (+1) the step note.
 pub const SUB_OCT: usize = 8;
 pub const BASS_PARAM_COUNT: usize = 9;
 
@@ -27,7 +27,7 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
     ParamDesc { name: "DECAY", min: 30.0, max: 4000.0, default_norm: 0.5, curve: Curve::Exp },
     ParamDesc { name: "FM", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
-    ParamDesc { name: "SUB OCT", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
+    ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
 ];
 
 const XOVER_HZ: f32 = 90.0;
@@ -132,7 +132,7 @@ impl BassVoice {
         let semis = self.note + self.noise_lp * noise_amt * 0.15;
 
         // clean sine sub, never processed (no jitter either)
-        let sub_freq = midi_to_hz(self.note - 12.0 * p.get(SUB_OCT).round());
+        let sub_freq = midi_to_hz(self.note + 12.0 * p.get(SUB_OCT).round());
         self.sub_phase += sub_freq / sr;
         if self.sub_phase >= 1.0 {
             self.sub_phase -= 1.0;
@@ -262,8 +262,9 @@ mod tests {
             v.trigger(1.0, 53, &mut Rng::new(1));
             render(&mut v, &p, 48_000).windows(2).filter(|w| w[0] < 0.0 && w[1] >= 0.0).count()
         };
-        let (zero, one) = (count(0.0), count(1.0));
-        assert!((zero as f32 / one as f32 - 2.0).abs() < 0.1, "{zero} vs {one}");
+        let (down, zero, up) = (count(0.0), count(0.5), count(1.0));
+        assert!((zero as f32 / down as f32 - 2.0).abs() < 0.1, "{zero} vs {down}");
+        assert!((up as f32 / zero as f32 - 2.0).abs() < 0.1, "{up} vs {zero}");
     }
 
     #[test]
