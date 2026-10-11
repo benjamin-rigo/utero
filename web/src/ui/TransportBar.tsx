@@ -63,7 +63,6 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
           className="w-16 rounded bg-zinc-900 px-1 py-0.5 text-zinc-100 focus-visible:ring-2 focus-visible:ring-acc" />
       </label>
       {error && <span role="alert" className="text-red-400">{error}</span>}
-      <span className="ml-auto text-zinc-500">⌥+klikk = sávhossz</span>
     </header>
   )
 }

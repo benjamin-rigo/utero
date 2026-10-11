@@ -50,7 +50,7 @@ export default function App() {
       <main className="grid min-h-0 grid-cols-[1fr_440px]">
         <div className="flex min-h-0 flex-col">
           <SequencerMatrix state={state} playheads={playheads} onToggle={store.toggleStep} onSetLength={store.setLength}
-            onSetSpeed={store.setSpeed} onSelect={store.select} />
+            onSetSpeed={store.setSpeed} onSelect={store.select} onSetMode={store.setEditMode} onSetNote={store.setStepNote} />
           <div className="h-[190px] shrink-0">
             <ModStrip state={state} frame={frame} store={store} />
           </div>
