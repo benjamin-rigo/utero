@@ -108,12 +108,18 @@ impl Master {
         let mid = 0.5 * (self.sat_prev[c] + x);
         self.sat_prev[c] = x;
         if amount <= 0.0 {
+            // keep the DC blocker tracking so engaging SAT starts from a settled state
+            self.dc[c].lp(x, self.dc_coef);
             return x;
         }
         let g = 1.0 + amount.min(1.0) * 4.0;
         let bias = curve * 0.3;
         let norm = g.tanh();
-        let shape = |v: f32| ((v + bias * v * v) * g).tanh() / norm;
+        // tanh(v)² keeps the even-harmonic bias monotonic: hot negative peaks saturate instead of folding back.
+        let shape = |v: f32| {
+            let t = v.tanh();
+            ((v + bias * t * t) * g).tanh() / norm
+        };
         let wet = 0.5 * (shape(mid) + shape(x));
         // blend so the saturator is continuous from zero
         let y = x + (wet - x) * amount.min(1.0);
@@ -297,4 +303,16 @@ mod tests {
         let (l, _) = m.process(0.1, 0.1);
         assert!(l.is_finite());
     }
+    #[test]
+    fn saturation_never_flips_polarity() {
+        let mut m = master(&[(SAT, 1.0), (CURVE, 1.0), (COMP, 0.0), (MODE, 1.0), (CEILING, 1.0)]);
+        for i in 0..48_000 {
+            let x = sine(100.0, 3.0, i);
+            let (y, _) = m.process(x, x);
+            if i > 4_800 && x < -2.5 {
+                assert!(y < 0.0, "x {x} → y {y}");
+            }
+        }
+    }
+
 }

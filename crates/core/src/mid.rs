@@ -107,7 +107,7 @@ impl MidVoice {
         } else {
             self.glide.jump(note as f32);
         }
-        if !sounding {
+        if !self.active || self.amp < 1.0e-3 {
             self.osc_a.reset(0.0);
             self.osc_b.reset(rng.next_f32());
             self.svf.reset();

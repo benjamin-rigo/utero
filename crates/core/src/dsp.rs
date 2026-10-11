@@ -51,7 +51,9 @@ impl Drive2x {
         }
         let g = 1.0 + amount.min(1.0) * 15.0;
         let norm = g.tanh();
-        0.5 * ((mid * g).tanh() + (x * g).tanh()) / norm
+        let wet = 0.5 * ((mid * g).tanh() + (x * g).tanh()) / norm;
+        // Fade the shaper in over the first 10% so turning DRIVE up from 0 never jumps in level.
+        x + (wet - x) * (amount * 10.0).min(1.0)
     }
 }
 
@@ -398,4 +400,14 @@ mod tests {
             assert_eq!(b.process(x), x);
         }
     }
+    #[test]
+    fn drive_is_continuous_from_zero() {
+        let mut a = Drive2x::new();
+        let mut b = Drive2x::new();
+        for i in 0..100 {
+            let x = (i as f32 * 0.07).sin() * 0.5;
+            assert!((a.process(x, 0.0) - b.process(x, 1.0e-4)).abs() < 1.0e-3);
+        }
+    }
+
 }

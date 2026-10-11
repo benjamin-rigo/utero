@@ -81,8 +81,8 @@ impl SubVoice {
         } else {
             self.glide.jump(note as f32);
         }
-        // Restart from PHASE only from silence: resetting a sounding sine would click.
-        if !sounding {
+        // Restart from PHASE only from (near) silence: resetting even a quiet tail would click.
+        if !self.active || self.amp < 1.0e-3 {
             self.phase = p.get(PHASE);
         }
         self.attack = true;
