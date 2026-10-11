@@ -182,6 +182,9 @@ impl Modulator {
 
     pub fn set_settings(&mut self, s: ModSettings) {
         self.settings = s.sanitized();
+        if self.settings.trig_mode != TrigMode::OneShot {
+            self.done = false;
+        }
     }
 
     pub fn set_step(&mut self, i: usize, v: f32) {
@@ -318,6 +321,144 @@ impl Modulator {
     }
 }
 
+pub const MOD_SLOTS: usize = 16;
+pub const MAX_ROUTES: usize = 64;
+pub const MOD_TRACKS: usize = 13;
+pub const MOD_PARAMS: usize = 16;
+
+/// Per-sample fade of route amounts (~10 ms at 48 kHz): adding or removing a route never clicks.
+const ROUTE_FADE: f32 = 0.002;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ParamRef {
+    pub track: u8,
+    pub param: u8,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Route {
+    pub src: u8,
+    pub target: ParamRef,
+    pub amount: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct RouteSlot {
+    route: Route,
+    current: f32,
+    live: bool,
+}
+
+pub struct ModMatrix {
+    mods: [Modulator; MOD_SLOTS],
+    routes: [Option<RouteSlot>; MAX_ROUTES],
+    sums: [[f32; MOD_PARAMS]; MOD_TRACKS],
+}
+
+impl Default for ModMatrix {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ModMatrix {
+    pub fn new() -> Self {
+        ModMatrix {
+            mods: core::array::from_fn(|i| Modulator::new(0x000A_11CE + i as u32)),
+            routes: [None; MAX_ROUTES],
+            sums: [[0.0; MOD_PARAMS]; MOD_TRACKS],
+        }
+    }
+
+    pub fn set_modulator(&mut self, slot: usize, s: ModSettings) {
+        if let Some(m) = self.mods.get_mut(slot) {
+            m.set_settings(s);
+        }
+    }
+
+    pub fn set_step(&mut self, slot: usize, i: usize, v: f32) {
+        if let Some(m) = self.mods.get_mut(slot) {
+            m.set_step(i, v);
+        }
+    }
+
+    pub fn set_step_len(&mut self, slot: usize, len: u8) {
+        if let Some(m) = self.mods.get_mut(slot) {
+            m.set_step_len(len);
+        }
+    }
+
+    pub fn set_route(&mut self, index: usize, route: Route) {
+        let valid = (route.src as usize) < MOD_SLOTS
+            && (route.target.track as usize) < MOD_TRACKS
+            && (route.target.param as usize) < MOD_PARAMS
+            && route.amount.is_finite();
+        let Some(slot) = self.routes.get_mut(index) else { return };
+        if !valid {
+            return;
+        }
+        let route = Route { amount: route.amount.clamp(-1.0, 1.0), ..route };
+        match slot {
+            Some(rs) if rs.route.src == route.src && rs.route.target == route.target => {
+                rs.route.amount = route.amount;
+                rs.live = true;
+            }
+            _ => *slot = Some(RouteSlot { route, current: 0.0, live: true }),
+        }
+    }
+
+    pub fn clear_route(&mut self, index: usize) {
+        if let Some(Some(rs)) = self.routes.get_mut(index) {
+            rs.live = false;
+        }
+    }
+
+    pub fn restart(&mut self) {
+        for m in &mut self.mods {
+            m.restart();
+        }
+    }
+
+    pub fn on_track_trigger(&mut self, track: usize) {
+        for m in &mut self.mods {
+            let src = m.settings().trig_src;
+            if src >= 0 && src as usize == track {
+                m.on_trigger();
+            }
+        }
+    }
+
+    /// One sample: advances every modulator and rebuilds the per-target sums.
+    pub fn advance(&mut self, bpm: f32, sample_rate: f32) {
+        let samples_per_bar = 4.0 * 60.0 / bpm.max(1.0) * sample_rate;
+        for m in &mut self.mods {
+            let s = m.settings();
+            let inc = if s.sync { 1.0 / (SYNC_BARS[s.rate_index as usize] * samples_per_bar) } else { s.hz / sample_rate };
+            m.next(inc);
+        }
+        self.sums = [[0.0; MOD_PARAMS]; MOD_TRACKS];
+        for slot in &mut self.routes {
+            let Some(rs) = slot else { continue };
+            let target = if rs.live { rs.route.amount } else { 0.0 };
+            rs.current += (target - rs.current) * ROUTE_FADE;
+            if !rs.live && rs.current.abs() < 1.0e-4 {
+                *slot = None;
+                continue;
+            }
+            let t = rs.route.target;
+            self.sums[t.track as usize][t.param as usize] += rs.current * self.mods[rs.route.src as usize].output();
+        }
+    }
+
+    pub fn sum(&self, track: usize, param: usize) -> f32 {
+        self.sums.get(track).and_then(|row| row.get(param)).copied().unwrap_or(0.0)
+    }
+
+    pub fn output(&self, slot: usize) -> f32 {
+        self.mods.get(slot).map_or(0.0, |m| m.output())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -399,6 +540,123 @@ mod tests {
         m.set_settings(ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, trig_mode: TrigMode::OneShot, ..ModSettings::default() });
         let out = run(&mut m, 300, 0.01);
         assert!(out[150] > 0.99 && out[299] > 0.99);
+    }
+
+    #[test]
+    fn leaving_one_shot_unfreezes() {
+        let mut m = Modulator::new(1);
+        let ramp = ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, trig_mode: TrigMode::OneShot, ..ModSettings::default() };
+        m.set_settings(ramp);
+        run(&mut m, 300, 0.01);
+        m.set_settings(ModSettings { trig_mode: TrigMode::Free, ..ramp });
+        let out = run(&mut m, 10, 0.01);
+        assert!(*out.last().unwrap() < 0.5, "{}", out.last().unwrap());
+    }
+
+    fn square_mod(m: &mut ModMatrix, slot: usize) {
+        // Unsynced 0.01 Hz square: stays at +1 for the first 50 s.
+        m.set_modulator(slot, ModSettings { kind: ModKind::Lfo, shape: Shape::Sqr, sync: false, hz: 0.01, ..ModSettings::default() });
+    }
+
+    fn advance(m: &mut ModMatrix, n: usize) {
+        for _ in 0..n {
+            m.advance(120.0, 48_000.0);
+        }
+    }
+
+    fn route(src: u8, track: u8, param: u8, amount: f32) -> Route {
+        Route { src, target: ParamRef { track, param }, amount }
+    }
+
+    #[test]
+    fn route_adds_scaled_output_after_fade_in() {
+        let mut m = ModMatrix::new();
+        square_mod(&mut m, 0);
+        m.set_route(0, route(0, 0, 3, 0.5));
+        advance(&mut m, 1);
+        assert!(m.sum(0, 3) < 0.01, "fades in, does not jump");
+        advance(&mut m, 4800);
+        assert!((m.sum(0, 3) - 0.5).abs() < 0.01);
+        assert_eq!(m.sum(0, 2), 0.0);
+    }
+
+    #[test]
+    fn routes_to_the_same_target_add_up() {
+        let mut m = ModMatrix::new();
+        square_mod(&mut m, 0);
+        square_mod(&mut m, 1);
+        m.set_route(0, route(0, 1, 0, 0.25));
+        m.set_route(1, route(1, 1, 0, 0.5));
+        advance(&mut m, 4800);
+        assert!((m.sum(1, 0) - 0.75).abs() < 0.01);
+    }
+
+    #[test]
+    fn removed_route_fades_out_without_jump() {
+        let mut m = ModMatrix::new();
+        square_mod(&mut m, 0);
+        m.set_route(0, route(0, 0, 0, 1.0));
+        advance(&mut m, 4800);
+        let mut prev = m.sum(0, 0);
+        m.clear_route(0);
+        for _ in 0..4800 {
+            m.advance(120.0, 48_000.0);
+            let s = m.sum(0, 0);
+            assert!((prev - s).abs() <= 0.0021, "step {prev} -> {s}");
+            prev = s;
+        }
+        advance(&mut m, 48_000);
+        assert_eq!(m.sum(0, 0), 0.0);
+    }
+
+    #[test]
+    fn invalid_routes_are_ignored() {
+        let mut m = ModMatrix::new();
+        square_mod(&mut m, 0);
+        m.set_route(0, route(99, 0, 0, 0.5));
+        m.set_route(1, route(0, 99, 0, 0.5));
+        m.set_route(2, route(0, 0, 99, 0.5));
+        m.set_route(3, route(0, 0, 0, f32::NAN));
+        m.set_route(999, route(0, 0, 0, 0.5));
+        m.clear_route(999);
+        m.set_modulator(99, ModSettings::default());
+        m.set_step(99, 0, 1.0);
+        m.set_step_len(99, 4);
+        advance(&mut m, 4800);
+        assert_eq!(m.sum(0, 0), 0.0);
+        assert_eq!(m.sum(99, 99), 0.0);
+        assert_eq!(m.output(99), 0.0);
+    }
+
+    #[test]
+    fn amounts_are_clamped() {
+        let mut m = ModMatrix::new();
+        square_mod(&mut m, 0);
+        m.set_route(0, route(0, 0, 0, 5.0));
+        advance(&mut m, 48_000);
+        assert!((m.sum(0, 0) - 1.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn sync_rate_follows_bpm() {
+        let mut m = ModMatrix::new();
+        // Unipolar ramp = phase; 1 bar at 120 bpm = 2 s = 96 000 samples.
+        m.set_modulator(0, ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, bipolar: false, rate_index: 4, ..ModSettings::default() });
+        advance(&mut m, 48_000);
+        assert!((m.output(0) - 0.5).abs() < 0.01, "{}", m.output(0));
+    }
+
+    #[test]
+    fn track_trigger_only_restarts_matching_modulators() {
+        let mut m = ModMatrix::new();
+        for (slot, src) in [(0, 0), (1, 1)] {
+            m.set_modulator(slot, ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, bipolar: false, sync: false, hz: 1.0, trig_mode: TrigMode::Retrig, trig_src: src, ..ModSettings::default() });
+        }
+        advance(&mut m, 24_000);
+        m.on_track_trigger(1);
+        advance(&mut m, 1);
+        assert!(m.output(1) < 0.01);
+        assert!(m.output(0) > 0.4);
     }
 
     #[test]
