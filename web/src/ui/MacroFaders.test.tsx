@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { useSyncExternalStore } from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { createStore, type Store } from '@/state/store'
 import { MacroFaders } from './MacroFaders'
@@ -69,4 +69,37 @@ test('a rename works after an earlier one was cancelled', () => {
   fireEvent.change(input, { target: { value: 'DIRT' } })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(store.getState().macros[1].name).toBe('DIRT')
+})
+
+test('F2 on the name button starts a rename from the keyboard', () => {
+  const store = setup()
+  const btn = screen.getByRole('button', { name: 'M2' })
+  expect(btn.getAttribute('aria-keyshortcuts')).toBe('F2')
+  fireEvent.keyDown(btn, { key: 'F2' })
+  const input = screen.getByLabelText('Rename M2')
+  fireEvent.change(input, { target: { value: 'DIRT' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(store.getState().macros[1].name).toBe('DIRT')
+})
+
+test('target chips remove a macro target', () => {
+  const store = setup()
+  act(() => {
+    store.armLearn(0, 'a')
+    store.setParam(0, 1, 0.3)
+    store.setParam(0, 3, 0.4)
+  })
+  expect(store.getState().macros[0].targets).toHaveLength(2)
+  const chips = screen.getAllByRole('button', { name: /^Remove .* from M1$/ })
+  expect(chips).toHaveLength(2)
+  fireEvent.click(chips[0])
+  expect(store.getState().macros[0].targets).toHaveLength(1)
+})
+
+test('armed learn button keeps full opacity text with a ring', () => {
+  const store = setup()
+  act(() => { store.armLearn(0, 'a') })
+  const cls = screen.getByRole('button', { name: 'Learn M1 A' }).className
+  expect(cls).toContain('bg-red-600')
+  expect(cls).not.toContain('animate-pulse')
 })

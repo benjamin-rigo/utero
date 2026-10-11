@@ -168,7 +168,9 @@ export function createStore(initial: AppState = initialState()) {
       set({ ...state, selectedMod: slot })
     },
     updateModulator(slot: number, patch: ModulatorPatch) {
-      const next = { ...state.modulators[slot], ...patch }
+      const { hz, ...rest } = patch
+      const next = { ...state.modulators[slot], ...rest }
+      if (hz !== undefined && Number.isFinite(hz)) next.hz = clamp(hz, 0.01, 40)
       updateMod(slot, next)
       send(cmdSetModulator(slot, next))
       if (patch.stepLen !== undefined) send(cmdSetModStepLen(slot, next.stepLen))

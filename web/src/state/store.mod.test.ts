@@ -79,6 +79,18 @@ describe('modulators', () => {
     expect(sent).toEqual([[Op.SetModulator, 5, 1, 2, 0, 1, 3, 1, 0, 1, 0, -1, 0, 1]])
   })
 
+  test('hz is clamped to 0.01–40 and non-finite hz is ignored', () => {
+    const { store } = fresh()
+    store.updateModulator(1, { kind: 1, hz: 500 })
+    expect(store.getState().modulators[1].hz).toBe(40)
+    store.updateModulator(1, { hz: 0 })
+    expect(store.getState().modulators[1].hz).toBe(0.01)
+    store.updateModulator(1, { hz: NaN })
+    expect(store.getState().modulators[1].hz).toBe(0.01)
+    store.updateModulator(1, { hz: Infinity })
+    expect(store.getState().modulators[1].hz).toBe(0.01)
+  })
+
   test('stepLen changes also send SetModStepLen; steps are clamped', () => {
     const { store, sent } = fresh()
     store.updateModulator(4, { kind: 3, stepLen: 8 })

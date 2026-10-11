@@ -79,10 +79,11 @@ export function MachinePanel({ state, frame, store }: Props) {
         <span className="text-[9px] tracking-wider text-zinc-400 uppercase">mod on {KICK_PARAMS[selParam].name}</span>
         {routes.length === 0 && <p className="text-zinc-400">húzz rá egy modulátort a gombra, vagy add hozzá itt</p>}
         {routes.map(({ r, i }) => {
-          const name = modLabel(r.src, state.modulators[r.src])
+          const mod = state.modulators[r.src]
+          const name = mod.kind === 0 ? `MOD${r.src + 1} (off)` : modLabel(r.src, mod)
           return (
             <div key={i} className="flex items-center gap-2">
-              <span className="w-14 text-mod">{name}</span>
+              <span className="w-16 text-mod">{name}</span>
               <input type="range" min={-100} max={100} value={Math.round(r.amount * 100)} aria-label={`${name} amount`}
                 onChange={(e) => store.setRouteAmount(i, Number(e.target.value) / 100)} className="flex-1 accent-sky-400" />
               <span className="w-8 text-right tabular-nums">{Math.round(r.amount * 100)}</span>

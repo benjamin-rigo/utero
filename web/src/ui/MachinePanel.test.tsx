@@ -59,3 +59,12 @@ test('add-route source falls back to the first active modulator', () => {
   fireEvent.click(screen.getByRole('button', { name: '+ route' }))
   expect(store.getState().routes[0]).toMatchObject({ src: 1, track: 0, param: 3 })
 })
+
+test('a route from a switched-off modulator is labelled (off), not "+ add"', () => {
+  const store = setup()
+  fireEvent.click(screen.getByRole('button', { name: 'DECAY' }))
+  act(() => { store.addRoute(3, 0, 3) })
+  act(() => { store.updateModulator(3, { kind: 0 }) })
+  expect(screen.getByLabelText('MOD4 (off) amount')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Remove MOD4 (off) route' })).toBeTruthy()
+})

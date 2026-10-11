@@ -58,3 +58,9 @@ test('label button selects the parameter', () => {
   fireEvent.click(screen.getByRole('button', { name: 'DECAY' }))
   expect(onSelect).toHaveBeenCalled()
 })
+
+test('learning adds a non-colour cue', () => {
+  const { knob } = setup({ learning: true, display: 0.5 })
+  expect(knob.getAttribute('aria-valuetext')).toContain('LEARN')
+  expect(screen.getByText('L')).toBeTruthy()
+})

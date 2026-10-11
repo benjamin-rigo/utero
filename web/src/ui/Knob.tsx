@@ -63,7 +63,7 @@ export function Knob({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct(value)}
-        aria-valuetext={`${pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}`}
+        aria-valuetext={`${pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
         width={SIZE}
         height={SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -130,6 +130,7 @@ export function Knob({
         className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-mod' : 'text-zinc-400'}`}>
         {label}
       </button>
+      {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
       <span className="text-sm tabular-nums">{pct(display)}</span>
     </div>
   )
