@@ -85,3 +85,18 @@ test('the row rate knob walks the speeds in musical order', () => {
   fireEvent.keyDown(rate, { key: 'ArrowLeft' })
   expect(store.getState().tracks[0].speed).toBe(5)
 })
+
+test('the length handle keeps dragging after the end step moves', () => {
+  const store = setup()
+  act(() => store.setLength(0, 8))
+  const handle = document.querySelector('[data-track="0"] [data-length-handle]')!
+  fireEvent.pointerDown(handle, { clientX: 10, pointerId: 1 })
+  const section = screen.getByRole('region', { name: 'Sequencer' })
+  // jsdom lays every cell at x = 0, so any x lands on the last visible step
+  fireEvent.pointerMove(section, { clientX: 50, pointerId: 1 })
+  expect(store.getState().tracks[0].length).toBe(16)
+  fireEvent.pointerUp(section, { pointerId: 1 })
+  fireEvent.pointerMove(section, { clientX: 0, pointerId: 1 })
+  fireEvent.click(screen.getByRole('button', { name: 'KICK step 2' }))
+  expect(store.getState().tracks[0].steps[1].trig).toBe(true)
+})

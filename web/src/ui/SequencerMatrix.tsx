@@ -68,7 +68,16 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
   }
 
   return (
-    <section ref={root} aria-label="Sequencer" className="flex min-h-0 flex-1 flex-col gap-[3px] border-r border-zinc-800 p-2">
+    <section ref={root} aria-label="Sequencer"
+      onPointerMove={(e) => {
+        const t = lengthDrag.current
+        if (t === null) return
+        const len = stepUnder(t, e.clientX) + 1
+        if (len !== state.tracks[t].length) onSetLength(t, len)
+      }}
+      onPointerUp={() => { lengthDrag.current = null }}
+      onPointerCancel={() => { lengthDrag.current = null }}
+      className="flex min-h-0 flex-1 flex-col gap-[3px] border-r border-zinc-800 p-2">
       <p className="pb-1 text-[10px] text-zinc-400">klikk = trig · ↑↓ / görgő / húzás a trigen = hang (⇧ oktáv) · ←→ léptet · ⌥+klikk = sávhossz</p>
       {state.tracks.map((tr, t) => {
         const newBus = t > 0 && state.tracks[t - 1].bus !== tr.bus
@@ -108,6 +117,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                     wheel.current = 0
                   }}
                   onPointerDown={(e) => {
+                    dragged.current = false
                     if (!melodic || e.altKey) return
                     e.currentTarget.setPointerCapture?.(e.pointerId)
                     drag.current = { t, s, y: e.clientY, note: st.note, trig: st.trig, moved: false }
@@ -144,20 +154,11 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                     <span aria-hidden="true" data-length-handle
                       className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize touch-none bg-acc hover:w-2"
                       onPointerDown={(e) => {
+                        // capture on the section: this handle moves (re-mounts) as the length changes
                         e.stopPropagation()
-                        e.currentTarget.setPointerCapture?.(e.pointerId)
+                        root.current?.setPointerCapture?.(e.pointerId)
                         lengthDrag.current = t
-                      }}
-                      onPointerMove={(e) => {
-                        if (lengthDrag.current !== t) return
-                        const len = stepUnder(t, e.clientX) + 1
-                        if (len !== tr.length) onSetLength(t, len)
-                      }}
-                      onPointerUp={() => {
-                        lengthDrag.current = null
-                        dragged.current = true
-                      }}
-                      onPointerCancel={() => { lengthDrag.current = null }} />
+                      }} />
                   )}
                 </button>
               )

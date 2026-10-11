@@ -36,14 +36,15 @@ export function ModStrip({ state, frame, store }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [mapping, store])
+  // first click selects (edit on the MOD page); clicking the selected tile toggles map mode
   const pick = (i: number) => {
-    if (i === slot && mapping) {
-      store.setMapping(false)
+    if (i === slot && state.modulators[i].kind !== 0) {
+      store.setMapping(!mapping)
       return
     }
     store.selectMod(i)
+    if (mapping) store.setMapping(false)
     if (state.modulators[i].kind === 0) store.updateModulator(i, { kind: 1 })
-    store.setMapping(true)
   }
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (

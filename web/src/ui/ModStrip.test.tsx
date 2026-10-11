@@ -43,14 +43,18 @@ test('the SHAPE knob steps through the shapes', () => {
   expect(store.getState().modulators[0].shape).toBe(8)
 })
 
-test('clicking a tile enters map mode, clicking it again or Escape leaves it', () => {
+test('a click selects a tile, a second click toggles map mode, Escape or OFF leaves it', () => {
   const store = setup()
-  fireEvent.click(screen.getByRole('button', { name: /^LFO2/ }))
-  expect([store.getState().selectedMod, store.getState().mapping]).toEqual([1, true])
-  fireEvent.click(screen.getByRole('button', { name: /^LFO2/ }))
-  expect(store.getState().mapping).toBe(false)
-  fireEvent.click(screen.getByRole('button', { name: /^LFO2/ }))
+  const tile = () => screen.getByRole('button', { name: /^LFO2/ })
+  fireEvent.click(tile())
+  expect([store.getState().selectedMod, store.getState().mapping]).toEqual([1, false])
+  fireEvent.click(tile())
+  expect(store.getState().mapping).toBe(true)
   fireEvent.keyDown(window, { key: 'Escape' })
+  expect(store.getState().mapping).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: 'MAP' }))
+  expect(store.getState().mapping).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: 'OFF' }))
   expect(store.getState().mapping).toBe(false)
 })
 

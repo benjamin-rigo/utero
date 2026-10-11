@@ -123,7 +123,7 @@ export function createStore(initial: AppState = initialState()) {
     send(cmdSetRoute(index, next))
   }
 
-  return {
+  const api = {
     getState: () => state,
     subscribe(listener: () => void) {
       listeners.add(listener)
@@ -221,16 +221,17 @@ export function createStore(initial: AppState = initialState()) {
       const idx = routeIndexFor(state, state.selectedMod, t, p)
       const r = state.routes[idx]
       if (r) setRoute(idx, r.amount + delta)
-      else if (delta !== 0) this.addRoute(state.selectedMod, t, p, delta)
+      else if (delta !== 0) api.addRoute(state.selectedMod, t, p, delta)
     },
     clearMapAmount(t: number, p: number) {
-      this.removeRoute(routeIndexFor(state, state.selectedMod, t, p))
+      api.removeRoute(routeIndexFor(state, state.selectedMod, t, p))
     },
     updateModulator(slot: number, patch: ModulatorPatch) {
       const { hz, ...rest } = patch
       const next = { ...state.modulators[slot], ...rest }
       if (hz !== undefined && Number.isFinite(hz)) next.hz = clamp(hz, 0.01, 40)
       updateMod(slot, next)
+      if (next.kind === 0 && slot === state.selectedMod && state.mapping) set({ ...state, mapping: false })
       send(cmdSetModulator(slot, next))
       if (patch.stepLen !== undefined) send(cmdSetModStepLen(slot, next.stepLen))
     },
@@ -298,6 +299,7 @@ export function createStore(initial: AppState = initialState()) {
       send(cmdClearMacroTarget(m, removed.slot))
     },
   }
+  return api
 }
 
 
