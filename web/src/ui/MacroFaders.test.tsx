@@ -58,3 +58,15 @@ test('Escape cancels a rename', () => {
   fireEvent.keyDown(input, { key: 'Escape' })
   expect(store.getState().macros[1].name).toBe('M2')
 })
+
+test('a rename works after an earlier one was cancelled', () => {
+  const store = setup()
+  fireEvent.doubleClick(screen.getByRole('button', { name: 'M2' }))
+  fireEvent.change(screen.getByLabelText('Rename M2'), { target: { value: 'XX' } })
+  fireEvent.keyDown(screen.getByLabelText('Rename M2'), { key: 'Escape' })
+  fireEvent.doubleClick(screen.getByRole('button', { name: 'M2' }))
+  const input = screen.getByLabelText('Rename M2')
+  fireEvent.change(input, { target: { value: 'DIRT' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(store.getState().macros[1].name).toBe('DIRT')
+})

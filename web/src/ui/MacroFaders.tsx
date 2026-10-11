@@ -41,7 +41,7 @@ export function MacroFaders({ state, store }: Props) {
                     if (e.key === 'Escape') { cancelRename.current = true; setEditing(null) }
                   }} />
               ) : (
-                <button type="button" aria-pressed={state.selectedMacro === m} onClick={() => store.selectMacro(m)} onDoubleClick={() => setEditing(m)}
+                <button type="button" aria-pressed={state.selectedMacro === m} onClick={() => store.selectMacro(m)} onDoubleClick={() => { cancelRename.current = false; setEditing(m) }}
                   className={`max-w-full truncate rounded text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-acc ${state.selectedMacro === m ? 'text-acc' : 'text-zinc-200'}`}>
                   {mac.name}
                 </button>

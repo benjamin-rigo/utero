@@ -91,7 +91,7 @@ export function MachinePanel({ state, frame, store }: Props) {
           )
         })}
         <div className="flex items-center gap-2">
-          <select aria-label="Modulator to add" value={src} onChange={(e) => setAddSrc(Number(e.target.value))}
+          <select aria-label="Modulator to add" value={src ?? ''} onChange={(e) => setAddSrc(Number(e.target.value))}
             className="rounded bg-zinc-900 px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc">
             {active.map(({ m, i }) => <option key={i} value={i}>{modLabel(i, m)}</option>)}
           </select>
