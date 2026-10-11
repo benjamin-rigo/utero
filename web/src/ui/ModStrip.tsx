@@ -125,7 +125,7 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
   const last = options.length - 1
   const at = (v: number) => Math.round(v * last)
   return (
-    <Knob label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
+    <Knob size="sm" label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
       format={(v) => options[at(v)]} onChange={(v) => { if (at(v) !== index) onIndex(at(v)) }} />
   )
 }
@@ -137,7 +137,6 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
   const liveY = toY(m.bipolar ? live : live * 2 - 1)
   return (
     <div className="flex min-h-0 min-w-0 flex-col gap-1.5 rounded border border-mod/60 bg-[#0a141a] p-2 text-[10px]">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="w-12 text-mod">{modLabel(slot, m)}</span>
           <div role="group" aria-label="Modulator type" className="flex gap-1">
@@ -163,10 +162,11 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
             </>
           )}
         </div>
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         {m.kind === 3 ? (
           <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />
         ) : m.kind !== 0 ? (
-          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="min-h-0 w-full flex-1 rounded bg-black/30" aria-hidden="true">
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full min-h-0 w-full rounded bg-black/30" aria-hidden="true">
             <line x1={0} x2={W} y1={H / 2} y2={H / 2} className="stroke-zinc-800" strokeWidth={1} vectorEffect="non-scaling-stroke" />
             <path d={pathOf(previewShape(m, 128))} fill="none" className="stroke-mod" strokeWidth={2} vectorEffect="non-scaling-stroke" />
             <line x1={0} x2={W} y1={liveY} y2={liveY} className="stroke-zinc-100/60" strokeWidth={1} vectorEffect="non-scaling-stroke" />
@@ -174,13 +174,12 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
         ) : (
           <p className="text-zinc-400">Üres slot – válassz típust.</p>
         )}
-      </div>
       {m.kind !== 0 && (
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-0.5">
           {timed && (m.sync ? (
             <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
           ) : (
-            <Knob label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
+            <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
               format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
           ))}
           {m.kind === 1 && (
@@ -189,9 +188,9 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
           {m.kind === 2 && (
             <ChoiceKnob label="COLOR" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />
           )}
-          {timed && <Knob label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
-          <Knob label="SMOOTH" value={m.smooth} defaultValue={0} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update({ smooth: v })} />
-          <Knob label="DEPTH" value={m.depth} defaultValue={1} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update({ depth: v })} />
+          {timed && <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
+          <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update({ smooth: v })} />
+          <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update({ depth: v })} />
           {timed && (
             <>
               <ChoiceKnob label="MODE" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />
@@ -200,6 +199,7 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }
