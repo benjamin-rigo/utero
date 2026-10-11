@@ -18,7 +18,7 @@ interface Props {
 /** Click = trig, ⌥+click = track ends here. */
 export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect }: Props) {
   return (
-    <section aria-label="Sequencer" className="flex min-h-0 flex-col gap-[3px] border-r border-zinc-800 p-2">
+    <section aria-label="Sequencer" className="flex min-h-0 flex-1 flex-col gap-[3px] border-r border-zinc-800 p-2">
       {state.tracks.map((tr, t) => {
         const newBus = t > 0 && state.tracks[t - 1].bus !== tr.bus
         const selected = state.selected === t
