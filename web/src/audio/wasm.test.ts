@@ -96,3 +96,16 @@ test('bus mute reaches the snapshot', async () => {
   expect(snap[SNAP_MUTED + 2]).toBe(1)
   expect(snap[SNAP_MUTED + 1]).toBe(0)
 })
+
+test('engine param defaults match the UI tables', async () => {
+  const { rowParamMetas } = await import('@/state/machines')
+  const ex = await load()
+  ex.utero_init(48000)
+  ex.utero_process(1)
+  const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
+  for (const row of [0, 1, 7, 8, 13, 16, 21]) {
+    rowParamMetas(row).forEach((meta, p) => {
+      expect(snap[SNAP_EFFECTIVE + row * 24 + p], `row ${row} param ${meta.name}`).toBeCloseTo(meta.default, 2)
+    })
+  }
+})

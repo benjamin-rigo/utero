@@ -38,7 +38,7 @@ export function initialState(): AppState {
   }
 }
 
-/** Base value with macro overrides applied (later macro wins), without modulation. */
+/** Base (unmodulated) params of a row: 0–12 track, 13–20 bus, 21 master. */
 export function rowParams(state: AppState, row: number): number[] {
   if (row < TRACK_COUNT) return state.tracks[row]?.params ?? []
   if (row < MASTER_ROW) return state.buses[row - TRACK_COUNT]?.params ?? []
@@ -144,10 +144,9 @@ export function createStore(initial: AppState = initialState()) {
       updateTrack(t, (tr) => ({ ...tr, speed: code }))
       send(cmdSetSpeed(t, code))
     },
-    /** While LEARN is armed this writes the macro endpoint instead of the base value. */
-    /** `t` is a row: 0–12 track, 13–20 bus, 21 master. */
+    /** `t` is a row (0–12 track, 13–20 bus, 21 master); while LEARN is armed this writes the macro endpoint instead. */
     setParam(t: number, p: number, v: number) {
-      if (p >= rowParamMetas(t).length) return
+      if (p >= rowParamMetas(t).length || !Number.isFinite(v)) return
       const value = clamp(v, 0, 1)
       const learn = state.learn
       if (learn) {
@@ -191,7 +190,7 @@ export function createStore(initial: AppState = initialState()) {
       set({ ...state, selected: t })
     },
     setStepNote(t: number, s: number, note: number) {
-      if (!isMelodic(t)) return
+      if (!isMelodic(t) || !Number.isFinite(note)) return
       const step = { ...state.tracks[t].steps[s], note: clamp(Math.round(note), 0, 127) }
       updateTrack(t, (tr) => ({ ...tr, steps: tr.steps.map((st, i) => (i === s ? step : st)) }))
       send(cmdSetStep(t, s, step))

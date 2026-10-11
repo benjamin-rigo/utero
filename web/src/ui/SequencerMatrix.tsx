@@ -24,6 +24,8 @@ interface Props {
 export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetMode, onSetNote }: Props) {
   const noteMode = state.editMode === 'note'
   const drag = useRef<{ t: number; s: number; y: number; note: number } | null>(null)
+  // Trackpads send many small wheel events: step one semitone per ~50 px of scroll.
+  const wheel = useRef(0)
 
   const onNoteKey = (e: KeyboardEvent, t: number, s: number, note: number) => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
@@ -68,7 +70,13 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                     else if (!noteMode) onToggle(t, s)
                   }}
                   onKeyDown={(e) => { if (showNote) onNoteKey(e, t, s, st.note) }}
-                  onWheel={(e) => { if (showNote) onSetNote(t, s, st.note + (e.deltaY < 0 ? 1 : -1)) }}
+                  onWheel={(e) => {
+                    if (!showNote || !st.trig) return
+                    wheel.current += e.deltaY
+                    if (Math.abs(wheel.current) < 50) return
+                    onSetNote(t, s, st.note + (wheel.current < 0 ? 1 : -1))
+                    wheel.current = 0
+                  }}
                   onPointerDown={(e) => {
                     if (!showNote) return
                     e.currentTarget.setPointerCapture?.(e.pointerId)

@@ -20,6 +20,7 @@ pub const MID_TRACK: usize = 8;
 /// KICK·KCK2 → KICK, HH·OH → HATS, SNR·NOIS·SMPL → PERC, SUB·MID → BASS, LD1·LD2 → LEAD, PAD, ORN; bus 7 = FX RTN.
 pub const TRACK_BUS: [usize; TRACKS] = [0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 6];
 const BAR_TICKS: u64 = PPQN * 4;
+const MUTE_LEAD_TICKS: u64 = 3;
 
 /// Snapshot layout, mirrored in web/src/audio/snapshot.ts.
 pub const SNAP_TICK: usize = 0;
@@ -333,7 +334,8 @@ impl Engine {
     }
 
     fn on_tick(&mut self, tick: u64) {
-        if tick % BAR_TICKS == 0 {
+        // Apply quantized mutes 3 ticks (~6 ms) before the downbeat so the 5 ms fade is done when bar 1 hits.
+        if (tick + MUTE_LEAD_TICKS) % BAR_TICKS == 0 {
             for b in 0..BUSES {
                 if let Some(m) = self.pending_mute[b].take() {
                     self.buses[b].set_muted(m);
@@ -687,4 +689,19 @@ mod tests {
         assert_eq!(e.snapshot[SNAP_MUTED + 2], 1.0);
         assert!(e.snapshot[SNAP_METERS + 2 * bus::BUSES + 2] > -70.0, "master lufs");
     }
+    #[test]
+    fn quantized_mute_catches_the_downbeat() {
+        let downbeat = |mute: bool| {
+            let mut e = Engine::new(48_000.0);
+            e.set_bpm(120.0);
+            quarter_kick(&mut e);
+            e.play();
+            render_seconds(&mut e, 1.0);
+            e.set_bus_mute(0, mute, true);
+            render_seconds(&mut e, 1.0); // up to the bar line at 96 000 samples
+            rms(&render_seconds(&mut e, 0.05))
+        };
+        assert!(downbeat(true) < 0.1 * downbeat(false), "{} vs {}", downbeat(true), downbeat(false));
+    }
+
 }

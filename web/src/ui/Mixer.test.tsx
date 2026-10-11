@@ -41,15 +41,18 @@ test('level fader sets the bus LEVEL param and shows dB', () => {
 test('dropping a modulator on a bus filter routes to that bus row', () => {
   const store = setup()
   const dataTransfer = { types: [MOD_DRAG_TYPE], getData: () => '0' }
-  fireEvent.drop(screen.getByRole('slider', { name: 'BASS filter' }), { dataTransfer })
+  fireEvent.drop(screen.getByRole('slider', { name: 'BASS FLT' }), { dataTransfer })
   expect(store.getState().routes[0]).toMatchObject({ src: 0, track: 16, param: 0 })
 })
 
 test('master MODE switches between limiter and clip', () => {
   const store = setup()
-  fireEvent.click(screen.getByRole('button', { name: 'Master mode LIMIT' }))
+  const clip = screen.getByRole('button', { name: 'Master CLIP' })
+  expect(clip.getAttribute('aria-pressed')).toBe('false')
+  fireEvent.click(clip)
   expect(store.getState().master.params[9]).toBe(1)
-  fireEvent.click(screen.getByRole('button', { name: 'Master mode CLIP' }))
+  expect(clip.getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(clip)
   expect(store.getState().master.params[9]).toBe(0)
 })
 

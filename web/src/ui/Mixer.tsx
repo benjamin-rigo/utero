@@ -52,14 +52,14 @@ export function Mixer({ state, frame, store }: Props) {
               <span className="tabular-nums text-zinc-400">{faderDb(live(row, BUS_LEVEL))}</span>
             </div>
             <div className="flex justify-center gap-1">
-              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_FILTER} meta={BUS_PARAMS[BUS_FILTER]} size="sm" ariaLabel={`${bus.name} filter`} />
-              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_DRIVE} meta={BUS_PARAMS[BUS_DRIVE]} size="sm" ariaLabel={`${bus.name} drive`} />
+              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_FILTER} meta={BUS_PARAMS[BUS_FILTER]} size="sm" ariaLabel={`${bus.name} FLT`} />
+              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_DRIVE} meta={BUS_PARAMS[BUS_DRIVE]} size="sm" ariaLabel={`${bus.name} DRV`} />
             </div>
             <div className="flex min-h-0 justify-center gap-1.5">
               <div className="w-8"><VFader label={`${bus.name} level`} pos={editValue(row, BUS_LEVEL)} valueText={faderDb(editValue(row, BUS_LEVEL))} onPos={(p) => store.setParam(row, BUS_LEVEL, p)} /></div>
               <Meter label={`${bus.name} peak`} peak={meter.peak} />
             </div>
-            <button type="button" aria-label={`Mute ${bus.name}`} aria-pressed={bus.muted} onClick={() => store.toggleMute(b)}
+            <button type="button" aria-label={`Mute ${bus.name}${pending ? ', pending' : ''}`} aria-pressed={bus.muted} onClick={() => store.toggleMute(b)}
               className={`rounded border py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${bus.muted ? 'border-red-600 bg-red-600 text-white' : 'border-zinc-700 text-zinc-300'}`}>
               {bus.muted ? 'MUTED' : 'MUTE'}{pending ? ' · Q' : ''}
             </button>
@@ -71,8 +71,8 @@ export function Mixer({ state, frame, store }: Props) {
           <div className="flex items-center gap-2">
             <b>MASTER</b>
             <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} onClick={() => store.setMuteQuantize(!state.muteQuantize)}>MUTE Q</button>
-            <button type="button" className={toggle(clip)} aria-label={`Master mode ${clip ? 'CLIP' : 'LIMIT'}`}
-              onClick={() => store.setParam(MASTER_ROW, MASTER_MODE, clip ? 0 : 1)}>{clip ? 'CLIP' : 'LIMIT'}</button>
+            <button type="button" className={toggle(clip)} aria-label="Master CLIP" aria-pressed={clip} title={clip ? 'soft clip' : 'limiter'}
+              onClick={() => store.setParam(MASTER_ROW, MASTER_MODE, clip ? 0 : 1)}>CLIP</button>
             <span className="ml-auto tabular-nums text-zinc-300">{master.lufs.toFixed(1)} LUFS · GR {master.gr.toFixed(1)} dB</span>
           </div>
           <div className="grid grid-cols-5 gap-x-1 gap-y-0.5">
