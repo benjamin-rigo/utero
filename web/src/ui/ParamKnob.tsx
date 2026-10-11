@@ -13,7 +13,7 @@ interface Props {
   row: number
   param: number
   meta: ParamMeta
-  size?: 'md' | 'sm'
+  size?: 'md' | 'sm' | 'xs'
   ariaLabel?: string
   selected?: boolean
   onSelect?(): void
