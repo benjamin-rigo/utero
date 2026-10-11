@@ -92,7 +92,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
               className={`flex flex-col justify-center rounded px-1 text-left leading-tight outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-acc' : 'text-zinc-400'}`}>
               {tr.name}
-              {tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
+              {tuner[t] && ' '}{tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
             </button>
             {tr.steps.slice(0, VISIBLE).map((st, s) => {
               const beyond = s >= tr.length
