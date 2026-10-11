@@ -88,4 +88,18 @@ export interface AppState {
   selectedMod: number
   selectedMacro: number
   learn: LearnState | null
+  buses: BusState[]
+  master: MasterState
+  muteQuantize: boolean
+  editMode: 'trig' | 'note'
+}
+
+export interface BusState {
+  name: string
+  params: number[]
+  muted: boolean
+}
+
+export interface MasterState {
+  params: number[]
 }

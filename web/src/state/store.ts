@@ -1,10 +1,10 @@
 import {
   cmdClearMacroTarget, cmdClearRoute, cmdPlay, cmdSetBpm, cmdSetLength, cmdSetMacroPos, cmdSetMacroTarget,
-  cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop,
+  cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, cmdSetBusMute,
 } from '@/audio/ops'
-import { KICK_PARAMS } from './kickParams'
+import { BUS_NAMES, BUS_PARAMS, isMelodic, MACHINES, MASTER_PARAMS, MASTER_ROW, rowParamMetas, TRACK_COUNT } from './machines'
 import { initialMacros, initialModulators, MACRO_TARGETS, MAX_ROUTES, STEP_COUNT } from './modulation'
-import type { AppState, MacroState, MacroTargetState, ModulatorState, StepState, TrackState } from './types'
+import type { AppState, BusState, MacroState, MacroTargetState, ModulatorState, StepState, TrackState } from './types'
 
 export const KICK_TRACKS = 2
 
@@ -24,21 +24,32 @@ export function initialState(): AppState {
     length: 16,
     speed: 1,
     steps: Array.from({ length: 64 }, emptyStep),
-    params: i < KICK_TRACKS ? KICK_PARAMS.map((p) => p.default) : [],
+    params: MACHINES[i]?.params.map((p) => p.default) ?? [],
   }))
   for (const s of [0, 4, 8, 12]) tracks[0].steps[s].trig = true
   return {
     bpm: 128, playing: false, selected: 0, tracks,
     modulators: initialModulators(), routes: Array(MAX_ROUTES).fill(null), macros: initialMacros(),
     selectedMod: 0, selectedMacro: 0, learn: null,
+    buses: BUS_NAMES.map((name): BusState => ({ name, params: BUS_PARAMS.map((p) => p.default), muted: false })),
+    master: { params: MASTER_PARAMS.map((p) => p.default) },
+    muteQuantize: true,
+    editMode: 'trig',
   }
 }
 
 /** Base value with macro overrides applied (later macro wins), without modulation. */
-export function effectiveValue(state: AppState, t: number, p: number): number {
-  let v = state.tracks[t].params[p] ?? 0
+export function rowParams(state: AppState, row: number): number[] {
+  if (row < TRACK_COUNT) return state.tracks[row]?.params ?? []
+  if (row < MASTER_ROW) return state.buses[row - TRACK_COUNT]?.params ?? []
+  return row === MASTER_ROW ? state.master.params : []
+}
+
+/** Base value of any row with macro overrides applied (later macro wins), without modulation. */
+export function effectiveValue(state: AppState, row: number, p: number): number {
+  let v = rowParams(state, row)[p] ?? 0
   for (const m of state.macros) {
-    for (const x of m.targets) if (x.track === t && x.param === p) v = x.a + (x.b - x.a) * m.pos
+    for (const x of m.targets) if (x.track === row && x.param === p) v = x.a + (x.b - x.a) * m.pos
   }
   return v
 }
@@ -66,6 +77,11 @@ export function createStore(initial: AppState = initialState()) {
   }
   const updateTrack = (t: number, fn: (tr: TrackState) => TrackState) =>
     set({ ...state, tracks: state.tracks.map((tr, i) => (i === t ? fn(tr) : tr)) })
+  const updateRow = (row: number, fn: (params: number[]) => number[]) => {
+    if (row < TRACK_COUNT) updateTrack(row, (tr) => ({ ...tr, params: fn(tr.params) }))
+    else if (row < MASTER_ROW) set({ ...state, buses: state.buses.map((b, i) => (i === row - TRACK_COUNT ? { ...b, params: fn(b.params) } : b)) })
+    else set({ ...state, master: { params: fn(state.master.params) } })
+  }
   const updateMacro = (m: number, fn: (mac: MacroState) => MacroState) =>
     set({ ...state, macros: state.macros.map((x, i) => (i === m ? fn(x) : x)) })
   const updateMod = (slot: number, next: ModulatorState) =>
@@ -79,6 +95,11 @@ export function createStore(initial: AppState = initialState()) {
       tr.steps.forEach((st, s) => { if (!isDefault(st)) send(cmdSetStep(t, s, st)) })
       tr.params.forEach((v, p) => send(cmdSetParam(t, p, v)))
     })
+    state.buses.forEach((b, i) => {
+      b.params.forEach((v, p) => send(cmdSetParam(TRACK_COUNT + i, p, v)))
+      send(cmdSetBusMute(i, b.muted, false))
+    })
+    state.master.params.forEach((v, p) => send(cmdSetParam(MASTER_ROW, p, v)))
     state.modulators.forEach((m, slot) => {
       send(cmdSetModulator(slot, m))
       m.steps.forEach((v, i) => { if (v !== 0) send(cmdSetModStep(slot, i, v)) })
@@ -124,13 +145,15 @@ export function createStore(initial: AppState = initialState()) {
       send(cmdSetSpeed(t, code))
     },
     /** While LEARN is armed this writes the macro endpoint instead of the base value. */
+    /** `t` is a row: 0–12 track, 13–20 bus, 21 master. */
     setParam(t: number, p: number, v: number) {
+      if (p >= rowParamMetas(t).length) return
       const value = clamp(v, 0, 1)
       const learn = state.learn
       if (learn) {
         const mac = state.macros[learn.macro]
         const existing = mac.targets.find((x) => x.track === t && x.param === p)
-        const base = state.tracks[t].params[p]
+        const base = rowParams(state, t)[p]
         let target: MacroTargetState
         if (existing) {
           target = { ...existing, [learn.side]: value }
@@ -147,7 +170,7 @@ export function createStore(initial: AppState = initialState()) {
         send(cmdSetMacroTarget(learn.macro, target.slot, target))
         return
       }
-      updateTrack(t, (tr) => ({ ...tr, params: tr.params.map((x, i) => (i === p ? value : x)) }))
+      updateRow(t, (params) => params.map((x, i) => (i === p ? value : x)))
       send(cmdSetParam(t, p, value))
     },
     setBpm(bpm: number) {
@@ -166,6 +189,23 @@ export function createStore(initial: AppState = initialState()) {
     },
     select(t: number) {
       set({ ...state, selected: t })
+    },
+    setStepNote(t: number, s: number, note: number) {
+      if (!isMelodic(t)) return
+      const step = { ...state.tracks[t].steps[s], note: clamp(Math.round(note), 0, 127) }
+      updateTrack(t, (tr) => ({ ...tr, steps: tr.steps.map((st, i) => (i === s ? step : st)) }))
+      send(cmdSetStep(t, s, step))
+    },
+    setEditMode(mode: 'trig' | 'note') {
+      set({ ...state, editMode: mode })
+    },
+    toggleMute(b: number) {
+      const muted = !state.buses[b].muted
+      set({ ...state, buses: state.buses.map((x, i) => (i === b ? { ...x, muted } : x)) })
+      send(cmdSetBusMute(b, muted, state.muteQuantize && state.playing))
+    },
+    setMuteQuantize(on: boolean) {
+      set({ ...state, muteQuantize: on })
     },
     selectMod(slot: number) {
       set({ ...state, selectedMod: slot })
