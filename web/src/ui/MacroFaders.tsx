@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
-import { KICK_PARAMS } from '@/state/kickParams'
+import { paramLabel } from '@/state/machines'
 import type { Store } from '@/state/store'
 import type { AppState } from '@/state/types'
 
@@ -12,7 +12,7 @@ export function MacroFaders({ state, store }: Props) {
   const [editing, setEditing] = useState<number | null>(null)
   const cancelRename = useRef(false)
   const sel = state.macros[state.selectedMacro]
-  const paramName = (t: number, p: number) => `${state.tracks[t]?.name}.${KICK_PARAMS[p]?.name ?? p}`
+  const paramName = (row: number, p: number) => paramLabel(state.tracks.map((t) => t.name), row, p)
   const hint = state.learn
     ? `${state.macros[state.learn.macro].name} · ${state.learn.side.toUpperCase()} élesítve: amit most tekersz, az lesz a ${state.learn.side.toUpperCase()} állapot`
     : sel.targets.length

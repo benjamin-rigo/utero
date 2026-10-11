@@ -64,3 +64,9 @@ test('learning adds a non-colour cue', () => {
   expect(knob.getAttribute('aria-valuetext')).toContain('LEARN')
   expect(screen.getByText('L')).toBeTruthy()
 })
+
+test('small size renders 40 px and ariaLabel overrides the accessible name', () => {
+  render(<Knob label="FLT" ariaLabel="KICK filter" size="sm" value={0.5} defaultValue={0.5} onChange={() => {}} />)
+  const knob = screen.getByRole('slider', { name: 'KICK filter' })
+  expect(knob.getAttribute('width')).toBe('40')
+})

@@ -68,3 +68,20 @@ test('a route from a switched-off modulator is labelled (off), not "+ add"', () 
   expect(screen.getByLabelText('MOD4 (off) amount')).toBeTruthy()
   expect(screen.getByRole('button', { name: 'Remove MOD4 (off) route' })).toBeTruthy()
 })
+
+test('SUB shows its own params and edits its own track', () => {
+  const store = setup()
+  act(() => store.select(7))
+  expect(screen.getByText('SUB', { selector: 'span' })).toBeTruthy()
+  expect(screen.getByRole('slider', { name: 'OCT' })).toBeTruthy()
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'DECAY' }), { key: 'End' })
+  expect(store.getState().tracks[7].params[4]).toBe(1)
+})
+
+test('MID has SRC, FLTR and AMP pages', () => {
+  const store = setup()
+  act(() => store.select(8))
+  expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['SRC', 'FLTR', 'AMP'])
+  fireEvent.click(screen.getByRole('tab', { name: 'FLTR' }))
+  expect(screen.getByRole('slider', { name: 'CUTOFF' })).toBeTruthy()
+})

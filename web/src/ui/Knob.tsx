@@ -32,12 +32,16 @@ export interface KnobProps {
   onModAmount?(delta: number): void
   onDropModulator?(slot: number): void
   onSelect?(): void
+  /** 'sm' renders 40 px (mixer), default 56 px. */
+  size?: 'md' | 'sm'
+  /** Accessible name when the visible label is not unique (e.g. 'KICK filter'). */
+  ariaLabel?: string
 }
 
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel,
 }: KnobProps) {
   const drag = useRef<{ y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
@@ -59,13 +63,13 @@ export function Knob({
       <svg
         role="slider"
         tabIndex={0}
-        aria-label={label}
+        aria-label={ariaLabel ?? label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct(value)}
         aria-valuetext={`${pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
-        width={SIZE}
-        height={SIZE}
+        width={size === 'sm' ? 40 : SIZE}
+        height={size === 'sm' ? 40 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
         onPointerDown={(e) => {
@@ -126,12 +130,12 @@ export function Knob({
         )}
         <circle cx={dot.x} cy={dot.y} r={2} className="fill-zinc-100" />
       </svg>
-      <button type="button" onClick={onSelect} aria-pressed={selected}
+      <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
         className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-mod' : 'text-zinc-400'}`}>
         {label}
       </button>
       {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
-      <span className="text-sm tabular-nums">{pct(display)}</span>
+      <span className={size === 'sm' ? 'text-[10px] tabular-nums' : 'text-sm tabular-nums'}>{pct(display)}</span>
     </div>
   )
 }
