@@ -42,12 +42,12 @@ test('an empty field restores the current tempo instead of jumping to 20', () =>
   expect(input.value).toBe('128')
 })
 
-test('arrow keys nudge the tempo live (shift = 1 BPM)', () => {
+test('arrow keys nudge the tempo live and accumulate (shift = 1 BPM)', () => {
   const { onBpm, input } = setup(128)
   fireEvent.keyDown(input, { key: 'ArrowUp' })
   expect(onBpm).toHaveBeenLastCalledWith(128.1)
   fireEvent.keyDown(input, { key: 'ArrowDown', shiftKey: true })
-  expect(onBpm).toHaveBeenLastCalledWith(127)
+  expect(onBpm).toHaveBeenLastCalledWith(127.1)
 })
 
 test('a nudge while focused updates the field and survives blur', () => {
