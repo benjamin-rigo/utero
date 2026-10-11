@@ -57,8 +57,8 @@ export const MASTER_PARAMS: ParamMeta[] = [
 const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: KICK_PARAMS, pages: KICK_PAGES }
 const BASS: MachineDef = {
   name: 'BASS', melodic: true, params: BASS_PARAMS,
-  // SUB CHAR FM · PLUCK · BRIGHT · GRIT · DECAY · LEVEL (template in kickParams.ts)
-  pages: [{ name: 'BASS', params: [0, 1, 6, 3, 2, 4, 5, 7] }],
+  // SUB CHAR FM DECAY / PLUCK BRIGHT GRIT LEVEL (template in kickParams.ts)
+  pages: [{ name: 'BASS', params: [0, 1, 6, 5, 3, 2, 4, 7] }],
   switches: [{ param: 8, label: 'SUB OCT' }],
 }
 

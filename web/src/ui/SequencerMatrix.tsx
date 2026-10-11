@@ -32,10 +32,11 @@ const DRAG_START_PX = 4
 
 /**
  * First click selects the row; in the selected row click = trig, ⌥+click = track ends here. On melodic trigs ↑↓ / wheel / vertical drag = semitone,
- * ⇧ = octave. Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Space/Enter writes a trig.
+ * ⇧ = octave; a horizontal drag paints trigs (or erases, when it starts on a trig). Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Space/Enter writes a trig.
  */
 export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetNote, tuner = [] }: Props) {
-  const drag = useRef<{ t: number; s: number; y: number; note: number; trig: boolean; moved: boolean } | null>(null)
+  // 'note' = vertical drag on a melodic step, 'paint' = horizontal drag writes (or erases) trigs along the row
+  const drag = useRef<{ t: number; s: number; x: number; y: number; note: number; trig: boolean; last: number; mode: 'none' | 'note' | 'paint' } | null>(null)
   const dragged = useRef(false)
   // Trackpads send many small wheel events: step one semitone per ~50 px of scroll.
   const wheel = useRef(0)
@@ -125,24 +126,36 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   }}
                   onPointerDown={(e) => {
                     dragged.current = false
-                    if (!melodic || !selected || e.altKey) return
+                    if (!selected || e.altKey) return
                     e.currentTarget.setPointerCapture?.(e.pointerId)
-                    drag.current = { t, s, y: e.clientY, note: st.note, trig: st.trig, moved: false }
+                    drag.current = { t, s, x: e.clientX, y: e.clientY, note: st.note, trig: st.trig, last: s, mode: 'none' }
                   }}
                   onPointerMove={(e) => {
                     const d = drag.current
                     if (!d || d.t !== t || d.s !== s) return
+                    const dx = e.clientX - d.x
                     const dy = d.y - e.clientY
-                    if (!d.moved) {
-                      if (Math.abs(dy) < DRAG_START_PX) return
-                      d.moved = true
-                      if (!d.trig) onToggle(t, s)
+                    if (d.mode === 'none') {
+                      if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_START_PX) return
+                      d.mode = Math.abs(dx) >= Math.abs(dy) ? 'paint' : melodic ? 'note' : 'paint'
+                      // the first step flips: painting from an empty step writes, from a trig erases
+                      onToggle(t, s)
+                      if (d.mode === 'note' && d.trig) onToggle(t, s)
+                    }
+                    if (d.mode === 'paint') {
+                      // fill every step between the last and current one, so fast drags leave no gaps
+                      const at = stepUnder(t, e.clientX)
+                      for (let i = Math.min(d.last, at); i <= Math.max(d.last, at); i++) {
+                        if (i !== s && state.tracks[t].steps[i].trig === d.trig) onToggle(t, i)
+                      }
+                      d.last = at
+                      return
                     }
                     const semis = Math.round(dy / PX_PER_SEMITONE)
                     if (d.note + semis !== st.note) onSetNote(t, s, d.note + semis)
                   }}
                   onPointerUp={() => {
-                    dragged.current = drag.current?.moved ?? false
+                    dragged.current = (drag.current?.mode ?? 'none') !== 'none'
                     drag.current = null
                   }}
                   onPointerCancel={() => { drag.current = null }}

@@ -122,3 +122,18 @@ test('kick rows show the tuner reading', () => {
     onSetSpeed={store.setSpeed} onSelect={store.select} onSetNote={store.setStepNote} tuner={['F1 -3', null]} />)
   expect(screen.getByRole('button', { name: 'KICK F1 -3' })).toBeTruthy()
 })
+
+test('a horizontal drag paints trigs, starting on a trig erases', () => {
+  const store = setup()
+  // jsdom lays every cell at x = 0, so the drag lands on the last visible step and fills the range
+  const step = (n: number) => screen.getByRole('button', { name: `KICK step ${n}` })
+  fireEvent.pointerDown(step(2), { clientX: 0, clientY: 0, pointerId: 1 })
+  fireEvent.pointerMove(step(2), { clientX: 40, clientY: 0, pointerId: 1 })
+  fireEvent.pointerUp(step(2), { pointerId: 1 })
+  fireEvent.click(step(2))
+  expect(store.getState().tracks[0].steps.slice(0, 16).map((x) => x.trig)).toEqual(Array(16).fill(true))
+  fireEvent.pointerDown(step(3), { clientX: 0, clientY: 0, pointerId: 1 })
+  fireEvent.pointerMove(step(3), { clientX: 40, clientY: 0, pointerId: 1 })
+  fireEvent.pointerUp(step(3), { pointerId: 1 })
+  expect(store.getState().tracks[0].steps.slice(0, 16).map((x) => x.trig)).toEqual(Array.from({ length: 16 }, (_, i) => i < 2))
+})

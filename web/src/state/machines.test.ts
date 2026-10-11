@@ -13,10 +13,10 @@ test('param tables mirror the engine', () => {
 
 test('machines sit on KICK, KCK2 and BASS with one 8-knob page each', () => {
   expect(MACHINES.map((m) => m?.name ?? null)).toEqual(['ANALOG BD', 'ANALOG BD', null, null, null, null, null, 'BASS', null, null, null, null])
-  expect(MACHINES[0]?.pages).toEqual([{ name: 'KICK', params: [0, 1, 2, 4, 6, 5, 3, 7] }])
+  expect(MACHINES[0]?.pages).toEqual([{ name: 'KICK', params: [0, 1, 2, 3, 4, 6, 5, 7] }])
   const order = (t: number) => MACHINES[t]?.pages[0].params.map((p) => MACHINES[t]?.params[p].name)
-  expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'CLICK', 'TONE', 'NOISE', 'DECAY', 'LEVEL'])
-  expect(order(7)).toEqual(['SUB', 'CHAR', 'FM', 'PLUCK', 'BRIGHT', 'GRIT', 'DECAY', 'LEVEL'])
+  expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'TONE', 'NOISE', 'LEVEL'])
+  expect(order(7)).toEqual(['SUB', 'CHAR', 'FM', 'DECAY', 'PLUCK', 'BRIGHT', 'GRIT', 'LEVEL'])
   expect(MACHINES[7]?.pages[0].params).toHaveLength(8)
   expect(MACHINES[7]?.switches).toEqual([{ param: 8, label: 'SUB OCT' }])
   expect(MACHINES[7]?.melodic).toBe(true)
