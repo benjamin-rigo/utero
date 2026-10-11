@@ -35,7 +35,7 @@ export class CommandRing {
   pop(out: Float32Array): boolean {
     const r = Atomics.load(this.header, 1)
     if (r === Atomics.load(this.header, 0)) return false
-    out.set(this.data.subarray(r * CMD_WORDS, r * CMD_WORDS + CMD_WORDS))
+    for (let i = 0; i < CMD_WORDS; i++) out[i] = this.data[r * CMD_WORDS + i]
     Atomics.store(this.header, 1, (r + 1) % this.capacity)
     return true
   }

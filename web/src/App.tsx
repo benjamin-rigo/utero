@@ -27,7 +27,7 @@ export default function App() {
       if (!host) {
         startingRef.current = true
         setStarting(true)
-        const h = await startEngine()
+        const h = await startEngine(setError)
         store.connect(h.send)
         setHost(h)
       }
