@@ -79,3 +79,26 @@ fn engine_runs_under_quarter_of_realtime() {
     let elapsed = start.elapsed().as_secs_f32();
     assert!(elapsed < 2.5, "10 s of audio took {elapsed:.3} s");
 }
+
+#[test]
+#[ignore = "benchmark: run with cargo test --release -- --ignored"]
+fn full_modulation_runs_under_quarter_of_realtime() {
+    use utero_core::macros::MacroTarget;
+    use utero_core::modulation::{ModKind, ModSettings, ParamRef, Route, Shape};
+    let mut e = groove();
+    for slot in 0..16 {
+        e.set_modulator(slot, ModSettings { kind: ModKind::Lfo, shape: Shape::from_code((slot % 9) as u8), sync: false, hz: 0.5 + slot as f32, ..ModSettings::default() });
+    }
+    for i in 0..64 {
+        e.set_route(i, Route { src: (i % 16) as u8, target: ParamRef { track: (i % 2) as u8, param: (i % 9) as u8 }, amount: 0.05 });
+    }
+    for m in 0..8 {
+        e.set_macro_target(m, 0, MacroTarget { target: ParamRef { track: 0, param: m as u8 }, a: 0.2, b: 0.8 });
+        e.set_macro_pos(m, 0.5);
+    }
+    let start = Instant::now();
+    render(&mut e, 10.0);
+    let elapsed = start.elapsed().as_secs_f32();
+    println!("10 s with 16 mods / 64 routes / 8 macros took {elapsed:.3} s");
+    assert!(elapsed < 2.5, "took {elapsed:.3} s");
+}
