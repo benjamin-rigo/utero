@@ -3,16 +3,17 @@ import { Button } from '@/components/ui/button'
 interface Props {
   bpm: number
   playing: boolean
+  starting: boolean
   error: string | null
   onTogglePlay(): void
   onBpm(bpm: number): void
 }
 
-export function TransportBar({ bpm, playing, error, onTogglePlay, onBpm }: Props) {
+export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBpm }: Props) {
   return (
     <header className="flex items-center gap-3 border-b border-zinc-800 px-3 py-1.5">
       <b>utero</b>
-      <Button size="sm" variant={playing ? 'default' : 'outline'} onClick={onTogglePlay} aria-label={playing ? 'Stop' : 'Play'}>
+      <Button size="sm" variant={playing ? 'default' : 'outline'} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
         {playing ? '■ STOP' : '▶ PLAY'}
       </Button>
       <label className="flex items-center gap-1 text-zinc-400">
