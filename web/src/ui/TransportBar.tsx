@@ -31,7 +31,11 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
     onBpm(value)
   }
 
-  const nudge = (delta: number) => onBpm(Math.round((bpm + delta) * 10) / 10)
+  const nudge = (delta: number) => {
+    const next = Math.round(((parseBpmDraft(draft) ?? bpm) + delta) * 10) / 10
+    setDraft(String(next))
+    onBpm(next)
+  }
 
   return (
     <header className="flex items-center gap-3 border-b border-zinc-800 px-3 py-1.5">

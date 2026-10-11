@@ -49,3 +49,13 @@ test('arrow keys nudge the tempo live (shift = 1 BPM)', () => {
   fireEvent.keyDown(input, { key: 'ArrowDown', shiftKey: true })
   expect(onBpm).toHaveBeenLastCalledWith(127)
 })
+
+test('a nudge while focused updates the field and survives blur', () => {
+  const { onBpm, input } = setup(128)
+  fireEvent.focus(input)
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(input.value).toBe('128.1')
+  expect(onBpm).toHaveBeenLastCalledWith(128.1)
+  fireEvent.blur(input)
+  expect(onBpm).toHaveBeenLastCalledWith(128.1)
+})
