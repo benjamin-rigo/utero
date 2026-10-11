@@ -1,3 +1,5 @@
+use crate::dsp::Smoother;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Curve {
     Lin,
@@ -24,6 +26,63 @@ impl ParamDesc {
     }
 }
 
+pub const MAX_PARAMS: usize = 24;
+
+/// Smoothed normalised base values of one machine, bus or master, mapped through its `ParamDesc` table.
+pub struct ParamBank {
+    descs: &'static [ParamDesc],
+    smooth: [Smoother; MAX_PARAMS],
+    values: [f32; MAX_PARAMS],
+}
+
+impl ParamBank {
+    pub fn new(descs: &'static [ParamDesc], sample_rate: f32) -> Self {
+        assert!(descs.len() <= MAX_PARAMS, "too many params");
+        ParamBank {
+            descs,
+            smooth: core::array::from_fn(|i| Smoother::new(descs.get(i).map_or(0.0, |d| d.default_norm), 10.0, sample_rate)),
+            values: core::array::from_fn(|i| descs.get(i).map_or(0.0, |d| d.map(d.default_norm))),
+        }
+    }
+
+    pub fn count(&self) -> usize {
+        self.descs.len()
+    }
+
+    pub fn set_norm(&mut self, i: usize, norm: f32) {
+        if norm.is_finite() && i < self.descs.len() {
+            self.smooth[i].set(norm.clamp(0.0, 1.0));
+        }
+    }
+
+    pub fn next_norms(&mut self) -> [f32; MAX_PARAMS] {
+        let mut out = [0.0; MAX_PARAMS];
+        for (i, v) in out.iter_mut().enumerate().take(self.descs.len()) {
+            *v = self.smooth[i].next();
+        }
+        out
+    }
+
+    pub fn apply_norms(&mut self, norms: &[f32; MAX_PARAMS]) {
+        for (i, d) in self.descs.iter().enumerate() {
+            self.values[i] = d.map(norms[i]);
+        }
+    }
+
+    pub fn advance(&mut self) {
+        let norms = self.next_norms();
+        self.apply_norms(&norms);
+    }
+
+    pub fn get(&self, i: usize) -> f32 {
+        self.values[i]
+    }
+
+    pub fn defaults(&self) -> [f32; MAX_PARAMS] {
+        core::array::from_fn(|i| self.descs.get(i).map_or(0.0, |d| d.default_norm))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -47,5 +106,54 @@ mod tests {
         let p = ParamDesc { name: "X", min: 1.0, max: 2.0, default_norm: 0.0, curve: Curve::Lin };
         assert_eq!(p.map(-3.0), 1.0);
         assert_eq!(p.map(9.0), 2.0);
+    }
+
+    const TABLE: [ParamDesc; 2] = [
+        ParamDesc { name: "A", min: 0.0, max: 10.0, default_norm: 0.5, curve: Curve::Lin },
+        ParamDesc { name: "B", min: 1.0, max: 100.0, default_norm: 0.0, curve: Curve::Exp },
+    ];
+
+    #[test]
+    fn bank_starts_at_mapped_defaults() {
+        let b = ParamBank::new(&TABLE, 48_000.0);
+        assert_eq!(b.count(), 2);
+        assert_eq!(b.get(0), 5.0);
+        assert_eq!(b.get(1), 1.0);
+        assert_eq!(b.defaults()[0], 0.5);
+        assert_eq!(b.defaults()[5], 0.0);
+    }
+
+    #[test]
+    fn bank_smooths_and_maps() {
+        let mut b = ParamBank::new(&TABLE, 48_000.0);
+        b.set_norm(0, 1.0);
+        b.advance();
+        assert!(b.get(0) > 5.0 && b.get(0) < 5.1);
+        for _ in 0..48_000 {
+            b.advance();
+        }
+        assert!((b.get(0) - 10.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn bank_ignores_bad_input() {
+        let mut b = ParamBank::new(&TABLE, 48_000.0);
+        b.set_norm(0, f32::NAN);
+        b.set_norm(7, 1.0);
+        b.set_norm(1, 3.0);
+        for _ in 0..48_000 {
+            b.advance();
+        }
+        assert_eq!(b.get(0), 5.0);
+        assert!((b.get(1) - 100.0).abs() < 1e-2);
+        assert_eq!(b.next_norms()[7], 0.0);
+    }
+
+    #[test]
+    fn empty_bank_is_valid() {
+        let mut b = ParamBank::new(&[], 48_000.0);
+        assert_eq!(b.count(), 0);
+        b.advance();
+        assert_eq!(b.next_norms(), [0.0; MAX_PARAMS]);
     }
 }

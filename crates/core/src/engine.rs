@@ -1,6 +1,7 @@
-use crate::kick::{KickParams, KickVoice, KICK_PARAMS, KICK_PARAM_COUNT};
+use crate::kick::{kick_params, KickParams, KickVoice, KICK_PARAMS, KICK_PARAM_COUNT};
 use crate::macros::{MacroTarget, Macros};
 use crate::modulation::{ModMatrix, ModSettings, Route, MOD_PARAMS, MOD_SLOTS, MOD_TRACKS};
+use crate::params::MAX_PARAMS;
 use crate::rng::Rng;
 use crate::seq::{CondCtx, Step, Track};
 use crate::transport::Transport;
@@ -27,7 +28,7 @@ pub struct Engine {
     tracks: [Track; TRACKS],
     kicks: [KickVoice; KICK_TRACKS],
     kick_params: [KickParams; KICK_TRACKS],
-    effective: [[f32; KICK_PARAM_COUNT]; KICK_TRACKS],
+    effective: [[f32; MAX_PARAMS]; KICK_TRACKS],
     mods: ModMatrix,
     macros: Macros,
     rng: Rng,
@@ -44,8 +45,8 @@ impl Engine {
             transport: Transport::new(sample_rate),
             tracks: [Track::new(); TRACKS],
             kicks: core::array::from_fn(|i| KickVoice::new(sample_rate, 0x00C0_FFEE + i as u32)),
-            kick_params: core::array::from_fn(|_| KickParams::new(sample_rate)),
-            effective: [core::array::from_fn(|i| KICK_PARAMS[i].default_norm); KICK_TRACKS],
+            kick_params: core::array::from_fn(|_| kick_params(sample_rate)),
+            effective: [core::array::from_fn(|i| KICK_PARAMS.get(i).map_or(0.0, |d| d.default_norm)); KICK_TRACKS],
             mods: ModMatrix::new(),
             macros: Macros::new(sample_rate),
             rng: Rng::new(0x5EED),
@@ -158,7 +159,7 @@ impl Engine {
                 // base (smoothed) → macro override → + modulation → clamp → map
                 let mut norms = self.kick_params[k].next_norms();
                 self.macros.apply(k as u8, &mut norms);
-                for (p, v) in norms.iter_mut().enumerate() {
+                for (p, v) in norms.iter_mut().enumerate().take(KICK_PARAM_COUNT) {
                     *v = (*v + self.mods.sum(k, p)).clamp(0.0, 1.0);
                 }
                 self.kick_params[k].apply_norms(&norms);

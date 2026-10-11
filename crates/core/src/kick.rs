@@ -1,7 +1,7 @@
 use core::f32::consts::TAU;
 
-use crate::dsp::{one_pole_coef, Drive2x, Smoother};
-use crate::params::{Curve, ParamDesc};
+use crate::dsp::{one_pole_coef, Drive2x};
+use crate::params::{Curve, ParamBank, ParamDesc};
 use crate::rng::Rng;
 
 pub const TUNE: usize = 0;
@@ -28,46 +28,10 @@ pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
 ];
 
-/// Base values are smoothed in normalised space so macros and modulation can be added before mapping.
-pub struct KickParams {
-    smooth: [Smoother; KICK_PARAM_COUNT],
-    values: [f32; KICK_PARAM_COUNT],
-}
+pub type KickParams = ParamBank;
 
-impl KickParams {
-    pub fn new(sample_rate: f32) -> Self {
-        let smooth = core::array::from_fn(|i| Smoother::new(KICK_PARAMS[i].default_norm, 10.0, sample_rate));
-        let values = core::array::from_fn(|i| KICK_PARAMS[i].map(KICK_PARAMS[i].default_norm));
-        KickParams { smooth, values }
-    }
-
-    pub fn set_norm(&mut self, i: usize, norm: f32) {
-        if !norm.is_finite() {
-            return;
-        }
-        if let Some(s) = self.smooth.get_mut(i) {
-            s.set(norm.clamp(0.0, 1.0));
-        }
-    }
-
-    pub fn next_norms(&mut self) -> [f32; KICK_PARAM_COUNT] {
-        core::array::from_fn(|i| self.smooth[i].next())
-    }
-
-    pub fn apply_norms(&mut self, norms: &[f32; KICK_PARAM_COUNT]) {
-        for i in 0..KICK_PARAM_COUNT {
-            self.values[i] = KICK_PARAMS[i].map(norms[i]);
-        }
-    }
-
-    pub fn advance(&mut self) {
-        let norms = self.next_norms();
-        self.apply_norms(&norms);
-    }
-
-    pub fn get(&self, i: usize) -> f32 {
-        self.values[i]
-    }
+pub fn kick_params(sample_rate: f32) -> KickParams {
+    ParamBank::new(&KICK_PARAMS, sample_rate)
 }
 
 pub struct KickVoice {
@@ -171,6 +135,7 @@ impl KickVoice {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::params::MAX_PARAMS;
 
     const SR: f32 = 48_000.0;
 
@@ -189,21 +154,21 @@ mod tests {
 
     #[test]
     fn default_tune_is_about_45_hz() {
-        let p = KickParams::new(SR);
+        let p = kick_params(SR);
         assert!((p.get(TUNE) - 45.0).abs() < 0.5, "{}", p.get(TUNE));
     }
 
     #[test]
     fn silent_until_triggered() {
         let mut v = KickVoice::new(SR, 1);
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         assert!(render(&mut v, &mut p, 100).iter().all(|&s| s == 0.0));
     }
 
     #[test]
     fn trigger_produces_decaying_sound() {
         let mut v = KickVoice::new(SR, 1);
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         v.trigger(1.0, &mut Rng::new(3));
         let out = render(&mut v, &mut p, 120_000);
         let head = &out[..4_800];
@@ -215,7 +180,7 @@ mod tests {
     #[test]
     fn voice_deactivates_after_decay() {
         let mut v = KickVoice::new(SR, 1);
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         v.trigger(1.0, &mut Rng::new(3));
         render(&mut v, &mut p, 4 * 48_000);
         assert!(!v.is_active());
@@ -224,7 +189,7 @@ mod tests {
     #[test]
     fn extreme_params_stay_finite() {
         for norm in [0.0_f32, 1.0] {
-            let mut p = KickParams::new(SR);
+            let mut p = kick_params(SR);
             for i in 0..KICK_PARAM_COUNT {
                 p.set_norm(i, norm);
             }
@@ -236,7 +201,7 @@ mod tests {
 
     #[test]
     fn retrigger_resets_filter_and_drive_state() {
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         p.set_norm(NOISE, 0.0);
         p.set_norm(CLICK, 0.0);
         p.set_norm(DRIVE, 1.0);
@@ -252,23 +217,23 @@ mod tests {
 
     #[test]
     fn bad_param_index_is_ignored() {
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         p.set_norm(99, 0.5);
     }
 
     #[test]
     fn apply_norms_maps_final_values() {
-        let mut p = KickParams::new(SR);
-        p.apply_norms(&[1.0; KICK_PARAM_COUNT]);
+        let mut p = kick_params(SR);
+        p.apply_norms(&[1.0; MAX_PARAMS]);
         assert_eq!(p.get(TUNE), 120.0);
         assert_eq!(p.get(DECAY), 2000.0);
-        p.apply_norms(&[0.0; KICK_PARAM_COUNT]);
+        p.apply_norms(&[0.0; MAX_PARAMS]);
         assert_eq!(p.get(TUNE), 30.0);
     }
 
     #[test]
     fn next_norms_smooths_towards_base() {
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         p.set_norm(TUNE, 1.0);
         let first = p.next_norms()[TUNE];
         assert!(first > KICK_PARAMS[TUNE].default_norm && first < 0.4, "first {first}");
@@ -280,7 +245,7 @@ mod tests {
 
     #[test]
     fn non_finite_norm_is_ignored() {
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         p.set_norm(TUNE, f32::NAN);
         for _ in 0..1000 {
             p.advance();
@@ -291,7 +256,7 @@ mod tests {
     #[test]
     fn amp_envelope_never_rises_when_decay_is_modulated() {
         let mut v = KickVoice::new(SR, 1);
-        let mut p = KickParams::new(SR);
+        let mut p = kick_params(SR);
         v.trigger(1.0, &mut Rng::new(3));
         let mut prev = v.envelope();
         for i in 0..24_000 {
