@@ -3,6 +3,7 @@ import { startEngine, type EngineHost } from '@/audio/host'
 import { playheadOf, SNAP_TRACKS } from '@/audio/snapshot'
 import { createStore } from '@/state/store'
 import { MachinePanel } from '@/ui/MachinePanel'
+import { Mixer } from '@/ui/Mixer'
 import { ModStrip } from '@/ui/ModStrip'
 import { SequencerMatrix } from '@/ui/SequencerMatrix'
 import { TransportBar } from '@/ui/TransportBar'
@@ -45,7 +46,7 @@ export default function App() {
   }
 
   return (
-    <div className="grid h-dvh grid-rows-[auto_1fr] bg-background font-mono text-xs text-foreground">
+    <div className="grid h-dvh grid-rows-[auto_1fr_200px] bg-background font-mono text-xs text-foreground">
       <TransportBar bpm={state.bpm} playing={state.playing} starting={starting} error={error} onTogglePlay={togglePlay} onBpm={store.setBpm} />
       <main className="grid min-h-0 grid-cols-[1fr_440px]">
         <div className="flex min-h-0 flex-col">
@@ -57,6 +58,7 @@ export default function App() {
         </div>
         <MachinePanel state={state} frame={frame} store={store} />
       </main>
+      <Mixer state={state} frame={frame} store={store} />
     </div>
   )
 }
