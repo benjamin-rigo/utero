@@ -331,6 +331,16 @@ mod tests {
     }
 
     #[test]
+    fn macro_and_route_on_the_same_param_stack() {
+        let mut e = Engine::new(48_000.0);
+        e.set_macro_target(0, 0, MacroTarget { target: ParamRef { track: 0, param: DECAY as u8 }, a: 0.2, b: 0.2 });
+        square(&mut e, 0);
+        e.set_route(0, route(0, 0, DECAY as u8, 0.3));
+        render_seconds(&mut e, 0.5);
+        assert!((e.effective_norm(0, DECAY) - 0.5).abs() < 0.01, "{}", e.effective_norm(0, DECAY));
+    }
+
+    #[test]
     fn firing_track_restarts_its_retrig_modulator() {
         let mut e = Engine::new(48_000.0);
         e.set_bpm(120.0);
