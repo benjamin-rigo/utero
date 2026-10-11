@@ -23,10 +23,24 @@ function setup() {
   return store
 }
 
-test('clicking a step writes a trig and selects its row', () => {
+test('the first click selects the row, the next one writes the trig', () => {
   const store = setup()
-  fireEvent.click(screen.getByRole('button', { name: /^BASS step 2,/ }))
+  const step = () => screen.getByRole('button', { name: /^BASS step 2,/ })
+  fireEvent.click(step())
+  expect(store.getState().selected).toBe(7)
+  expect(store.getState().tracks[7].steps[1].trig).toBe(false)
+  fireEvent.click(step())
   expect(store.getState().tracks[7].steps[1].trig).toBe(true)
+})
+
+test('dragging in an unselected row does not write', () => {
+  const store = setup()
+  const step = screen.getByRole('button', { name: /^BASS step 3,/ })
+  fireEvent.pointerDown(step, { clientY: 100, pointerId: 1 })
+  fireEvent.pointerMove(step, { clientY: 60, pointerId: 1 })
+  fireEvent.pointerUp(step, { pointerId: 1 })
+  fireEvent.click(step)
+  expect(store.getState().tracks[7].steps[2].trig).toBe(false)
   expect(store.getState().selected).toBe(7)
 })
 
@@ -42,6 +56,7 @@ test('arrow keys move the note of a melodic trig right away', () => {
 
 test('dragging up on an empty melodic step writes a trig and raises its note', () => {
   const store = setup()
+  act(() => store.select(7))
   const step = screen.getByRole('button', { name: /^BASS step 3,/ })
   fireEvent.pointerDown(step, { clientY: 100, pointerId: 1 })
   fireEvent.pointerMove(step, { clientY: 76, pointerId: 1 })

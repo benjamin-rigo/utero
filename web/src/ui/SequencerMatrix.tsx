@@ -29,7 +29,7 @@ interface Props {
 const DRAG_START_PX = 4
 
 /**
- * Click = trig (and selects the row), ⌥+click = track ends here. On melodic trigs ↑↓ / wheel / vertical drag = semitone,
+ * First click selects the row; in the selected row click = trig, ⌥+click = track ends here. On melodic trigs ↑↓ / wheel / vertical drag = semitone,
  * ⇧ = octave. Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Space/Enter writes a trig.
  */
 export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetNote }: Props) {
@@ -51,6 +51,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
   const focusStep = (t: number, s: number) => {
     const tt = Math.min(state.tracks.length - 1, Math.max(0, t))
     const ss = Math.min(VISIBLE - 1, Math.max(0, s))
+    if (tt !== state.selected) onSelect(tt)
     root.current?.querySelector<HTMLButtonElement>(`[data-track="${tt}"][data-step="${ss}"]`)?.focus()
   }
 
@@ -78,7 +79,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
       onPointerUp={() => { lengthDrag.current = null }}
       onPointerCancel={() => { lengthDrag.current = null }}
       className="flex min-h-0 flex-1 flex-col gap-[3px] border-r border-zinc-800 p-2">
-      <p className="pb-1 text-[10px] text-zinc-400">klikk = trig · ↑↓ / görgő / húzás a trigen = hang (⇧ oktáv) · ←→ léptet · ⌥+klikk = sávhossz</p>
+      <p className="pb-1 text-[10px] text-zinc-400">klikk = sor kijelölése, a kijelölt sorban klikk = trig · ↑↓ / görgő / húzás a trigen = hang (⇧ oktáv) · ←→ léptet · ⌥+klikk = sávhossz</p>
       {state.tracks.map((tr, t) => {
         const newBus = t > 0 && state.tracks[t - 1].bus !== tr.bus
         const selected = state.selected === t
@@ -98,13 +99,16 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
               return (
                 <button key={s} type="button" aria-pressed={st.trig} data-track={t} data-step={s}
                   aria-label={melodic ? `${tr.name} step ${s + 1}, ${noteName(st.note)}` : `${tr.name} step ${s + 1}`}
-                  onFocus={() => { if (!selected) onSelect(t) }}
                   onClick={(e) => {
                     if (dragged.current) {
                       dragged.current = false
                       return
                     }
-                    if (!selected) onSelect(t)
+                    // first click only selects the row; writing happens in the selected row
+                    if (!selected) {
+                      onSelect(t)
+                      return
+                    }
                     if (e.altKey) onSetLength(t, s + 1)
                     else onToggle(t, s)
                   }}
@@ -118,7 +122,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   }}
                   onPointerDown={(e) => {
                     dragged.current = false
-                    if (!melodic || e.altKey) return
+                    if (!melodic || !selected || e.altKey) return
                     e.currentTarget.setPointerCapture?.(e.pointerId)
                     drag.current = { t, s, y: e.clientY, note: st.note, trig: st.trig, moved: false }
                   }}
