@@ -50,10 +50,10 @@ export function ModStrip({ state, frame, store }: Props) {
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
-      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[minmax(0,1fr)_auto] gap-2 p-2">
+      <section aria-label="Modulators" className="grid min-h-0 grid-cols-2 gap-2 p-2">
         <ModPage slot={slot} m={state.modulators[slot]} live={live(slot)} mapping={mapping}
           tracks={state.tracks.map((t) => t.name)} store={store} />
-        <div className="grid min-h-0 w-64 grid-cols-4 grid-rows-4 gap-1">
+        <div className="grid min-h-0 grid-cols-8 grid-rows-2 gap-1">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
@@ -136,8 +136,8 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
   const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
   const liveY = toY(m.bipolar ? live : live * 2 - 1)
   return (
-    <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_auto] gap-3 rounded border border-mod/60 bg-[#0a141a] p-2 text-[10px]">
-      <div className="flex min-h-0 min-w-0 flex-col gap-1.5">
+    <div className="flex min-h-0 min-w-0 flex-col gap-1.5 rounded border border-mod/60 bg-[#0a141a] p-2 text-[10px]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="w-12 text-mod">{modLabel(slot, m)}</span>
           <div role="group" aria-label="Modulator type" className="flex gap-1">
@@ -176,7 +176,7 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
         )}
       </div>
       {m.kind !== 0 && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-1">
           {timed && (m.sync ? (
             <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
           ) : (
