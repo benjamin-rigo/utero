@@ -27,6 +27,16 @@ pub fn fader_gain(norm: f32) -> f32 {
     }
 }
 
+/// Inverse of `fader_gain` for a level in dB.
+pub fn fader_norm_for_db(db: f32) -> f32 {
+    0.8 * 10f32.powf(db / 62.0)
+}
+
+/// Starting fader per bus (KICK HATS PERC BASS LEAD PAD ORN FX), a techno gain plan with machines
+/// peaking near 0 dBFS: kick ≈ −6 dBFS, bass a touch under, hats/perc/leads well below, pads and FX lowest.
+/// Mirrored in web/src/state/machines.ts.
+pub const BUS_DEFAULT_DB: [f32; BUSES] = [-6.0, -14.0, -12.0, -6.0, -12.0, -16.0, -16.0, -12.0];
+
 pub struct Bus {
     pub params: ParamBank,
     sample_rate: f32,
@@ -62,6 +72,11 @@ impl Bus {
             peak_decay: (-1.0 / (0.3 * sample_rate)).exp(),
             ms_coef: 1.0 - (-1.0 / (0.3 * sample_rate)).exp(),
         }
+    }
+
+    pub fn with_level_db(mut self, db: f32) -> Self {
+        self.params = self.params.with_default(LEVEL, fader_norm_for_db(db));
+        self
     }
 
     pub fn set_muted(&mut self, on: bool) {

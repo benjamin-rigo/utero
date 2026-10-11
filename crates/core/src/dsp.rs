@@ -30,6 +30,11 @@ impl Smoother {
     pub fn value(&self) -> f32 {
         self.cur
     }
+
+    pub fn jump(&mut self, value: f32) {
+        self.cur = value;
+        self.target = value;
+    }
 }
 
 /// tanh drive at 2x rate (linear-interpolated midpoint, boxcar decimation) to keep aliasing down.

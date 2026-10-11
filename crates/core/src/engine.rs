@@ -1,5 +1,5 @@
 use crate::bass::{bass_params, BassVoice};
-use crate::bus::{Bus, BUSES};
+use crate::bus::{self, Bus, BUSES};
 use crate::kick::{kick_params, KickVoice};
 use crate::macros::{MacroTarget, Macros};
 use crate::master::Master;
@@ -89,7 +89,7 @@ impl Engine {
             transport: Transport::new(sample_rate),
             tracks: [Track::new(); TRACKS],
             machines: core::array::from_fn(|t| Machine::for_track(t, sample_rate)),
-            buses: core::array::from_fn(|_| Bus::new(sample_rate)),
+            buses: core::array::from_fn(|b| Bus::new(sample_rate).with_level_db(bus::BUS_DEFAULT_DB[b])),
             master: Master::new(sample_rate),
             effective: [[0.0; MAX_PARAMS]; ROWS],
             pending_mute: [None; BUSES],
@@ -630,6 +630,26 @@ mod tests {
     }
 
     #[test]
+    fn default_mix_follows_the_gain_plan() {
+        let mut e = Engine::new(48_000.0);
+        for s in [0, 4, 8, 12] {
+            e.set_step(0, s, Step { trig: true, ..Step::default() });
+            e.set_step(BASS_TRACK, s + 2, Step { trig: true, ..Step::default() });
+        }
+        e.play();
+        let mut max = [0.0_f32; BUSES];
+        for _ in 0..(96_000 / BLOCK) {
+            e.process(BLOCK);
+            for (b, m) in max.iter_mut().enumerate() {
+                *m = m.max(e.snapshot[SNAP_METERS + 2 * b]);
+            }
+        }
+        let db = |p: f32| 20.0 * p.log10();
+        assert!((db(max[0]) + 6.0).abs() < 1.5, "kick bus {} dBFS", db(max[0]));
+        assert!((db(max[3]) + 8.0).abs() < 1.5, "bass bus {} dBFS", db(max[3]));
+    }
+
+    #[test]
     fn snapshot_carries_meters_and_mutes() {
         let mut e = Engine::new(48_000.0);
         quarter_kick(&mut e);
@@ -656,3 +676,4 @@ mod tests {
     }
 
 }
+

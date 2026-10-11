@@ -42,6 +42,7 @@ pub struct ParamBank {
     descs: &'static [ParamDesc],
     smooth: [Smoother; MAX_PARAMS],
     values: [f32; MAX_PARAMS],
+    default_norms: [f32; MAX_PARAMS],
 }
 
 impl ParamBank {
@@ -51,7 +52,17 @@ impl ParamBank {
             descs,
             smooth: core::array::from_fn(|i| Smoother::new(descs.get(i).map_or(0.0, |d| d.default_norm), 10.0, sample_rate)),
             values: core::array::from_fn(|i| descs.get(i).map_or(0.0, |d| d.map(d.default_norm))),
+            default_norms: core::array::from_fn(|i| descs.get(i).map_or(0.0, |d| d.default_norm)),
         }
+    }
+
+    /// Overrides one default for this instance (e.g. a per-bus starting level), applied immediately.
+    pub fn with_default(mut self, i: usize, norm: f32) -> Self {
+        let n = norm.clamp(0.0, 1.0);
+        self.default_norms[i] = n;
+        self.smooth[i].jump(n);
+        self.values[i] = self.descs[i].map(n);
+        self
     }
 
     pub fn count(&self) -> usize {
@@ -88,7 +99,7 @@ impl ParamBank {
     }
 
     pub fn defaults(&self) -> [f32; MAX_PARAMS] {
-        core::array::from_fn(|i| self.descs.get(i).map_or(0.0, |d| d.default_norm))
+        self.default_norms
     }
 }
 

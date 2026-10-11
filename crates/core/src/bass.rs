@@ -31,10 +31,10 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
 ];
 
 const XOVER_HZ: f32 = 90.0;
-const HEADROOM: f32 = 0.4;
+const HEADROOM: f32 = 0.5;
 const REESE_CENTS: f32 = 25.0;
-/// Peak exponential FM depth in octaves at FM = 1.
-const FM_OCTAVES: f32 = 2.0;
+/// Peak phase-modulation index at FM = 1 (on the pluck transient).
+const FM_INDEX: f32 = 6.0;
 
 pub fn bass_params(sample_rate: f32) -> ParamBank {
     ParamBank::new(&BASS_PARAMS, sample_rate)
@@ -50,6 +50,8 @@ fn smoothstep(x: f32) -> f32 {
 pub struct BassVoice {
     sample_rate: f32,
     sub_phase: f32,
+    fm_car: f32,
+    fm_mod: f32,
     osc_a: Osc,
     osc_b: Osc,
     xover: Svf,
@@ -71,6 +73,8 @@ impl BassVoice {
         BassVoice {
             sample_rate,
             sub_phase: 0.0,
+            fm_car: 0.0,
+            fm_mod: 0.0,
             osc_a: Osc::new(),
             osc_b: Osc::new(),
             xover: Svf::new(),
@@ -101,6 +105,8 @@ impl BassVoice {
         // Reset phases only from (near) silence: resetting even a quiet tail would click.
         if !self.active || self.amp < 1.0e-3 {
             self.sub_phase = 0.0;
+            self.fm_car = 0.0;
+            self.fm_mod = 0.0;
             self.osc_a.reset(0.0);
             self.osc_b.reset(rng.next_f32());
             self.xover.reset();
@@ -131,12 +137,15 @@ impl BassVoice {
         if self.sub_phase >= 1.0 {
             self.sub_phase -= 1.0;
         }
-        let sub_sine = (self.sub_phase * TAU).sin();
-        let sub = sub_sine * fader_gain(p.get(SUB));
+        let sub = (self.sub_phase * TAU).sin() * fader_gain(p.get(SUB));
+        let freq = midi_to_hz(semis);
 
-        // FM: the sub sine bends the upper layer's pitch at audio rate (exponential, so never negative)
+        // FM: a 1:1 phase-modulated sine operator (stays in tune); its index follows the pluck envelope
         let fm = p.get(FM);
-        let freq = midi_to_hz(semis) * (fm * fm * FM_OCTAVES * sub_sine).exp2();
+        self.fm_car = (self.fm_car + freq / sr).fract();
+        self.fm_mod = (self.fm_mod + freq / sr).fract();
+        let index = fm * fm * FM_INDEX * (0.35 + 0.65 * self.fenv);
+        let op = (self.fm_car * TAU + index * (self.fm_mod * TAU).sin()).sin() * (fm / 0.1).min(1.0) * 0.7;
 
         // CHAR: 0–0.15 fades the layer in, up to 0.5 saw → saw+square (PRESSURE), above 0.5 detune opens (REESE)
         let c = p.get(CHAR);
@@ -148,7 +157,7 @@ impl BassVoice {
         let reese = ((c - 0.5) * 2.0).clamp(0.0, 1.0);
         let va = sa + (pa - sa) * square;
         let vb = sb + (pb - sb) * square;
-        let mut x = (va + vb * reese) / (1.0 + reese) * layer_gain;
+        let mut x = (va + vb * reese) / (1.0 + reese) * layer_gain * (1.0 - 0.5 * fm) + op;
 
         x *= 1.0 + noise_amt * self.noise_lp * 3.0;
         x = fold(x.clamp(-1.0, 1.0), noise_amt * 0.6);
@@ -205,7 +214,7 @@ mod tests {
             let mut v = BassVoice::new(SR, 9);
             v.trigger(1.0, note, &mut rng);
             let peak = render(&mut v, &p, 24_000).iter().fold(0.0_f32, |m, s| m.max(s.abs()));
-            assert!(peak < 0.8, "note {note} peak {peak}");
+            assert!(peak < 0.97, "note {note} peak {peak}");
         }
     }
 
@@ -288,6 +297,20 @@ mod tests {
         out.extend(render(&mut v, &p, 2_400));
         let worst = out.windows(2).map(|w| (w[1] - w[0]).abs()).fold(0.0_f32, f32::max);
         assert!(worst < 0.02, "max step {worst}");
+    }
+
+    #[test]
+    fn fm_stays_in_tune() {
+        let p = settled(&[(SUB, 0.0), (CHAR, 0.0), (GRIT, 0.0), (BRIGHT, 1.0), (DECAY, 1.0), (FM, 0.8)]);
+        let mut v = BassVoice::new(SR, 1);
+        v.trigger(1.0, 41, &mut Rng::new(1));
+        let out = render(&mut v, &p, 48_000);
+        let lag = (SR / midi_to_hz(41.0)).round() as usize;
+        let x = &out[24_000..40_000];
+        let y = &out[24_000 + lag..40_000 + lag];
+        let dot: f32 = x.iter().zip(y).map(|(a, b)| a * b).sum();
+        let corr = dot / (x.iter().map(|a| a * a).sum::<f32>() * y.iter().map(|b| b * b).sum::<f32>()).sqrt();
+        assert!(corr > 0.95, "periodicity {corr}");
     }
 
     #[test]
