@@ -35,9 +35,9 @@ test('arrow keys move a BASS step note in NOTE mode', () => {
   act(() => store.setEditMode('note'))
   const step = screen.getByRole('button', { name: /^BASS step 1,/ })
   fireEvent.keyDown(step, { key: 'ArrowUp' })
-  expect(store.getState().tracks[7].steps[0].note).toBe(42)
+  expect(store.getState().tracks[7].steps[0].note).toBe(30)
   fireEvent.keyDown(step, { key: 'ArrowUp', shiftKey: true })
-  expect(store.getState().tracks[7].steps[0].note).toBe(54)
+  expect(store.getState().tracks[7].steps[0].note).toBe(42)
 })
 
 test('clicking a step in NOTE mode does not toggle it', () => {
@@ -53,12 +53,12 @@ test('kick steps ignore note edits', () => {
   const kick = screen.getByRole('button', { name: 'KICK step 1' })
   expect(kick.getAttribute('aria-disabled')).toBe('true')
   fireEvent.keyDown(kick, { key: 'ArrowUp' })
-  expect(store.getState().tracks[0].steps[0].note).toBe(41)
+  expect(store.getState().tracks[0].steps[0].note).toBe(29)
 })
 
 test('trig steps show their note name in NOTE mode', () => {
   const store = setup()
   act(() => store.toggleStep(7, 0))
   act(() => store.setEditMode('note'))
-  expect(screen.getByRole('button', { name: 'BASS step 1, F2' }).textContent).toBe('F2')
+  expect(screen.getByRole('button', { name: 'BASS step 1, F1' }).textContent).toBe('F1')
 })

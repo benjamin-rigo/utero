@@ -33,7 +33,7 @@ describe('store', () => {
     const { store, sent } = connected()
     store.toggleStep(1, 3)
     expect(store.getState().tracks[1].steps[3].trig).toBe(true)
-    expect(sent).toEqual([[Op.SetStep, 1, 3, 1, 1, 100, 0, 1, 2, 0, 41]])
+    expect(sent).toEqual([[Op.SetStep, 1, 3, 1, 1, 100, 0, 1, 2, 0, 29]])
   })
 
   test('setLength rounds and clamps to 1..64', () => {

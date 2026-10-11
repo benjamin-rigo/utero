@@ -76,7 +76,7 @@ impl BassVoice {
             xover: Svf::new(),
             filter: Svf::new(),
             drive: Drive2x::new(),
-            note: 41.0,
+            note: 29.0,
             amp: 0.0,
             attack: false,
             att_coef: 1.0 - (-1.0 / (0.002 * sample_rate)).exp(),
@@ -156,7 +156,7 @@ impl BassVoice {
 
         let bright = p.get(BRIGHT);
         let pluck = p.get(PLUCK);
-        let key = (semis - 41.0) / 12.0 * 0.5;
+        let key = (semis - 29.0) / 12.0 * 0.5;
         let cutoff = (bright * (pluck * 4.0 * self.fenv + key).exp2()).clamp(20.0, 18_000.0);
         let norm_bright = BASS_PARAMS[BRIGHT].norm_of(bright);
         let damp = 1.8 - 1.0 * norm_bright;

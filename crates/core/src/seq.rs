@@ -38,13 +38,13 @@ pub struct Step {
     pub cond: Cond,
     /// Offset in 1/24 of a step.
     pub micro: i8,
-    /// MIDI note; 41 = F2.
+    /// MIDI note; 29 = F1.
     pub note: u8,
 }
 
 impl Default for Step {
     fn default() -> Self {
-        Step { trig: false, vel: 1.0, prob: 100, cond: Cond::None, micro: 0, note: 41 }
+        Step { trig: false, vel: 1.0, prob: 100, cond: Cond::None, micro: 0, note: 29 }
     }
 }
 
@@ -367,7 +367,7 @@ mod tests {
 
     #[test]
     fn note_defaults_to_f2_and_is_clamped() {
-        assert_eq!(Step::default().note, 41);
+        assert_eq!(Step::default().note, 29);
         let mut t = Track::new();
         t.set_step(0, Step { note: 200, ..trig() });
         let mut rng = Rng::new(1);

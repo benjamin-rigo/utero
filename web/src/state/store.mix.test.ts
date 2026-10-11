@@ -75,7 +75,7 @@ describe('mixer state', () => {
     store.setStepNote(7, 0, 200)
     expect(store.getState().tracks[7].steps[0].note).toBe(127)
     store.setStepNote(0, 0, 50)
-    expect(store.getState().tracks[0].steps[0].note).toBe(41)
+    expect(store.getState().tracks[0].steps[0].note).toBe(29)
     expect(sent).toHaveLength(1)
   })
 
