@@ -56,7 +56,7 @@ export interface RouteState {
 }
 
 export interface MacroTargetState {
-  /** row (0–12 track, 13–20 bus, 21 master) */
+  /** row (0–11 track, 12–19 bus, 20 master) */
   track: number
   param: number
   a: number

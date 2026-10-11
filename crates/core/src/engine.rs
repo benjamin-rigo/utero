@@ -10,13 +10,13 @@ use crate::seq::{CondCtx, Step, Track, Trig};
 use crate::transport::{Transport, PPQN};
 
 pub const BLOCK: usize = 128;
-pub const TRACKS: usize = 13;
-/// Parameter rows: 0–12 tracks, 13–20 buses, 21 master (also the modulation/macro target rows).
+pub const TRACKS: usize = 12;
+/// Parameter rows: 0–11 tracks, 12–19 buses, 20 master (also the modulation/macro target rows).
 pub const ROWS: usize = TRACKS + BUSES + 1;
 pub const MASTER_ROW: usize = TRACKS + BUSES;
 pub const BASS_TRACK: usize = 7;
-/// KICK·KCK2 → KICK, HH·OH → HATS, SNR·NOIS·SMPL → PERC, BASS·FREE → BASS, LD1·LD2 → LEAD, PAD, ORN; bus 7 = FX RTN.
-pub const TRACK_BUS: [usize; TRACKS] = [0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 6];
+/// KICK·KCK2 → KICK, HH·OH → HATS, SNR·NOIS·SMPL → PERC, BASS → BASS, LD1·LD2 → LEAD, PAD, ORN; bus 7 = FX RTN.
+pub const TRACK_BUS: [usize; TRACKS] = [0, 0, 1, 1, 2, 2, 2, 3, 4, 4, 5, 6];
 const BAR_TICKS: u64 = PPQN * 4;
 const MUTE_LEAD_TICKS: u64 = 3;
 
@@ -162,7 +162,7 @@ impl Engine {
         }
     }
 
-    /// `row` 0–12 = track machine, 13–20 = bus, 21 = master.
+    /// `row` 0–11 = track machine, 12–19 = bus, 20 = master.
     pub fn set_param(&mut self, row: usize, param: usize, norm: f32) {
         if let Some(bank) = self.bank_mut(row) {
             bank.set_norm(param, norm);
@@ -342,10 +342,9 @@ impl Engine {
     }
 
     fn trigger(&mut self, t: usize, trig: Trig) {
-        let Machine { voice, params } = &mut self.machines[t];
-        match voice {
+        match &mut self.machines[t].voice {
             Voice::Kick(v) => v.trigger(trig.vel, &mut self.rng),
-            Voice::Bass(v) => v.trigger(trig.vel, trig.note, params, &mut self.rng),
+            Voice::Bass(v) => v.trigger(trig.vel, trig.note, &mut self.rng),
             Voice::None => {}
         }
     }
@@ -513,7 +512,7 @@ mod tests {
         assert_eq!(e.snapshot[SNAP_PLAYHEADS], e.playhead(0) as f32);
         assert_eq!(e.snapshot[SNAP_MODS + 2], e.mod_output(2));
         assert_eq!(e.snapshot[SNAP_EFFECTIVE + DECAY], e.effective_norm(0, DECAY));
-        assert_eq!(SNAP_LEN, 586);
+        assert_eq!(SNAP_LEN, 561);
     }
 
     #[test]

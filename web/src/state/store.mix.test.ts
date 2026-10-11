@@ -21,7 +21,7 @@ describe('mixer state', () => {
     expect(s.buses.every((b) => b.params.length === 3 && !b.muted)).toBe(true)
     expect(s.master.params).toHaveLength(11)
     expect(s.tracks[7].params).toHaveLength(9)
-    expect(s.tracks[8].params).toHaveLength(0)
+    expect(s.tracks[8].name).toBe('LD1')
     expect([s.muteQuantize, s.editMode]).toEqual([true, 'trig'])
   })
 
@@ -33,30 +33,30 @@ describe('mixer state', () => {
 
   test('setParam on a bus row updates that bus', () => {
     const { store, sent } = fresh()
-    store.setParam(16, 0, 0.2)
+    store.setParam(15, 0, 0.2)
     expect(store.getState().buses[3].params[0]).toBe(0.2)
-    expect(sent).toEqual([[Op.SetParam, 16, 0, 0.2]])
+    expect(sent).toEqual([[Op.SetParam, 15, 0, 0.2]])
   })
 
   test('setParam outside a row table is ignored', () => {
     const { store, sent } = fresh()
     store.setParam(5, 0, 0.2)
-    store.setParam(13, 7, 0.2)
+    store.setParam(12, 7, 0.2)
     expect(sent).toEqual([])
   })
 
   test('learn on the master row uses the master base', () => {
     const { store } = fresh()
     store.armLearn(0, 'a')
-    store.setParam(21, 10, 0.3)
-    expect(store.getState().macros[0].targets[0]).toEqual({ track: 21, param: 10, a: 0.3, b: 0.8, slot: 0 })
+    store.setParam(20, 10, 0.3)
+    expect(store.getState().macros[0].targets[0]).toEqual({ track: 20, param: 10, a: 0.3, b: 0.8, slot: 0 })
     expect(store.getState().master.params[10]).toBe(0.8)
   })
 
   test('effectiveValue reads bus rows', () => {
     const { store } = fresh()
-    store.setParam(13, 2, 0.6)
-    expect(effectiveValue(store.getState(), 13, 2)).toBe(0.6)
+    store.setParam(12, 2, 0.6)
+    expect(effectiveValue(store.getState(), 12, 2)).toBe(0.6)
   })
 
   test('toggleMute sends the quantize flag only while playing', () => {

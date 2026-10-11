@@ -10,7 +10,7 @@ export const KICK_TRACKS = 2
 
 const TRACK_DEFS: [name: string, bus: string][] = [
   ['KICK', 'KICK'], ['KCK2', 'KICK'], ['HH', 'HATS'], ['OH', 'HATS'], ['SNR', 'PERC'], ['NOIS', 'PERC'], ['SMPL', 'PERC'],
-  ['BASS', 'BASS'], ['FREE', 'BASS'], ['LD1', 'LEAD'], ['LD2', 'LEAD'], ['PAD', 'PAD'], ['ORN', 'ORN'],
+  ['BASS', 'BASS'], ['LD1', 'LEAD'], ['LD2', 'LEAD'], ['PAD', 'PAD'], ['ORN', 'ORN'],
 ]
 
 const emptyStep = (): StepState => ({ trig: false, vel: 1, prob: 100, cond: 0, a: 1, b: 2, micro: 0, note: 41 })
@@ -38,7 +38,7 @@ export function initialState(): AppState {
   }
 }
 
-/** Base (unmodulated) params of a row: 0–12 track, 13–20 bus, 21 master. */
+/** Base (unmodulated) params of a row: 0–11 track, 12–19 bus, 20 master. */
 export function rowParams(state: AppState, row: number): number[] {
   if (row < TRACK_COUNT) return state.tracks[row]?.params ?? []
   if (row < MASTER_ROW) return state.buses[row - TRACK_COUNT]?.params ?? []
@@ -144,7 +144,7 @@ export function createStore(initial: AppState = initialState()) {
       updateTrack(t, (tr) => ({ ...tr, speed: code }))
       send(cmdSetSpeed(t, code))
     },
-    /** `t` is a row (0–12 track, 13–20 bus, 21 master); while LEARN is armed this writes the macro endpoint instead. */
+    /** `t` is a row (0–11 track, 12–19 bus, 20 master); while LEARN is armed this writes the macro endpoint instead. */
     setParam(t: number, p: number, v: number) {
       if (p >= rowParamMetas(t).length || !Number.isFinite(v)) return
       const value = clamp(v, 0, 1)

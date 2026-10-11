@@ -7,7 +7,7 @@ import { SequencerMatrix } from './SequencerMatrix'
 
 afterEach(cleanup)
 
-const IDLE = Array<number>(13).fill(-1)
+const IDLE = Array<number>(12).fill(-1)
 
 function Harness({ store }: { store: Store }) {
   const state = useSyncExternalStore(store.subscribe, store.getState)

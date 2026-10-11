@@ -17,7 +17,7 @@ pub const KICK_PARAM_COUNT: usize = 8;
 
 /// Order and default_norm are mirrored in web/src/state/kickParams.ts.
 pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
-    ParamDesc { name: "TUNE", min: 30.0, max: 120.0, default_norm: 0.2925, curve: Curve::Exp },
+    ParamDesc { name: "TUNE", min: 30.0, max: 120.0, default_norm: 0.270_567, curve: Curve::Exp },
     ParamDesc { name: "SWEEP", min: 0.0, max: 48.0, default_norm: 0.5, curve: Curve::Lin },
     ParamDesc { name: "S.TIME", min: 5.0, max: 300.0, default_norm: 0.508, curve: Curve::Exp },
     ParamDesc { name: "DECAY", min: 50.0, max: 2000.0, default_norm: 0.5637, curve: Curve::Exp },
@@ -149,9 +149,9 @@ mod tests {
     }
 
     #[test]
-    fn default_tune_is_about_45_hz() {
+    fn default_tune_is_f1() {
         let p = kick_params(SR);
-        assert!((p.get(TUNE) - 45.0).abs() < 0.5, "{}", p.get(TUNE));
+        assert!((p.get(TUNE) - 43.65).abs() < 0.05, "{}", p.get(TUNE));
     }
 
     #[test]
@@ -245,7 +245,7 @@ mod tests {
         for _ in 0..1000 {
             p.advance();
         }
-        assert!((p.get(TUNE) - 45.0).abs() < 0.5);
+        assert!((p.get(TUNE) - 43.65).abs() < 0.05);
     }
 
     #[test]

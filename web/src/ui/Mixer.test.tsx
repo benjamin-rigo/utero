@@ -42,7 +42,7 @@ test('dropping a modulator on a bus filter routes to that bus row', () => {
   const store = setup()
   const dataTransfer = { types: [MOD_DRAG_TYPE], getData: () => '0' }
   fireEvent.drop(screen.getByRole('slider', { name: 'BASS FLT' }), { dataTransfer })
-  expect(store.getState().routes[0]).toMatchObject({ src: 0, track: 16, param: 0 })
+  expect(store.getState().routes[0]).toMatchObject({ src: 0, track: 15, param: 0 })
 })
 
 test('master MODE switches between limiter and clip', () => {

@@ -323,7 +323,7 @@ impl Modulator {
 
 pub const MOD_SLOTS: usize = 16;
 pub const MAX_ROUTES: usize = 64;
-pub const MOD_ROWS: usize = 22;
+pub const MOD_ROWS: usize = 21;
 pub const MOD_PARAMS: usize = 24;
 
 /// Per-sample fade of route amounts (~10 ms at 48 kHz): adding or removing a route never clicks.

@@ -29,9 +29,9 @@ export const BASS_PARAMS: ParamMeta[] = [
   { name: 'PLUCK', default: 0.4, display: pct },
   { name: 'GRIT', default: 0.2, display: pct },
   { name: 'DECAY', default: 0.5, display: ms(30, 4000) },
-  { name: 'GLIDE', default: 0, display: ms(0, 300, 'lin') },
+  { name: 'FM', default: 0, display: { kind: 'pct' } },
   { name: 'LEVEL', default: 0.8, display: db },
-  { name: 'SUB OCT', default: 0.5, display: { kind: 'choice', options: ['0', '−1', '−2'] } },
+  { name: 'SUB OCT', default: 0, display: { kind: 'choice', options: ['0', '−1'] } },
 ]
 /** Mirrors BUS_PARAMS in crates/core/src/bus.rs. */
 export const BUS_PARAMS: ParamMeta[] = [
@@ -61,7 +61,7 @@ const BASS: MachineDef = {
   switches: [{ param: 8, label: 'SUB OCT' }],
 }
 
-export const TRACK_COUNT = 13
+export const TRACK_COUNT = 12
 export const BUS_COUNT = 8
 export const BUS_NAMES = ['KICK', 'HATS', 'PERC', 'BASS', 'LEAD', 'PAD', 'ORN', 'FX']
 export const MASTER_ROW = TRACK_COUNT + BUS_COUNT
@@ -121,6 +121,12 @@ export function formatParam(meta: ParamMeta, norm: number): string {
   }
   const v = rangeValue(d, norm)
   if (d.unit === 'Hz') return formatHz(v)
+  if (d.unit === 'note') {
+    const midi = 69 + 12 * Math.log2(v / 440)
+    const n = Math.round(midi)
+    const cents = Math.round((midi - n) * 100)
+    return cents === 0 ? noteName(n) : `${noteName(n)} ${cents > 0 ? '+' : ''}${cents}`
+  }
   if (d.unit === 'ms' && v >= 1000) return `${(v / 1000).toFixed(2)} s`
   const digits = d.digits ?? (Math.abs(v) < 10 && d.unit !== 'st' ? 1 : 0)
   return `${d.signed && v > 0 ? '+' : ''}${v.toFixed(digits)} ${d.unit}`

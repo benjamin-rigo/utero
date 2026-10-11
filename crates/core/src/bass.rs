@@ -1,7 +1,7 @@
 use core::f32::consts::TAU;
 
 use crate::bus::fader_gain;
-use crate::dsp::{fold, midi_to_hz, Drive2x, Glide, Osc, Svf};
+use crate::dsp::{fold, midi_to_hz, Drive2x, Osc, Svf};
 use crate::params::{Curve, ParamBank, ParamDesc};
 use crate::rng::Rng;
 
@@ -11,9 +11,9 @@ pub const BRIGHT: usize = 2;
 pub const PLUCK: usize = 3;
 pub const GRIT: usize = 4;
 pub const DECAY: usize = 5;
-pub const GLIDE: usize = 6;
+pub const FM: usize = 6;
 pub const LEVEL: usize = 7;
-/// Switch, not a knob: 0, 1 or 2 octaves under the step note.
+/// Switch, not a knob: the sub plays at the step note (0) or one octave under it (1).
 pub const SUB_OCT: usize = 8;
 pub const BASS_PARAM_COUNT: usize = 9;
 
@@ -25,14 +25,16 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
     ParamDesc { name: "PLUCK", min: 0.0, max: 1.0, default_norm: 0.4, curve: Curve::Lin },
     ParamDesc { name: "GRIT", min: 0.0, max: 1.0, default_norm: 0.2, curve: Curve::Lin },
     ParamDesc { name: "DECAY", min: 30.0, max: 4000.0, default_norm: 0.5, curve: Curve::Exp },
-    ParamDesc { name: "GLIDE", min: 0.0, max: 300.0, default_norm: 0.0, curve: Curve::Lin },
+    ParamDesc { name: "FM", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
-    ParamDesc { name: "SUB OCT", min: 0.0, max: 2.0, default_norm: 0.5, curve: Curve::Lin },
+    ParamDesc { name: "SUB OCT", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
 ];
 
 const XOVER_HZ: f32 = 90.0;
 const HEADROOM: f32 = 0.4;
 const REESE_CENTS: f32 = 25.0;
+/// Peak exponential FM depth in octaves at FM = 1.
+const FM_OCTAVES: f32 = 2.0;
 
 pub fn bass_params(sample_rate: f32) -> ParamBank {
     ParamBank::new(&BASS_PARAMS, sample_rate)
@@ -53,7 +55,7 @@ pub struct BassVoice {
     xover: Svf,
     filter: Svf,
     drive: Drive2x,
-    glide: Glide,
+    note: f32,
     amp: f32,
     attack: bool,
     att_coef: f32,
@@ -74,7 +76,7 @@ impl BassVoice {
             xover: Svf::new(),
             filter: Svf::new(),
             drive: Drive2x::new(),
-            glide: Glide::new(41.0),
+            note: 41.0,
             amp: 0.0,
             attack: false,
             att_coef: 1.0 - (-1.0 / (0.002 * sample_rate)).exp(),
@@ -91,16 +93,11 @@ impl BassVoice {
     }
 
     pub fn pitch(&self) -> f32 {
-        self.glide.value()
+        self.note
     }
 
-    pub fn trigger(&mut self, vel: f32, note: u8, p: &ParamBank, rng: &mut Rng) {
-        let sounding = self.active && self.amp > 0.05;
-        if sounding && p.get(GLIDE) > 0.0 {
-            self.glide.set_target(note as f32);
-        } else {
-            self.glide.jump(note as f32);
-        }
+    pub fn trigger(&mut self, vel: f32, note: u8, rng: &mut Rng) {
+        self.note = note as f32;
         // Reset phases only from (near) silence: resetting even a quiet tail would click.
         if !self.active || self.amp < 1.0e-3 {
             self.sub_phase = 0.0;
@@ -126,18 +123,20 @@ impl BassVoice {
 
         let n = self.rng.bipolar();
         self.noise_lp += (n - self.noise_lp) * 0.05;
-        self.glide.set_time(p.get(GLIDE), sr);
-        let base = self.glide.next();
-        let semis = base + self.noise_lp * noise_amt * 0.15;
-        let freq = midi_to_hz(semis);
+        let semis = self.note + self.noise_lp * noise_amt * 0.15;
 
         // clean sine sub, never processed (no jitter either)
-        let sub_freq = midi_to_hz(base - 12.0 * p.get(SUB_OCT).round());
+        let sub_freq = midi_to_hz(self.note - 12.0 * p.get(SUB_OCT).round());
         self.sub_phase += sub_freq / sr;
         if self.sub_phase >= 1.0 {
             self.sub_phase -= 1.0;
         }
-        let sub = (self.sub_phase * TAU).sin() * fader_gain(p.get(SUB));
+        let sub_sine = (self.sub_phase * TAU).sin();
+        let sub = sub_sine * fader_gain(p.get(SUB));
+
+        // FM: the sub sine bends the upper layer's pitch at audio rate (exponential, so never negative)
+        let fm = p.get(FM);
+        let freq = midi_to_hz(semis) * (fm * fm * FM_OCTAVES * sub_sine).exp2();
 
         // CHAR: 0–0.15 fades the layer in, up to 0.5 saw → saw+square (PRESSURE), above 0.5 detune opens (REESE)
         let c = p.get(CHAR);
@@ -204,7 +203,7 @@ mod tests {
             let p = settled(&[]);
             let mut rng = Rng::new(3);
             let mut v = BassVoice::new(SR, 9);
-            v.trigger(1.0, note, &p, &mut rng);
+            v.trigger(1.0, note, &mut rng);
             let peak = render(&mut v, &p, 24_000).iter().fold(0.0_f32, |m, s| m.max(s.abs()));
             assert!(peak < 0.8, "note {note} peak {peak}");
         }
@@ -237,10 +236,10 @@ mod tests {
     }
 
     #[test]
-    fn sub_alone_plays_f1_for_note_41() {
+    fn sub_alone_plays_f1_for_note_29() {
         let p = settled(&[(CHAR, 0.0), (GRIT, 0.0)]);
         let mut v = BassVoice::new(SR, 1);
-        v.trigger(1.0, 41, &p, &mut Rng::new(1));
+        v.trigger(1.0, 29, &mut Rng::new(1));
         let out = render(&mut v, &p, 48_000);
         let crossings = out.windows(2).filter(|w| w[0] < 0.0 && w[1] >= 0.0).count();
         assert!((43..=44).contains(&crossings), "{crossings}");
@@ -251,11 +250,11 @@ mod tests {
         let count = |oct: f32| {
             let p = settled(&[(CHAR, 0.0), (GRIT, 0.0), (SUB_OCT, oct)]);
             let mut v = BassVoice::new(SR, 1);
-            v.trigger(1.0, 53, &p, &mut Rng::new(1));
+            v.trigger(1.0, 53, &mut Rng::new(1));
             render(&mut v, &p, 48_000).windows(2).filter(|w| w[0] < 0.0 && w[1] >= 0.0).count()
         };
-        let (zero, two) = (count(0.0), count(1.0));
-        assert!((zero as f32 / two as f32 - 4.0).abs() < 0.2, "{zero} vs {two}");
+        let (zero, one) = (count(0.0), count(1.0));
+        assert!((zero as f32 / one as f32 - 2.0).abs() < 0.1, "{zero} vs {one}");
     }
 
     #[test]
@@ -263,7 +262,7 @@ mod tests {
         let level = |c: f32| {
             let p = settled(&[(SUB, 0.0), (CHAR, c)]);
             let mut v = BassVoice::new(SR, 1);
-            v.trigger(1.0, 41, &p, &mut Rng::new(1));
+            v.trigger(1.0, 41, &mut Rng::new(1));
             rms(&render(&mut v, &p, 9_600))
         };
         assert!(level(0.0) < 1e-4);
@@ -274,7 +273,7 @@ mod tests {
     fn sub_level_zero_is_silent_without_char() {
         let p = settled(&[(SUB, 0.0), (CHAR, 0.0)]);
         let mut v = BassVoice::new(SR, 1);
-        v.trigger(1.0, 41, &p, &mut Rng::new(1));
+        v.trigger(1.0, 41, &mut Rng::new(1));
         assert!(rms(&render(&mut v, &p, 4_800)) < 1e-4);
     }
 
@@ -283,33 +282,33 @@ mod tests {
         let p = settled(&[(CHAR, 0.0), (GRIT, 0.0)]);
         let mut v = BassVoice::new(SR, 1);
         let mut rng = Rng::new(1);
-        v.trigger(1.0, 41, &p, &mut rng);
+        v.trigger(1.0, 41, &mut rng);
         let mut out = render(&mut v, &p, 9_600);
-        v.trigger(1.0, 41, &p, &mut rng);
+        v.trigger(1.0, 41, &mut rng);
         out.extend(render(&mut v, &p, 2_400));
         let worst = out.windows(2).map(|w| (w[1] - w[0]).abs()).fold(0.0_f32, f32::max);
         assert!(worst < 0.02, "max step {worst}");
     }
 
     #[test]
-    fn glide_slides_between_notes() {
-        let p = settled(&[(GLIDE, 1.0)]);
-        let mut v = BassVoice::new(SR, 1);
-        let mut rng = Rng::new(1);
-        v.trigger(1.0, 41, &p, &mut rng);
-        render(&mut v, &p, 4_800);
-        v.trigger(1.0, 53, &p, &mut rng);
-        render(&mut v, &p, 1);
-        assert!(v.pitch() < 42.0);
-        render(&mut v, &p, 96_000);
-        assert!((v.pitch() - 53.0).abs() < 0.05);
+    fn fm_reshapes_the_upper_layer() {
+        let run = |fm: f32| {
+            let p = settled(&[(SUB, 0.0), (CHAR, 0.2), (BRIGHT, 1.0), (GRIT, 0.0), (FM, fm)]);
+            let mut v = BassVoice::new(SR, 1);
+            v.trigger(1.0, 41, &mut Rng::new(1));
+            render(&mut v, &p, 9_600)
+        };
+        let (dry, wet) = (run(0.0), run(0.8));
+        let diff: Vec<f32> = dry.iter().zip(&wet).map(|(a, b)| a - b).collect();
+        assert!(rms(&diff) > rms(&dry) * 0.5, "{} vs {}", rms(&diff), rms(&dry));
+        assert!(wet.iter().all(|s| s.is_finite() && s.abs() <= 1.0));
     }
 
     #[test]
     fn decays_and_deactivates() {
         let p = settled(&[(DECAY, 0.0)]);
         let mut v = BassVoice::new(SR, 1);
-        v.trigger(1.0, 41, &p, &mut Rng::new(1));
+        v.trigger(1.0, 41, &mut Rng::new(1));
         render(&mut v, &p, 48_000);
         assert!(!v.is_active());
     }
@@ -320,7 +319,7 @@ mod tests {
             let edits: Vec<(usize, f32)> = (0..BASS_PARAM_COUNT).map(|i| (i, norm)).collect();
             let p = settled(&edits);
             let mut v = BassVoice::new(SR, 7);
-            v.trigger(1.0, 100, &p, &mut Rng::new(3));
+            v.trigger(1.0, 100, &mut Rng::new(3));
             assert!(render(&mut v, &p, 48_000).iter().all(|s| s.is_finite() && s.abs() <= 1.0));
         }
     }

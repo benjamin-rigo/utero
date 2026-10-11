@@ -103,7 +103,7 @@ test('engine param defaults match the UI tables', async () => {
   ex.utero_init(48000)
   ex.utero_process(1)
   const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
-  for (const row of [0, 1, 7, 8, 13, 16, 21]) {
+  for (const row of [0, 1, 7, 12, 15, 20]) {
     rowParamMetas(row).forEach((meta, p) => {
       expect(snap[SNAP_EFFECTIVE + row * 24 + p], `row ${row} param ${meta.name}`).toBeCloseTo(meta.default, 2)
     })

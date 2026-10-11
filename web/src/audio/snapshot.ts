@@ -1,5 +1,5 @@
 /** Layout mirrors SNAP_* in crates/core/src/engine.rs. */
-export const SNAP_TRACKS = 13
+export const SNAP_TRACKS = 12
 export const SNAP_BUSES = 8
 export const SNAP_ROWS = SNAP_TRACKS + SNAP_BUSES + 1
 export const SNAP_MOD_SLOTS = 16
