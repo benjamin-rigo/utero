@@ -10,6 +10,8 @@ export interface StepState {
   b: number
   /** 1/24 of a step, −11..11 */
   micro: number
+  /** MIDI note, 41 = F2 */
+  note: number
 }
 
 export interface TrackState {

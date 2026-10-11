@@ -38,12 +38,20 @@ pub struct Step {
     pub cond: Cond,
     /// Offset in 1/24 of a step.
     pub micro: i8,
+    /// MIDI note; 41 = F2.
+    pub note: u8,
 }
 
 impl Default for Step {
     fn default() -> Self {
-        Step { trig: false, vel: 1.0, prob: 100, cond: Cond::None, micro: 0 }
+        Step { trig: false, vel: 1.0, prob: 100, cond: Cond::None, micro: 0, note: 41 }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Trig {
+    pub vel: f32,
+    pub note: u8,
 }
 
 pub struct CondCtx<'a> {
@@ -90,6 +98,7 @@ impl Track {
             *s = Step {
                 micro: step.micro.clamp(-11, 11),
                 prob: step.prob.min(100),
+                note: step.note.min(127),
                 vel: if step.vel.is_finite() { step.vel.clamp(0.0, 1.0) } else { 1.0 },
                 ..step
             };
@@ -123,7 +132,7 @@ impl Track {
     }
 
     /// Stateless position (tick / step_ticks) makes polymeter and length changes safe.
-    pub fn on_tick(&mut self, tick: u64, ctx: &mut CondCtx) -> Option<f32> {
+    pub fn on_tick(&mut self, tick: u64, ctx: &mut CondCtx) -> Option<Trig> {
         let st = speed_ticks(self.speed);
         let len = self.length as u64;
         let abs_step = tick / st;
@@ -138,7 +147,7 @@ impl Track {
             }
             let at = (cand * st) as i64 + (step.micro as i64 * st as i64) / 24;
             if at == tick as i64 && self.evaluate(&step, cand / len, ctx) {
-                return Some(step.vel);
+                return Some(Trig { vel: step.vel, note: step.note });
             }
         }
         None
@@ -343,5 +352,26 @@ mod tests {
     fn first_fires_only_on_first_iteration() {
         let mut rng = Rng::new(1);
         assert_eq!(run(&mut one_step(Cond::First, 100), 24 * 4, false, false, &mut rng), vec![0]);
+    }
+
+    #[test]
+    fn trig_carries_the_step_note() {
+        let mut t = Track::new();
+        t.set_step(0, Step { note: 53, ..trig() });
+        let mut rng = Rng::new(1);
+        let mut ctx = CondCtx { fill: false, neighbor: false, rng: &mut rng };
+        let fired = t.on_tick(0, &mut ctx).expect("fires");
+        assert_eq!(fired.note, 53);
+        assert_eq!(fired.vel, 1.0);
+    }
+
+    #[test]
+    fn note_defaults_to_f2_and_is_clamped() {
+        assert_eq!(Step::default().note, 41);
+        let mut t = Track::new();
+        t.set_step(0, Step { note: 200, ..trig() });
+        let mut rng = Rng::new(1);
+        let mut ctx = CondCtx { fill: false, neighbor: false, rng: &mut rng };
+        assert_eq!(t.on_tick(0, &mut ctx).unwrap().note, 127);
     }
 }

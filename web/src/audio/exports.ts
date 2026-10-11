@@ -1,6 +1,6 @@
 export interface EngineExports {
   utero_set_param(track: number, param: number, value: number): void
-  utero_set_step(track: number, step: number, trig: number, vel: number, prob: number, cond: number, a: number, b: number, micro: number): void
+  utero_set_step(track: number, step: number, trig: number, vel: number, prob: number, cond: number, a: number, b: number, micro: number, note: number): void
   utero_set_length(track: number, len: number): void
   utero_set_speed(track: number, code: number): void
   utero_play(): void

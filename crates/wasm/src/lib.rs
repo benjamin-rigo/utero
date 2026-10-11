@@ -47,13 +47,14 @@ pub extern "C" fn utero_set_param(track: u32, param: u32, value: f32) {
 
 #[no_mangle]
 #[allow(clippy::too_many_arguments)]
-pub extern "C" fn utero_set_step(track: u32, step: u32, trig: u32, vel: f32, prob: u32, cond: u32, a: u32, b: u32, micro: i32) {
+pub extern "C" fn utero_set_step(track: u32, step: u32, trig: u32, vel: f32, prob: u32, cond: u32, a: u32, b: u32, micro: i32, note: u32) {
     let s = Step {
         trig: trig != 0,
         vel,
         prob: byte(prob),
         cond: Cond::from_code(byte(cond), byte(a), byte(b)),
         micro: micro.clamp(-11, 11) as i8,
+        note: byte(note).min(127),
     };
     eng().set_step(track as usize, step as usize, s);
 }

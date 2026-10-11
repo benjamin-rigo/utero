@@ -192,9 +192,9 @@ impl Engine {
         let mut neighbor = false;
         for t in 0..TRACKS {
             let mut ctx = CondCtx { fill: self.fill, neighbor, rng: &mut self.rng };
-            if let Some(vel) = self.tracks[t].on_tick(tick, &mut ctx) {
+            if let Some(trig) = self.tracks[t].on_tick(tick, &mut ctx) {
                 if t < KICK_TRACKS {
-                    self.kicks[t].trigger(vel, &mut self.rng);
+                    self.kicks[t].trigger(trig.vel, &mut self.rng);
                 }
                 self.mods.on_track_trigger(t);
             }

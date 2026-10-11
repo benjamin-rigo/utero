@@ -9,7 +9,7 @@ export const CMD_WORDS = 16
 
 export const cmdSetParam = (t: number, p: number, v: number) => [Op.SetParam, t, p, v]
 export const cmdSetStep = (t: number, s: number, st: StepState) =>
-  [Op.SetStep, t, s, st.trig ? 1 : 0, st.vel, st.prob, st.cond, st.a, st.b, st.micro]
+  [Op.SetStep, t, s, st.trig ? 1 : 0, st.vel, st.prob, st.cond, st.a, st.b, st.micro, st.note]
 export const cmdSetLength = (t: number, len: number) => [Op.SetLength, t, len]
 export const cmdSetSpeed = (t: number, code: number) => [Op.SetSpeed, t, code]
 export const cmdPlay = () => [Op.Play]
