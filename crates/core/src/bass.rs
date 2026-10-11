@@ -30,7 +30,11 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
     ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 1.0, curve: Curve::Lin },
 ];
 
-const XOVER_HZ: f32 = 90.0;
+/// The upper layer is high-passed at this multiple of the sub frequency (24 dB/oct), so the sub owns its
+/// fundamental and FM/CHAR can never phase-cancel it (≈ −24 dB of overlap at the sub's pitch).
+const XOVER_RATIO: f32 = 2.0;
+const XOVER_MIN_HZ: f32 = 30.0;
+const XOVER_MAX_HZ: f32 = 400.0;
 const HEADROOM: f32 = 0.45;
 const REESE_CENTS: f32 = 25.0;
 /// Peak phase-modulation index at FM = 1 (on the pluck transient).
@@ -54,7 +58,7 @@ pub struct BassVoice {
     fm_mod: f32,
     osc_a: Osc,
     osc_b: Osc,
-    xover: Svf,
+    xover: [Svf; 2],
     filter: Svf,
     drive: Drive2x,
     note: f32,
@@ -77,7 +81,7 @@ impl BassVoice {
             fm_mod: 0.0,
             osc_a: Osc::new(),
             osc_b: Osc::new(),
-            xover: Svf::new(),
+            xover: [Svf::new(), Svf::new()],
             filter: Svf::new(),
             drive: Drive2x::new(),
             note: 29.0,
@@ -109,7 +113,7 @@ impl BassVoice {
             self.fm_mod = 0.0;
             self.osc_a.reset(0.0);
             self.osc_b.reset(rng.next_f32());
-            self.xover.reset();
+            self.xover.iter_mut().for_each(Svf::reset);
             self.filter.reset();
         }
         self.attack = true;
@@ -161,7 +165,10 @@ impl BassVoice {
 
         x *= 1.0 + noise_amt * self.noise_lp * 3.0;
         x = fold(x.clamp(-1.0, 1.0), noise_amt * 0.6);
-        x = self.xover.process(x, XOVER_HZ, 1.414, sr).hp;
+        let xover = (sub_freq * XOVER_RATIO).clamp(XOVER_MIN_HZ, XOVER_MAX_HZ);
+        for f in &mut self.xover {
+            x = f.process(x, xover, 1.414, sr).hp;
+        }
 
         let bright = p.get(BRIGHT);
         let pluck = p.get(PLUCK);
@@ -192,7 +199,7 @@ impl BassVoice {
         if out.is_finite() {
             out
         } else {
-            self.xover.reset();
+            self.xover.iter_mut().for_each(Svf::reset);
             self.filter.reset();
             self.drive = Drive2x::new();
             0.0
@@ -298,6 +305,37 @@ mod tests {
         out.extend(render(&mut v, &p, 2_400));
         let worst = out.windows(2).map(|w| (w[1] - w[0]).abs()).fold(0.0_f32, f32::max);
         assert!(worst < 0.02, "max step {worst}");
+    }
+
+    /// Magnitude of one frequency (Goertzel), normalised by length.
+    fn tone_level(x: &[f32], freq: f32) -> f32 {
+        let w = TAU * freq / SR;
+        let (mut s1, mut s2) = (0.0_f32, 0.0_f32);
+        for &v in x {
+            let s0 = v + 2.0 * w.cos() * s1 - s2;
+            s2 = s1;
+            s1 = s0;
+        }
+        (s1 * s1 + s2 * s2 - 2.0 * w.cos() * s1 * s2).sqrt() / x.len() as f32
+    }
+
+    #[test]
+    fn fm_and_char_never_cancel_the_sub() {
+        for oct in [0.0, 0.5, 1.0] {
+            let level = |fm: f32, c: f32| {
+                let p = settled(&[(FM, fm), (CHAR, c), (DECAY, 1.0), (SUB_OCT, oct)]);
+                let mut v = BassVoice::new(SR, 1);
+                v.trigger(1.0, 29, &mut Rng::new(1));
+                let out = render(&mut v, &p, 14_400);
+                let sub_hz = midi_to_hz(29.0 + 12.0 * (oct * 2.0 - 1.0));
+                tone_level(&out[4_800..], sub_hz)
+            };
+            let dry = level(0.0, 0.0);
+            for (fm, c) in [(0.3, 0.51), (0.6, 0.51), (1.0, 0.51), (1.0, 1.0), (0.0, 0.3)] {
+                let db = 20.0 * (level(fm, c) / dry).log10();
+                assert!(db.abs() < 1.5, "oct {oct} fm {fm} char {c}: sub moved {db} dB");
+            }
+        }
     }
 
     #[test]

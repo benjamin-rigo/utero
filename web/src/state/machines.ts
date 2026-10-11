@@ -66,7 +66,7 @@ export const TRACK_COUNT = 12
 export const BUS_COUNT = 8
 export const BUS_NAMES = ['KICK', 'HATS', 'PERC', 'BASS', 'LEAD', 'PAD', 'ORN', 'FX']
 /** Starting bus faders in dB (techno gain plan), mirrors BUS_DEFAULT_DB in crates/core/src/bus.rs. */
-export const BUS_DEFAULT_DB = [-6, -14, -12, -3, -12, -16, -16, -12]
+export const BUS_DEFAULT_DB = [-6, -14, -12, -6, -12, -16, -16, -12]
 /** Inverse of the fader law (0.8 = 0 dB). */
 export const faderNormForDb = (db: number) => 0.8 * 10 ** (db / 62)
 export const MASTER_ROW = TRACK_COUNT + BUS_COUNT

@@ -34,9 +34,8 @@ pub fn fader_norm_for_db(db: f32) -> f32 {
 
 /// Starting fader per bus (KICK HATS PERC BASS LEAD PAD ORN FX), a techno gain plan with machines
 /// peaking near 0 dBFS: kick ≈ −6 dBFS, bass a touch under, hats/perc/leads well below, pads and FX lowest.
-/// The default BASS patch is short and dark (peaks ≈ −5 dBFS), so its bus sits 3 dB higher to land ≈ −8 dBFS.
 /// Mirrored in web/src/state/machines.ts.
-pub const BUS_DEFAULT_DB: [f32; BUSES] = [-6.0, -14.0, -12.0, -3.0, -12.0, -16.0, -16.0, -12.0];
+pub const BUS_DEFAULT_DB: [f32; BUSES] = [-6.0, -14.0, -12.0, -6.0, -12.0, -16.0, -16.0, -12.0];
 
 pub struct Bus {
     pub params: ParamBank,
