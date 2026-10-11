@@ -1,19 +1,45 @@
 import { useRef } from 'react'
+import { MOD_DRAG_TYPE } from '@/state/modulation'
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+const SIZE = 56
+const MID = SIZE / 2
 const R = 18
 const C = 2 * Math.PI * R
-
-interface KnobProps {
-  label: string
-  value: number
-  defaultValue: number
-  onChange(value: number): void
+const RM = 24
+const CM = 2 * Math.PI * RM
+/** Drags beyond this radius (in knob units) edit the modulation amount. */
+const MOD_RING_RADIUS = 21
+const angleOf = (v: number) => 135 + v * 270
+const pointAt = (v: number, r: number) => {
+  const a = (angleOf(v) * Math.PI) / 180
+  return { x: MID + r * Math.cos(a), y: MID + r * Math.sin(a) }
 }
 
-/** Vertical drag (⇧ = fine), double-click = default, arrow keys = step. */
-export function Knob({ label, value, defaultValue, onChange }: KnobProps) {
-  const lastY = useRef<number | null>(null)
+export interface KnobProps {
+  label: string
+  /** The value being edited: the base, or the macro endpoint while LEARN is armed. */
+  value: number
+  /** Live value after macros and modulation; defaults to `value`. */
+  display?: number
+  defaultValue: number
+  /** Sum of route amounts on this parameter, −1..1. */
+  modAmount?: number
+  markers?: { a: number; b: number } | null
+  learning?: boolean
+  selected?: boolean
+  onChange(value: number): void
+  onModAmount?(delta: number): void
+  onDropModulator?(slot: number): void
+  onSelect?(): void
+}
+
+/** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
+export function Knob({
+  label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
+  onChange, onModAmount, onDropModulator, onSelect,
+}: KnobProps) {
+  const drag = useRef<{ y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
   current.current = value
 
@@ -23,44 +49,88 @@ export function Knob({ label, value, defaultValue, onChange }: KnobProps) {
     onChange(next)
   }
 
+  const modLen = Math.min(1, Math.abs(modAmount)) * 0.75 * CM
+  const modRotate = modAmount >= 0 ? angleOf(value) : angleOf(value) - Math.min(1, -modAmount) * 270
+  const dot = pointAt(display, R)
+  const pct = (v: number) => Math.round(v * 100)
+
   return (
-    <div className="flex flex-col items-center gap-1 select-none">
+    <div className="flex flex-col items-center gap-0.5 select-none">
       <svg
         role="slider"
         tabIndex={0}
         aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={Math.round(value * 100)}
-        width={48}
-        height={48}
-        viewBox="0 0 48 48"
-        className="cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc"
+        aria-valuenow={pct(value)}
+        aria-valuetext={`${pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}`}
+        width={SIZE}
+        height={SIZE}
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
         onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId)
-          lastY.current = e.clientY
+          const box = e.currentTarget.getBoundingClientRect()
+          const scale = box.width / SIZE || 1
+          const dist = Math.hypot(e.clientX - (box.left + box.width / 2), e.clientY - (box.top + box.height / 2)) / scale
+          const mode = onModAmount && modAmount !== 0 && dist > MOD_RING_RADIUS ? 'mod' : 'value'
+          e.currentTarget.setPointerCapture?.(e.pointerId)
+          drag.current = { y: e.clientY, mode }
         }}
         onPointerMove={(e) => {
-          if (lastY.current === null) return
-          const dy = lastY.current - e.clientY
-          lastY.current = e.clientY
-          nudge(dy / (e.shiftKey ? 1000 : 200))
+          if (!drag.current) return
+          const delta = (drag.current.y - e.clientY) / (e.shiftKey ? 1000 : 200)
+          drag.current.y = e.clientY
+          if (drag.current.mode === 'mod') onModAmount?.(delta)
+          else nudge(delta)
         }}
-        onPointerUp={() => { lastY.current = null }}
+        onPointerUp={() => { drag.current = null }}
+        onPointerCancel={() => { drag.current = null }}
+        onLostPointerCapture={() => { drag.current = null }}
         onDoubleClick={() => onChange(defaultValue)}
         onKeyDown={(e) => {
           const step = e.shiftKey ? 0.001 : 0.01
-          if (e.key === 'ArrowUp') { e.preventDefault(); nudge(step) }
-          if (e.key === 'ArrowDown') { e.preventDefault(); nudge(-step) }
+          const keys: Record<string, () => void> = {
+            ArrowUp: () => nudge(step), ArrowRight: () => nudge(step),
+            ArrowDown: () => nudge(-step), ArrowLeft: () => nudge(-step),
+            Home: () => onChange(0), End: () => onChange(1),
+          }
+          const action = keys[e.key]
+          if (action) {
+            e.preventDefault()
+            action()
+          }
+        }}
+        onDragOver={(e) => {
+          if (onDropModulator && Array.from(e.dataTransfer.types).includes(MOD_DRAG_TYPE)) e.preventDefault()
+        }}
+        onDrop={(e) => {
+          const raw = e.dataTransfer.getData(MOD_DRAG_TYPE)
+          if (!onDropModulator || raw === '') return
+          e.preventDefault()
+          onDropModulator(Number(raw))
         }}
       >
-        <circle cx={24} cy={24} r={R} fill="none" strokeWidth={4} className="stroke-zinc-800"
-          strokeDasharray={`${0.75 * C} ${C}`} transform="rotate(135 24 24)" />
-        <circle cx={24} cy={24} r={R} fill="none" strokeWidth={4} className="stroke-acc"
-          strokeDasharray={`${0.75 * C * value} ${C}`} transform="rotate(135 24 24)" />
+        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-zinc-800"
+          strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
+        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-acc"
+          strokeDasharray={`${0.75 * C * value} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
+        {modAmount !== 0 && (
+          <circle cx={MID} cy={MID} r={RM} fill="none" strokeWidth={2} className="stroke-mod"
+            strokeDasharray={`${modLen} ${CM}`} transform={`rotate(${modRotate} ${MID} ${MID})`} />
+        )}
+        {markers && (
+          <>
+            <circle cx={pointAt(markers.a, RM).x} cy={pointAt(markers.a, RM).y} r={2.5} className="fill-zinc-400" />
+            <circle cx={pointAt(markers.b, RM).x} cy={pointAt(markers.b, RM).y} r={2.5} className="fill-mod" />
+          </>
+        )}
+        <circle cx={dot.x} cy={dot.y} r={2} className="fill-zinc-100" />
       </svg>
-      <span className="text-[10px] uppercase tracking-wider text-zinc-400">{label}</span>
-      <span className="text-sm tabular-nums">{Math.round(value * 100)}</span>
+      <button type="button" onClick={onSelect} aria-pressed={selected}
+        className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-mod' : 'text-zinc-400'}`}>
+        {label}
+      </button>
+      <span className="text-sm tabular-nums">{pct(display)}</span>
     </div>
   )
 }
