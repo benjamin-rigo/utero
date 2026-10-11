@@ -175,7 +175,7 @@ function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
           <p className="text-zinc-400">Üres slot – válassz típust.</p>
         )}
       {m.kind !== 0 && (
-        <div className="flex items-center gap-0.5">
+        <div className="grid grid-cols-4 gap-x-1 gap-y-0.5">
           {timed && (m.sync ? (
             <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
           ) : (
