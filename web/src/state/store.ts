@@ -4,7 +4,7 @@ import {
 } from '@/audio/ops'
 import { KICK_PARAMS } from './kickParams'
 import { initialMacros, initialModulators, MACRO_TARGETS, MAX_ROUTES, STEP_COUNT } from './modulation'
-import type { AppState, MacroState, ModulatorState, StepState, TrackState } from './types'
+import type { AppState, MacroState, MacroTargetState, ModulatorState, StepState, TrackState } from './types'
 
 export const KICK_TRACKS = 2
 
@@ -86,7 +86,7 @@ export function createStore(initial: AppState = initialState()) {
     })
     state.routes.forEach((r, i) => { if (r) send(cmdSetRoute(i, r)) })
     state.macros.forEach((mac, m) => {
-      mac.targets.forEach((t, i) => send(cmdSetMacroTarget(m, i, t)))
+      mac.targets.forEach((t) => send(cmdSetMacroTarget(m, t.slot, t)))
       send(cmdSetMacroPos(m, mac.pos))
     })
   }
@@ -129,19 +129,22 @@ export function createStore(initial: AppState = initialState()) {
       const learn = state.learn
       if (learn) {
         const mac = state.macros[learn.macro]
-        let idx = mac.targets.findIndex((x) => x.track === t && x.param === p)
+        const existing = mac.targets.find((x) => x.track === t && x.param === p)
         const base = state.tracks[t].params[p]
-        if (idx === -1) {
-          if (mac.targets.length >= MACRO_TARGETS) return
-          idx = mac.targets.length
+        let target: MacroTargetState
+        if (existing) {
+          target = { ...existing, [learn.side]: value }
+        } else {
+          const used = new Set(mac.targets.map((x) => x.slot))
+          const slot = Array.from({ length: MACRO_TARGETS }, (_, k) => k).find((k) => !used.has(k))
+          if (slot === undefined) return
+          target = { track: t, param: p, a: base, b: base, slot, [learn.side]: value }
         }
-        const prev = mac.targets[idx] ?? { track: t, param: p, a: base, b: base }
-        const target = { ...prev, [learn.side]: value }
         updateMacro(learn.macro, (x) => ({
           ...x,
-          targets: idx < x.targets.length ? x.targets.map((y, i) => (i === idx ? target : y)) : [...x.targets, target],
+          targets: existing ? x.targets.map((y) => (y === existing ? target : y)) : [...x.targets, target],
         }))
-        send(cmdSetMacroTarget(learn.macro, idx, target))
+        send(cmdSetMacroTarget(learn.macro, target.slot, target))
         return
       }
       updateTrack(t, (tr) => ({ ...tr, params: tr.params.map((x, i) => (i === p ? value : x)) }))
@@ -231,13 +234,11 @@ export function createStore(initial: AppState = initialState()) {
       if (trimmed) updateMacro(m, (x) => ({ ...x, name: trimmed }))
     },
     removeMacroTarget(m: number, i: number) {
-      const old = state.macros[m].targets
-      if (i < 0 || i >= old.length) return
-      const next = old.filter((_, k) => k !== i)
-      updateMacro(m, (x) => ({ ...x, targets: next }))
-      // Engine slots mirror array indices: resend the shifted tail, clear the freed last slot.
-      for (let k = i; k < next.length; k++) send(cmdSetMacroTarget(m, k, next[k]))
-      send(cmdClearMacroTarget(m, old.length - 1))
+      const removed = state.macros[m].targets[i]
+      if (!removed) return
+      updateMacro(m, (x) => ({ ...x, targets: x.targets.filter((_, k) => k !== i) }))
+      // Engine slots are stable: only the removed target's slot fades out.
+      send(cmdClearMacroTarget(m, removed.slot))
     },
   }
 }

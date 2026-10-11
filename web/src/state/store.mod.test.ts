@@ -125,7 +125,7 @@ describe('macros and learn', () => {
     store.armLearn(0, 'b')
     store.setParam(0, 5, 0.9)
     expect(store.getState().tracks[0].params[5]).toBe(base)
-    expect(store.getState().macros[0].targets).toEqual([{ track: 0, param: 5, a: 0.1, b: 0.9 }])
+    expect(store.getState().macros[0].targets).toEqual([{ track: 0, param: 5, a: 0.1, b: 0.9, slot: 0 }])
     expect(sent.filter((c) => c[0] === Op.SetMacroTarget).at(-1)).toEqual([Op.SetMacroTarget, 0, 0, 0, 5, 0.1, 0.9])
     expect(sent.some((c) => c[0] === Op.SetParam)).toBe(false)
   })
@@ -135,10 +135,10 @@ describe('macros and learn', () => {
     const base = store.getState().tracks[1].params[0]
     store.armLearn(3, 'b')
     store.setParam(1, 0, 0.7)
-    expect(store.getState().macros[3].targets[0]).toEqual({ track: 1, param: 0, a: base, b: 0.7 })
+    expect(store.getState().macros[3].targets[0]).toEqual({ track: 1, param: 0, a: base, b: 0.7, slot: 0 })
   })
 
-  test('removeMacroTarget shifts later targets and resends them', () => {
+  test('removing a target clears only its own engine slot', () => {
     const { store, sent } = fresh()
     store.armLearn(0, 'a')
     store.setParam(0, 1, 0.1)
@@ -146,8 +146,26 @@ describe('macros and learn', () => {
     store.setParam(0, 3, 0.3)
     sent.length = 0
     store.removeMacroTarget(0, 0)
-    expect(store.getState().macros[0].targets.map((t) => t.param)).toEqual([2, 3])
-    expect(sent.map((c) => [c[0], c[2]])).toEqual([[Op.SetMacroTarget, 0], [Op.SetMacroTarget, 1], [Op.ClearMacroTarget, 2]])
+    expect(store.getState().macros[0].targets.map((t) => [t.param, t.slot])).toEqual([[2, 1], [3, 2]])
+    expect(sent).toEqual([[Op.ClearMacroTarget, 0, 0]])
+  })
+
+  test('a freed target slot is reused by the next learned target', () => {
+    const { store } = fresh()
+    store.armLearn(0, 'a')
+    store.setParam(0, 1, 0.1)
+    store.setParam(0, 2, 0.2)
+    store.removeMacroTarget(0, 0)
+    store.setParam(0, 4, 0.4)
+    expect(store.getState().macros[0].targets.map((t) => [t.param, t.slot])).toEqual([[2, 1], [4, 0]])
+  })
+
+  test('a macro holds at most 16 targets', () => {
+    const { store } = fresh()
+    store.armLearn(0, 'a')
+    for (let p = 0; p < 9; p++) store.setParam(0, p, 0.5)
+    for (let p = 0; p < 9; p++) store.setParam(1, p, 0.5)
+    expect(store.getState().macros[0].targets).toHaveLength(16)
   })
 
   test('effectiveValue applies the macro interpolation', () => {

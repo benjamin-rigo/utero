@@ -40,7 +40,7 @@ test('every command builder reaches the matching export with its arguments in or
     cmdPlay(), cmdStop(), cmdSetBpm(128), cmdSetFill(true),
     cmdSetModulator(3, mod), cmdSetModStep(3, 7, -0.5), cmdSetModStepLen(3, 8),
     cmdSetRoute(10, { src: 3, track: 0, param: 4, amount: -0.25 }), cmdClearRoute(10),
-    cmdSetMacroTarget(2, 1, { track: 1, param: 0, a: 0.1, b: 0.9 }), cmdClearMacroTarget(2, 1), cmdSetMacroPos(2, 0.75),
+    cmdSetMacroTarget(2, 1, { track: 1, param: 0, a: 0.1, b: 0.9, slot: 1 }), cmdClearMacroTarget(2, 1), cmdSetMacroPos(2, 0.75),
   ]) {
     expect(cmd.length).toBeLessThanOrEqual(CMD_WORDS)
     dispatch(ex, cmd)

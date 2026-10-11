@@ -54,10 +54,13 @@ export interface RouteState {
 }
 
 export interface MacroTargetState {
+  /** row (0–12 track, 13–20 bus, 21 master) */
   track: number
   param: number
   a: number
   b: number
+  /** engine target slot 0–15, stable for the target's lifetime */
+  slot: number
 }
 
 export interface MacroState {
