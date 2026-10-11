@@ -144,8 +144,24 @@ impl Track {
         None
     }
 
-    fn evaluate(&mut self, _step: &Step, _iteration: u64, _ctx: &mut CondCtx) -> bool {
-        true
+    fn evaluate(&mut self, step: &Step, iteration: u64, ctx: &mut CondCtx) -> bool {
+        let cond_ok = match step.cond {
+            Cond::None => true,
+            Cond::Ab { a, b } => b > 0 && iteration % b as u64 == (a.saturating_sub(1) % b) as u64,
+            Cond::Fill => ctx.fill,
+            Cond::NotFill => !ctx.fill,
+            Cond::Pre => self.last_cond,
+            Cond::NotPre => !self.last_cond,
+            Cond::Nei => ctx.neighbor,
+            Cond::First => iteration == 0,
+        };
+        let prob_ok = step.prob >= 100 || ctx.rng.next_f32() * 100.0 < step.prob as f32;
+        let result = cond_ok && prob_ok;
+        let conditional = step.cond != Cond::None || step.prob < 100;
+        if conditional && !matches!(step.cond, Cond::Pre | Cond::NotPre | Cond::Nei) {
+            self.last_cond = result;
+        }
+        result
     }
 }
 
@@ -247,5 +263,85 @@ mod tests {
         t.set_length(200);
         assert_eq!(t.length(), 64);
         t.set_step(500, trig());
+    }
+
+    fn one_step(cond: Cond, prob: u8) -> Track {
+        let mut t = Track::new();
+        t.set_length(1);
+        t.set_step(0, Step { cond, prob, ..trig() });
+        t
+    }
+
+    #[test]
+    fn prob_zero_never_and_hundred_always_fires() {
+        let mut rng = Rng::new(42);
+        assert!(run(&mut one_step(Cond::None, 0), 24 * 100, false, false, &mut rng).is_empty());
+        assert_eq!(run(&mut one_step(Cond::None, 100), 24 * 100, false, false, &mut rng).len(), 100);
+    }
+
+    #[test]
+    fn prob_fifty_fires_about_half_the_time() {
+        let mut rng = Rng::new(42);
+        let n = run(&mut one_step(Cond::None, 50), 24 * 1000, false, false, &mut rng).len();
+        assert!((400..=600).contains(&n), "fired {n} of 1000");
+    }
+
+    #[test]
+    fn same_seed_reproduces_probability_pattern() {
+        let a = run(&mut one_step(Cond::None, 50), 24 * 64, false, false, &mut Rng::new(9));
+        let b = run(&mut one_step(Cond::None, 50), 24 * 64, false, false, &mut Rng::new(9));
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn ab_one_of_two_fires_on_even_iterations() {
+        let mut rng = Rng::new(1);
+        let fired = run(&mut one_step(Cond::Ab { a: 1, b: 2 }, 100), 24 * 6, false, false, &mut rng);
+        assert_eq!(fired, vec![0, 48, 96]);
+    }
+
+    #[test]
+    fn ab_with_zero_b_never_fires() {
+        let mut rng = Rng::new(1);
+        assert!(run(&mut one_step(Cond::Ab { a: 1, b: 0 }, 100), 24 * 4, false, false, &mut rng).is_empty());
+    }
+
+    #[test]
+    fn fill_and_not_fill_follow_fill_flag() {
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut one_step(Cond::Fill, 100), 24 * 2, true, false, &mut rng).len(), 2);
+        assert!(run(&mut one_step(Cond::Fill, 100), 24 * 2, false, false, &mut rng).is_empty());
+        assert!(run(&mut one_step(Cond::NotFill, 100), 24 * 2, true, false, &mut rng).is_empty());
+        assert_eq!(run(&mut one_step(Cond::NotFill, 100), 24 * 2, false, false, &mut rng).len(), 2);
+    }
+
+    #[test]
+    fn pre_follows_previous_conditional_result() {
+        let mut rng = Rng::new(1);
+        let mut t = Track::new();
+        t.set_length(3);
+        t.set_step(0, Step { prob: 0, ..trig() });
+        t.set_step(1, Step { cond: Cond::Pre, ..trig() });
+        t.set_step(2, Step { cond: Cond::NotPre, ..trig() });
+        assert_eq!(run(&mut t, 72, false, false, &mut rng), vec![48]);
+
+        let mut t = Track::new();
+        t.set_length(2);
+        t.set_step(0, Step { cond: Cond::Fill, ..trig() });
+        t.set_step(1, Step { cond: Cond::Pre, ..trig() });
+        assert_eq!(run(&mut t, 48, true, false, &mut rng), vec![0, 24]);
+    }
+
+    #[test]
+    fn nei_reads_neighbor_flag() {
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut one_step(Cond::Nei, 100), 24, false, true, &mut rng), vec![0]);
+        assert!(run(&mut one_step(Cond::Nei, 100), 24, false, false, &mut rng).is_empty());
+    }
+
+    #[test]
+    fn first_fires_only_on_first_iteration() {
+        let mut rng = Rng::new(1);
+        assert_eq!(run(&mut one_step(Cond::First, 100), 24 * 4, false, false, &mut rng), vec![0]);
     }
 }
