@@ -6,4 +6,5 @@ pub mod modulation;
 pub mod params;
 pub mod rng;
 pub mod seq;
+pub mod sub;
 pub mod transport;
