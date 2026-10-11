@@ -18,7 +18,7 @@ export function MachinePanel({ state, frame, store }: Props) {
   const t = state.selected
   const machine = MACHINES[t]
   return (
-    <aside aria-label="Machine" className="flex min-h-0 flex-col">
+    <aside aria-label={`${state.tracks[t].name} machine`} className="flex min-h-0 flex-col">
       {machine ? (
         // keyed by track so page and selected param reset when switching tracks
         <MachineBody key={t} state={state} frame={frame} store={store} track={t} machine={machine} />
@@ -43,11 +43,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
 
   return (
     <>
-      <div className="flex items-center gap-2 border-b border-zinc-800 p-2">
-        <b className="text-acc">{state.tracks[t].name}</b>
-        {machine.name !== state.tracks[t].name && <span className="text-zinc-400">{machine.name}</span>}
-      </div>
-      <div role="tablist" className="flex border-b border-zinc-800">
+      {machine.pages.length > 1 && <div role="tablist" className="flex border-b border-zinc-800">
         {machine.pages.map((pg, i) => (
           <button key={pg.name} type="button" role="tab" aria-selected={page === i}
             onClick={() => { setPage(i); setSelParam(pg.params[0]) }}
@@ -55,7 +51,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
             {pg.name}
           </button>
         ))}
-      </div>
+      </div>}
       {machine.switches?.map((sw) => {
         const meta = machine.params[sw.param]
         const opts = meta.display?.kind === 'choice' ? meta.display.options : []
