@@ -27,6 +27,10 @@ export const KICK_PARAMS: ParamMeta[] = [
   { name: 'LEVEL', default: 0.8, display: { kind: 'db' } },
 ]
 
-export const KICK_PAGES = [{ name: 'KICK', params: [0, 1, 2, 3, 4, 5, 6, 7] }]
+/**
+ * Shared knob template for every machine page (engine param indices stay put, only the order on screen):
+ * 1–3 source · 4 transient · 5 tone · 6 dirt/noise · 7 DECAY · 8 LEVEL.
+ */
+export const KICK_PAGES = [{ name: 'KICK', params: [0, 1, 2, 4, 6, 5, 3, 7] }]
 
 export { hz, ms }

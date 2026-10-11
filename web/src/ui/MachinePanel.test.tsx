@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { MOD_DRAG_TYPE } from '@/state/modulation'
+import { KICK_PARAMS } from '@/state/kickParams'
 import { createStore, type Store } from '@/state/store'
 import { MachinePanel } from './MachinePanel'
 
@@ -19,16 +20,27 @@ const setup = () => {
   return store
 }
 
-test('a route can be added without drag and drop, then removed', () => {
+test('map mode: knobs edit the selected modulator amount, double-click clears it', () => {
+  const store = setup()
+  act(() => { store.selectMod(1); store.setMapping(true) })
+  const decay = screen.getByRole('slider', { name: 'DECAY' })
+  fireEvent.keyDown(decay, { key: 'ArrowUp' })
+  fireEvent.keyDown(decay, { key: 'ArrowUp' })
+  expect(store.getState().routes.find((r) => r)).toMatchObject({ src: 1, track: 0, param: 3 })
+  expect(store.getState().routes.find((r) => r)?.amount).toBeCloseTo(0.02)
+  expect(decay.getAttribute('aria-valuetext')).toBe('LFO2 amount +2')
+  expect(store.getState().tracks[0].params[3]).toBe(KICK_PARAMS[3].default)
+  fireEvent.doubleClick(decay)
+  expect(store.getState().routes.every((r) => r === null)).toBe(true)
+})
+
+test('the selected knob lists its routes as chips that can be removed', () => {
   const store = setup()
   fireEvent.click(screen.getByRole('button', { name: 'DECAY' }))
-  fireEvent.change(screen.getByLabelText('Modulator to add'), { target: { value: '1' } })
-  fireEvent.click(screen.getByRole('button', { name: '+ route' }))
-  expect(store.getState().routes[0]).toEqual({ src: 1, track: 0, param: 3, amount: 0.25 })
-  fireEvent.change(screen.getByLabelText('LFO2 amount'), { target: { value: '-40' } })
-  expect(store.getState().routes[0]?.amount).toBeCloseTo(-0.4)
+  act(() => { store.addRoute(1, 0, 3, 0.4) })
+  expect(screen.getByText('+40')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Remove LFO2 route' }))
-  expect(store.getState().routes[0]).toBeNull()
+  expect(store.getState().routes.every((r) => r === null)).toBe(true)
 })
 
 test('dropping a tile on a knob routes it to that parameter', () => {
@@ -52,20 +64,12 @@ test('tracks without a machine say so', () => {
   expect(screen.getByText(/nincs még machine/)).toBeTruthy()
 })
 
-test('add-route source falls back to the first active modulator', () => {
-  const store = setup()
-  act(() => { store.updateModulator(0, { kind: 0 }) })
-  fireEvent.click(screen.getByRole('button', { name: 'DECAY' }))
-  fireEvent.click(screen.getByRole('button', { name: '+ route' }))
-  expect(store.getState().routes[0]).toMatchObject({ src: 1, track: 0, param: 3 })
-})
 
 test('a route from a switched-off modulator is labelled (off), not "+ add"', () => {
   const store = setup()
   fireEvent.click(screen.getByRole('button', { name: 'DECAY' }))
   act(() => { store.addRoute(3, 0, 3) })
   act(() => { store.updateModulator(3, { kind: 0 }) })
-  expect(screen.getByLabelText('MOD4 (off) amount')).toBeTruthy()
   expect(screen.getByRole('button', { name: 'Remove MOD4 (off) route' })).toBeTruthy()
 })
 

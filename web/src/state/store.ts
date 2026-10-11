@@ -2,7 +2,7 @@ import {
   cmdClearMacroTarget, cmdClearRoute, cmdPlay, cmdSetBpm, cmdSetLength, cmdSetMacroPos, cmdSetMacroTarget,
   cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, cmdSetBusMute,
 } from '@/audio/ops'
-import { BUS_NAMES, BUS_PARAMS, isMelodic, MACHINES, MASTER_PARAMS, MASTER_ROW, rowParamMetas, TRACK_COUNT } from './machines'
+import { BUS_DEFAULT_DB, BUS_LEVEL, BUS_NAMES, BUS_PARAMS, faderNormForDb, isMelodic, MACHINES, MASTER_PARAMS, MASTER_ROW, rowParamMetas, TRACK_COUNT } from './machines'
 import { initialMacros, initialModulators, MACRO_TARGETS, MAX_ROUTES, STEP_COUNT } from './modulation'
 import type { AppState, BusState, MacroState, MacroTargetState, ModulatorState, StepState, TrackState } from './types'
 
@@ -31,8 +31,11 @@ export function initialState(): AppState {
   return {
     bpm: 128, playing: false, selected: 0, tracks,
     modulators: initialModulators(), routes: Array(MAX_ROUTES).fill(null), macros: initialMacros(),
-    selectedMod: 0, selectedMacro: 0, learn: null,
-    buses: BUS_NAMES.map((name): BusState => ({ name, params: BUS_PARAMS.map((p) => p.default), muted: false })),
+    selectedMod: 0, mapping: false, hover: null, selectedMacro: 0, learn: null,
+    buses: BUS_NAMES.map((name, b): BusState => ({
+      name, muted: false,
+      params: BUS_PARAMS.map((p, i) => (i === BUS_LEVEL ? faderNormForDb(BUS_DEFAULT_DB[b]) : p.default)),
+    })),
     master: { params: MASTER_PARAMS.map((p) => p.default) },
     muteQuantize: true,
     editMode: 'trig',
@@ -210,6 +213,23 @@ export function createStore(initial: AppState = initialState()) {
     selectMod(slot: number) {
       set({ ...state, selectedMod: slot })
     },
+    setMapping(on: boolean) {
+      set({ ...state, mapping: on, learn: on ? null : state.learn })
+    },
+    setHover(target: { row: number; param: number } | null) {
+      if (target?.row === state.hover?.row && target?.param === state.hover?.param) return
+      set({ ...state, hover: target })
+    },
+    /** Map mode drag: nudges (or creates) the selected modulator's route to (t, p). */
+    nudgeMapAmount(t: number, p: number, delta: number) {
+      const idx = routeIndexFor(state, state.selectedMod, t, p)
+      const r = state.routes[idx]
+      if (r) setRoute(idx, r.amount + delta)
+      else if (delta !== 0) this.addRoute(state.selectedMod, t, p, delta)
+    },
+    clearMapAmount(t: number, p: number) {
+      this.removeRoute(routeIndexFor(state, state.selectedMod, t, p))
+    },
     updateModulator(slot: number, patch: ModulatorPatch) {
       const { hz, ...rest } = patch
       const next = { ...state.modulators[slot], ...rest }
@@ -264,6 +284,7 @@ export function createStore(initial: AppState = initialState()) {
       set({
         ...state,
         learn: { macro: m, side },
+        mapping: false,
         selectedMacro: m,
         macros: state.macros.map((x, i) => (i === m ? { ...x, pos } : x)),
       })

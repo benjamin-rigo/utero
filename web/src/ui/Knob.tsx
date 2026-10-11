@@ -38,25 +38,39 @@ export interface KnobProps {
   ariaLabel?: string
   /** Shows the value in real units (dB, Hz, ms…); defaults to 0–100. */
   format?(value: number): string
+  /** Map mode: the selected modulator's amount on this knob (−1..1); drags and arrows edit it, double-click clears. */
+  map?: { label: string; amount: number } | null
+  onMap?(delta: number): void
+  onMapClear?(): void
+  onHover?(on: boolean): void
+  /** Discrete knob with this many positions: arrows move one position, drags accumulate across them. */
+  steps?: number
 }
 
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps,
 }: KnobProps) {
   const drag = useRef<{ y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
-  current.current = value
+  // while dragging keep the unquantised position, so discrete knobs can travel between positions
+  if (!drag.current) current.current = value
 
   const nudge = (delta: number) => {
+    if (map) {
+      onMap?.(delta)
+      return
+    }
     const next = clamp01(current.current + delta)
     current.current = next
     onChange(next)
   }
 
-  const modLen = Math.min(1, Math.abs(modAmount)) * 0.75 * CM
-  const modRotate = modAmount >= 0 ? angleOf(value) : angleOf(value) - Math.min(1, -modAmount) * 270
+  const ring = map ? map.amount : modAmount
+  const modLen = Math.min(1, Math.abs(ring)) * 0.75 * CM
+  const modRotate = ring >= 0 ? angleOf(value) : angleOf(value) - Math.min(1, -ring) * 270
+  const signed = (v: number) => `${v > 0 ? '+' : ''}${pct(v)}`
   const dot = pointAt(display, R)
   const pct = (v: number) => Math.round(v * 100)
 
@@ -69,18 +83,23 @@ export function Knob({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct(value)}
-        aria-valuetext={`${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
+        aria-valuetext={map
+          ? `${map.label} amount ${signed(map.amount)}`
+          : `${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
         width={size === 'sm' ? 40 : SIZE}
         height={size === 'sm' ? 40 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
+        onPointerEnter={() => onHover?.(true)}
+        onPointerLeave={() => onHover?.(false)}
         onPointerDown={(e) => {
           const box = e.currentTarget.getBoundingClientRect()
           const scale = box.width / SIZE || 1
           const dist = Math.hypot(e.clientX - (box.left + box.width / 2), e.clientY - (box.top + box.height / 2)) / scale
-          const mode = onModAmount && modAmount !== 0 && dist > MOD_RING_RADIUS ? 'mod' : 'value'
+          const mode = !map && onModAmount && modAmount !== 0 && dist > MOD_RING_RADIUS ? 'mod' : 'value'
           e.currentTarget.setPointerCapture?.(e.pointerId)
           drag.current = { y: e.clientY, mode }
+          current.current = value
         }}
         onPointerMove={(e) => {
           if (!drag.current) return
@@ -92,13 +111,13 @@ export function Knob({
         onPointerUp={() => { drag.current = null }}
         onPointerCancel={() => { drag.current = null }}
         onLostPointerCapture={() => { drag.current = null }}
-        onDoubleClick={() => onChange(defaultValue)}
+        onDoubleClick={() => (map ? onMapClear?.() : onChange(defaultValue))}
         onKeyDown={(e) => {
-          const step = e.shiftKey ? 0.001 : 0.01
+          const step = steps && !map ? 1 / (steps - 1) : e.shiftKey ? 0.001 : 0.01
           const keys: Record<string, () => void> = {
             ArrowUp: () => nudge(step), ArrowRight: () => nudge(step),
             ArrowDown: () => nudge(-step), ArrowLeft: () => nudge(-step),
-            Home: () => onChange(0), End: () => onChange(1),
+            Home: () => { if (!map) onChange(0) }, End: () => { if (!map) onChange(1) },
           }
           const action = keys[e.key]
           if (action) {
@@ -120,8 +139,12 @@ export function Knob({
           strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
         <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-acc"
           strokeDasharray={`${0.75 * C * value} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
-        {modAmount !== 0 && (
-          <circle cx={MID} cy={MID} r={RM} fill="none" strokeWidth={2} className="stroke-mod"
+        {map && (
+          <circle cx={MID} cy={MID} r={RM} fill="none" strokeWidth={1} className="stroke-mod/40"
+            strokeDasharray="2 3" />
+        )}
+        {ring !== 0 && (
+          <circle cx={MID} cy={MID} r={RM} fill="none" strokeWidth={map ? 3 : 2} className="stroke-mod"
             strokeDasharray={`${modLen} ${CM}`} transform={`rotate(${modRotate} ${MID} ${MID})`} />
         )}
         {markers && (
@@ -137,7 +160,9 @@ export function Knob({
         {label}
       </button>
       {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
-      <span className={size === 'sm' ? 'text-[10px] tabular-nums' : 'text-sm tabular-nums'}>{format ? format(display) : pct(display)}</span>
+      <span className={`${size === 'sm' ? 'text-[10px]' : 'text-sm'} tabular-nums ${map ? 'text-mod' : ''}`}>
+        {map ? signed(map.amount) : format ? format(display) : pct(display)}
+      </span>
     </div>
   )
 }

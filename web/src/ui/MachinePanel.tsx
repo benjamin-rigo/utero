@@ -38,10 +38,7 @@ interface BodyProps extends Props {
 function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
   const [page, setPage] = useState(0)
   const [selParam, setSelParam] = useState(machine.pages[0].params[0])
-  const [addSrc, setAddSrc] = useState(0)
   const routes = state.routes.flatMap((r, i) => (r && r.track === t && r.param === selParam ? [{ r, i }] : []))
-  const active = state.modulators.flatMap((m, i) => (m.kind !== 0 ? [{ m, i }] : []))
-  const src = active.some((a) => a.i === addSrc) ? addSrc : active[0]?.i
   const label = (slot: number) => (state.modulators[slot].kind === 0 ? `MOD${slot + 1} (off)` : modLabel(slot, state.modulators[slot]))
 
   return (
@@ -96,26 +93,27 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
             selected={selParam === p} onSelect={() => setSelParam(p)} />
         ))}
       </div>
-      <div className="flex flex-col gap-1 border-t border-zinc-800 p-2">
-        <span className="text-[9px] tracking-wider text-zinc-400 uppercase">mod on {machine.params[selParam].name}</span>
-        {routes.length === 0 && <p className="text-zinc-400">húzz rá egy modulátort a gombra, vagy add hozzá itt</p>}
-        {routes.map(({ r, i }) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="w-16 text-mod">{label(r.src)}</span>
-            <input type="range" min={-100} max={100} value={Math.round(r.amount * 100)} aria-label={`${label(r.src)} amount`}
-              onChange={(e) => store.setRouteAmount(i, Number(e.target.value) / 100)} className="flex-1 accent-sky-400" />
-            <span className="w-8 text-right tabular-nums">{Math.round(r.amount * 100)}</span>
-            <button type="button" aria-label={`Remove ${label(r.src)} route`} onClick={() => store.removeRoute(i)} className={btn}>×</button>
-          </div>
-        ))}
-        <div className="flex items-center gap-2">
-          <select aria-label="Modulator to add" value={src ?? ''} onChange={(e) => setAddSrc(Number(e.target.value))}
-            className="rounded bg-zinc-900 px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc">
-            {active.map(({ m, i }) => <option key={i} value={i}>{modLabel(i, m)}</option>)}
-          </select>
-          <button type="button" className={btn} disabled={src === undefined} aria-disabled={src === undefined}
-            onClick={() => { if (src !== undefined) store.addRoute(src, t, selParam) }}>+ route</button>
-        </div>
+      <div className="flex min-h-7 flex-wrap items-center gap-1 border-t border-zinc-800 px-2 py-1">
+        {state.mapping ? (
+          <span className="text-mod">
+            MAP {label(state.selectedMod)}: húzd a gombokat a mértékhez · dupla katt törli ·{' '}
+            <button type="button" className={btn} onClick={() => store.setMapping(false)}>kész (Esc)</button>
+          </span>
+        ) : routes.length === 0 ? (
+          <span className="text-zinc-400">{machine.params[selParam].name}: nincs moduláció – húzz rá egy modulátort</span>
+        ) : (
+          <>
+            <span className="mr-1 text-zinc-400">{machine.params[selParam].name}</span>
+            {routes.map(({ r, i }) => (
+              <span key={i} className="flex items-center gap-1 rounded-full border border-mod/50 py-0.5 pr-0.5 pl-2">
+                <span className="text-mod">{label(r.src)}</span>
+                <span className="tabular-nums">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+                <button type="button" aria-label={`Remove ${label(r.src)} route`} onClick={() => store.removeRoute(i)}
+                  className="rounded-full px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-acc">×</button>
+              </span>
+            ))}
+          </>
+        )}
       </div>
     </>
   )

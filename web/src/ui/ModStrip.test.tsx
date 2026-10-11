@@ -33,10 +33,31 @@ test('clicking an empty tile creates an LFO and selects it', () => {
   expect(store.getState().modulators[4].kind).toBe(1)
 })
 
-test('shape buttons edit the selected modulator', () => {
+test('the SHAPE knob steps through the shapes', () => {
   const store = setup()
-  fireEvent.click(screen.getByRole('button', { name: 'GLIDE' }))
+  const shape = screen.getByRole('slider', { name: 'SHAPE' })
+  fireEvent.keyDown(shape, { key: 'ArrowRight' })
   expect(store.getState().modulators[0].shape).toBe(1)
+  expect(shape.getAttribute('aria-valuetext')).toBe('GLIDE')
+  fireEvent.keyDown(shape, { key: 'End' })
+  expect(store.getState().modulators[0].shape).toBe(8)
+})
+
+test('clicking a tile enters map mode, clicking it again or Escape leaves it', () => {
+  const store = setup()
+  fireEvent.click(screen.getByRole('button', { name: /^LFO2/ }))
+  expect([store.getState().selectedMod, store.getState().mapping]).toEqual([1, true])
+  fireEvent.click(screen.getByRole('button', { name: /^LFO2/ }))
+  expect(store.getState().mapping).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: /^LFO2/ }))
+  fireEvent.keyDown(window, { key: 'Escape' })
+  expect(store.getState().mapping).toBe(false)
+})
+
+test('RATE steps one sync division per arrow press', () => {
+  const store = setup()
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'RATE' }), { key: 'ArrowRight' })
+  expect(store.getState().modulators[0].rateIndex).toBe(7)
 })
 
 test('the RATE knob steps through the sync list, or sweeps Hz', () => {

@@ -86,6 +86,10 @@ export interface AppState {
   routes: (RouteState | null)[]
   macros: MacroState[]
   selectedMod: number
+  /** Map mode: knobs edit the selected modulator's amount instead of their value. */
+  mapping: boolean
+  /** Param under the pointer, so tiles can show what modulates it. */
+  hover: { row: number; param: number } | null
   selectedMacro: number
   learn: LearnState | null
   buses: BusState[]

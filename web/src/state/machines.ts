@@ -57,13 +57,18 @@ export const MASTER_PARAMS: ParamMeta[] = [
 const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: KICK_PARAMS, pages: KICK_PAGES }
 const BASS: MachineDef = {
   name: 'BASS', melodic: true, params: BASS_PARAMS,
-  pages: [{ name: 'BASS', params: [0, 1, 2, 3, 4, 5, 6, 7] }],
+  // SUB CHAR FM · PLUCK · BRIGHT · GRIT · DECAY · LEVEL (template in kickParams.ts)
+  pages: [{ name: 'BASS', params: [0, 1, 6, 3, 2, 4, 5, 7] }],
   switches: [{ param: 8, label: 'SUB OCT' }],
 }
 
 export const TRACK_COUNT = 12
 export const BUS_COUNT = 8
 export const BUS_NAMES = ['KICK', 'HATS', 'PERC', 'BASS', 'LEAD', 'PAD', 'ORN', 'FX']
+/** Starting bus faders in dB (techno gain plan), mirrors BUS_DEFAULT_DB in crates/core/src/bus.rs. */
+export const BUS_DEFAULT_DB = [-6, -14, -12, -6, -12, -16, -16, -12]
+/** Inverse of the fader law (0.8 = 0 dB). */
+export const faderNormForDb = (db: number) => 0.8 * 10 ** (db / 62)
 export const MASTER_ROW = TRACK_COUNT + BUS_COUNT
 export const ROW_COUNT = MASTER_ROW + 1
 export const BUS_FILTER = 0

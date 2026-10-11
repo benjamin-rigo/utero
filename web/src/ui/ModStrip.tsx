@@ -1,8 +1,7 @@
-import type { PointerEvent } from 'react'
+import { useEffect, type PointerEvent } from 'react'
 import { modOutputOf } from '@/audio/snapshot'
 import {
-  FAVORITE_SHAPE_COUNT, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, rateLabel, SHAPES, STEP_COUNT,
-  SYNC_LABELS, TRIG_MODES,
+  MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
 } from '@/state/modulation'
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
@@ -15,7 +14,6 @@ const pathOf = (values: number[]) =>
   values.map((v, i) => `${i === 0 ? 'M' : 'L'}${((i / (values.length - 1)) * W).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
 const HZ_MIN = 0.01
 const HZ_MAX = 40
-const SYNC_LAST = SYNC_LABELS.length - 1
 const hzOf = (v: number) => HZ_MIN * (HZ_MAX / HZ_MIN) ** v
 const normOfHz = (hz: number) => Math.log(hz / HZ_MIN) / Math.log(HZ_MAX / HZ_MIN)
 const formatHz = (hz: number) => `${hz < 10 ? hz.toFixed(2) : hz.toFixed(1)} Hz`
@@ -31,19 +29,31 @@ interface Props {
 
 export function ModStrip({ state, frame, store }: Props) {
   const slot = state.selectedMod
+  const { mapping, hover } = state
+  useEffect(() => {
+    if (!mapping) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') store.setMapping(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mapping, store])
   const pick = (i: number) => {
+    if (i === slot && mapping) {
+      store.setMapping(false)
+      return
+    }
     store.selectMod(i)
     if (state.modulators[i].kind === 0) store.updateModulator(i, { kind: 1 })
+    store.setMapping(true)
   }
+  const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
-    <section aria-label="Modulators" className="grid h-full min-h-0 grid-cols-[340px_1fr] gap-2 border-t border-zinc-800 p-2">
-      <ModEditor slot={slot} m={state.modulators[slot]} tracks={state.tracks.map((t) => t.name)} store={store} />
-      <div className="grid min-h-0 grid-cols-8 grid-rows-2 gap-1">
+    <section aria-label="Modulators" className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-1.5 border-t border-zinc-800 p-2">
+      <div className="grid grid-cols-16 gap-1">
         {state.modulators.map((m, i) => {
           const off = m.kind === 0
           const targets = state.routes.filter((r) => r?.src === i).length
-          const live = frame ? modOutputOf(frame, i) : 0
-          const liveY = toY(m.bipolar ? live : live * 2 - 1)
+          const onHovered = hover !== null && state.routes.some((r) => r?.src === i && r.track === hover.row && r.param === hover.param)
+          const v = live(i)
           return (
             <div key={i} role="button" tabIndex={0} draggable={!off} aria-pressed={slot === i}
               aria-label={off ? `Slot ${i + 1} empty` : `${modLabel(i, m)}, ${targets} targets`}
@@ -59,23 +69,22 @@ export function ModStrip({ state, frame, store }: Props) {
                 e.dataTransfer.effectAllowed = 'link'
               }}
               className={[
-                'relative flex min-w-0 flex-col justify-between rounded border px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc',
+                'relative flex h-9 min-w-0 flex-col justify-between rounded border px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc',
                 off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-400'
                   : 'cursor-grab border-sky-950 bg-[#0a141a]',
-                slot === i && !off ? 'ring-1 ring-mod' : '',
+                slot === i && !off ? (mapping ? 'ring-2 ring-mod' : 'ring-1 ring-mod') : '',
+                onHovered ? 'bg-sky-900/70' : '',
               ].join(' ')}>
-              {off ? '+ add' : (
+              {off ? '+' : (
                 <>
-                  <div className="flex justify-between gap-1 text-[9px]">
-                    <span className="truncate text-mod">{modLabel(i, m)}</span>
-                    <span className="truncate text-sky-400">{rateLabel(m)}</span>
-                  </div>
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-5 w-full" aria-hidden="true">
-                    <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-mod" strokeWidth={1.2} />
-                    <line x1={0} x2={W} y1={liveY} y2={liveY} className="stroke-zinc-100/50" strokeWidth={0.8} />
+                  <span className="truncate text-[9px] text-mod">{modLabel(i, m)}</span>
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-3 w-full" aria-hidden="true">
+                    <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-mod" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+                    <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
+                      className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                   </svg>
                   {targets > 0 && (
-                    <span className="absolute right-1 bottom-0.5 rounded-full bg-mod px-1 text-[8px] text-black">{targets}</span>
+                    <span className="absolute top-0.5 right-0.5 rounded-full bg-mod px-1 text-[8px] leading-tight text-black">{targets}</span>
                   )}
                 </>
               )}
@@ -83,83 +92,106 @@ export function ModStrip({ state, frame, store }: Props) {
           )
         })}
       </div>
+      <ModPage slot={slot} m={state.modulators[slot]} live={live(slot)} mapping={mapping}
+        tracks={state.tracks.map((t) => t.name)} store={store} />
     </section>
   )
 }
 
-interface EditorProps {
+interface PageProps {
   slot: number
   m: ModulatorState
+  live: number
+  mapping: boolean
   tracks: string[]
   store: Store
 }
 
-function ModEditor({ slot, m, tracks, store }: EditorProps) {
+interface ChoiceKnobProps {
+  label: string
+  options: string[]
+  index: number
+  defaultIndex?: number
+  onIndex(i: number): void
+}
+
+/** A knob over a short list of named positions (shape, mode, trigger…). */
+function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: ChoiceKnobProps) {
+  const last = options.length - 1
+  const at = (v: number) => Math.round(v * last)
+  return (
+    <Knob label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
+      format={(v) => options[at(v)]} onChange={(v) => { if (at(v) !== index) onIndex(at(v)) }} />
+  )
+}
+
+function ModPage({ slot, m, live, mapping, tracks, store }: PageProps) {
   const update = (patch: Parameters<Store['updateModulator']>[1]) => store.updateModulator(slot, patch)
   const timed = m.kind === 1 || m.kind === 3
+  const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
+  const liveY = toY(m.bipolar ? live : live * 2 - 1)
   return (
-    <div className="flex min-h-0 flex-col gap-1 overflow-y-auto rounded border border-mod/60 bg-[#0a141a] p-1.5 text-[10px]">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-mod">{modLabel(slot, m)}</span>
-        <select aria-label="Modulator type" value={m.kind} className={select}
-          onChange={(e) => update({ kind: Number(e.target.value) as ModKind })}>
-          {MOD_KINDS.map((k, i) => <option key={k} value={i}>{k}</option>)}
-        </select>
-        {timed && (
-          <>
+    <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_auto] gap-3 rounded border border-mod/60 bg-[#0a141a] p-2 text-[10px]">
+      <div className="flex min-h-0 min-w-0 flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="w-12 text-mod">{modLabel(slot, m)}</span>
+          <div role="group" aria-label="Modulator type" className="flex gap-1">
+            {MOD_KINDS.map((k, i) => (
+              <button key={k} type="button" aria-pressed={m.kind === i} className={toggle(m.kind === i)}
+                onClick={() => update({ kind: i as ModKind })}>{k}</button>
+            ))}
+          </div>
+          {timed && (
             <button type="button" className={toggle(m.sync)} aria-pressed={m.sync} onClick={() => update({ sync: !m.sync })}>
               {m.sync ? 'SYNC' : 'HZ'}
             </button>
-          </>
-        )}
-        {m.kind === 2 && (
-          <select aria-label="Noise colour" value={m.color} className={select} onChange={(e) => update({ color: Number(e.target.value) })}>
-            {NOISE_COLORS.map((c, i) => <option key={c} value={i}>{c}</option>)}
-          </select>
-        )}
-        {m.kind !== 0 && (
-          <button type="button" className={toggle(m.bipolar)} aria-pressed={m.bipolar} onClick={() => update({ bipolar: !m.bipolar })}>
-            {m.bipolar ? 'BI' : 'UNI'}
-          </button>
+          )}
+          {m.kind !== 0 && (
+            <>
+              <button type="button" className={toggle(m.bipolar)} aria-pressed={m.bipolar} onClick={() => update({ bipolar: !m.bipolar })}>
+                {m.bipolar ? 'BI' : 'UNI'}
+              </button>
+              <button type="button" aria-pressed={mapping} onClick={() => store.setMapping(!mapping)}
+                className={`ml-auto rounded px-2 py-0.5 font-bold outline-none focus-visible:ring-2 focus-visible:ring-acc ${mapping ? 'bg-mod text-black' : 'border border-mod text-mod'}`}>
+                MAP
+              </button>
+            </>
+          )}
+        </div>
+        {m.kind === 3 ? (
+          <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />
+        ) : m.kind !== 0 ? (
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="min-h-0 w-full flex-1 rounded bg-black/30" aria-hidden="true">
+            <line x1={0} x2={W} y1={H / 2} y2={H / 2} className="stroke-zinc-800" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            <path d={pathOf(previewShape(m, 128))} fill="none" className="stroke-mod" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+            <line x1={0} x2={W} y1={liveY} y2={liveY} className="stroke-zinc-100/60" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          </svg>
+        ) : (
+          <p className="text-zinc-400">Üres slot – válassz típust.</p>
         )}
       </div>
-      {m.kind === 1 && (
-        <div role="group" aria-label="Shape" className="flex flex-wrap gap-1">
-          {SHAPES.map((s, i) => (
-            <button key={s.code} type="button" aria-pressed={m.shape === s.code} onClick={() => update({ shape: s.code })}
-              className={[
-                'rounded px-1 outline-none focus-visible:ring-2 focus-visible:ring-acc',
-                i === FAVORITE_SHAPE_COUNT ? 'ml-2' : '',
-                m.shape === s.code ? 'bg-sky-950 text-mod' : i < FAVORITE_SHAPE_COUNT ? 'text-zinc-200' : 'text-zinc-400',
-              ].join(' ')}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-      )}
-      {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
       {m.kind !== 0 && (
-        <div className="flex items-end gap-1">
+        <div className="flex items-center gap-1">
           {timed && (m.sync ? (
-            <Knob label="RATE" value={m.rateIndex / SYNC_LAST} defaultValue={6 / SYNC_LAST}
-              format={(v) => SYNC_LABELS[Math.round(v * SYNC_LAST)]} onChange={(v) => update({ rateIndex: Math.round(v * SYNC_LAST) })} />
+            <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={6} onIndex={(i) => update({ rateIndex: i })} />
           ) : (
             <Knob label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
               format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
           ))}
-          {timed && <Knob label="PHASE" value={m.phase} defaultValue={0} onChange={(v) => update({ phase: v })} />}
-          <Knob label="SMOOTH" value={m.smooth} defaultValue={0} onChange={(v) => update({ smooth: v })} />
-          <Knob label="DEPTH" value={m.depth} defaultValue={1} onChange={(v) => update({ depth: v })} />
+          {m.kind === 1 && (
+            <ChoiceKnob label="SHAPE" options={SHAPES.map((s) => s.label)} index={shapeIndex} onIndex={(i) => update({ shape: SHAPES[i].code })} />
+          )}
+          {m.kind === 2 && (
+            <ChoiceKnob label="COLOR" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />
+          )}
+          {timed && <Knob label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
+          <Knob label="SMOOTH" value={m.smooth} defaultValue={0} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update({ smooth: v })} />
+          <Knob label="DEPTH" value={m.depth} defaultValue={1} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => update({ depth: v })} />
           {timed && (
-            <div className="flex flex-col gap-1 pb-1">
-              <select aria-label="Trigger mode" value={m.trigMode} className={select} onChange={(e) => update({ trigMode: Number(e.target.value) })}>
-                {TRIG_MODES.map((t, i) => <option key={t} value={i}>{t}</option>)}
-              </select>
-              <select aria-label="Trigger source" value={m.trigSrc} className={select} onChange={(e) => update({ trigSrc: Number(e.target.value) })}>
-                <option value={-1}>TRIG —</option>
-                {tracks.map((t, i) => <option key={i} value={i}>{t}</option>)}
-              </select>
-            </div>
+            <>
+              <ChoiceKnob label="MODE" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />
+              <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
+            </>
           )}
         </div>
       )}
