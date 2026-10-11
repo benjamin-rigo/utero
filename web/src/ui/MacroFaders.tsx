@@ -17,7 +17,7 @@ export function MacroFaders({ state, store }: Props) {
   const startRename = (m: number) => { cancelRename.current = false; setEditing(m) }
 
   return (
-    <section aria-label="Macros" className="flex min-h-0 flex-1 flex-col gap-1 border-t border-zinc-800 p-2">
+    <section aria-label="Macros" className="flex min-h-0 flex-col gap-1 border-l border-zinc-800 p-2">
       <div className="grid min-h-0 flex-1 grid-cols-8 gap-1.5">
         {state.macros.map((mac, m) => {
           const armed = state.learn?.macro === m ? state.learn.side : null
@@ -62,7 +62,7 @@ export function MacroFaders({ state, store }: Props) {
         </p>
       )}
       {sel.targets.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
           {sel.targets.map((t, i) => {
             const name = paramName(t.track, t.param)
             return (

@@ -3,7 +3,6 @@ import { MACHINES, type MachineDef } from '@/state/machines'
 import { modLabel } from '@/state/modulation'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
-import { MacroFaders } from './MacroFaders'
 import { ParamKnob } from './ParamKnob'
 
 interface Props {
@@ -25,7 +24,6 @@ export function MachinePanel({ state, frame, store }: Props) {
       ) : (
         <p className="p-3 text-zinc-400"><b className="text-acc">{state.tracks[t].name}</b>: nincs még machine (későbbi terv).</p>
       )}
-      <MacroFaders state={state} store={store} />
     </aside>
   )
 }

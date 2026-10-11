@@ -6,6 +6,7 @@ import {
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
 import { Knob } from './Knob'
+import { MacroFaders } from './MacroFaders'
 
 const W = 100
 const H = 24
@@ -48,54 +49,57 @@ export function ModStrip({ state, frame, store }: Props) {
   }
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
-    <section aria-label="Modulators" className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-1.5 border-t border-zinc-800 p-2">
-      <div className="grid grid-cols-16 gap-1">
-        {state.modulators.map((m, i) => {
-          const off = m.kind === 0
-          const targets = state.routes.filter((r) => r?.src === i).length
-          const onHovered = hover !== null && state.routes.some((r) => r?.src === i && r.track === hover.row && r.param === hover.param)
-          const v = live(i)
-          return (
-            <div key={i} role="button" tabIndex={0} draggable={!off} aria-pressed={slot === i}
-              aria-label={off ? `Slot ${i + 1} empty` : `${modLabel(i, m)}, ${targets} targets`}
-              onClick={() => pick(i)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  pick(i)
-                }
-              }}
-              onDragStart={(e) => {
-                e.dataTransfer.setData(MOD_DRAG_TYPE, String(i))
-                e.dataTransfer.effectAllowed = 'link'
-              }}
-              className={[
-                'relative flex h-9 min-w-0 overflow-hidden rounded border outline-none focus-visible:ring-2 focus-visible:ring-acc',
-                off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-400'
-                  : 'cursor-grab border-sky-950 bg-[#0a141a]',
-                slot === i && !off ? (mapping ? 'ring-2 ring-mod' : 'ring-1 ring-mod') : '',
-                onHovered ? 'bg-sky-900/70' : '',
-              ].join(' ')}>
-              {off ? '+' : (
-                <>
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                    <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-mod" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-                    <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
-                      className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-                  </svg>
-                  <span className="relative self-start truncate bg-[#0a141a]/70 px-1 text-[9px] text-mod">{modLabel(i, m)}</span>
-                  {targets > 0 && (
-                    <span className="absolute top-0.5 right-0.5 rounded-full bg-mod px-1 text-[8px] leading-tight text-black">{targets}</span>
-                  )}
-                </>
-              )}
-            </div>
-          )
-        })}
-      </div>
-      <ModPage slot={slot} m={state.modulators[slot]} live={live(slot)} mapping={mapping}
-        tracks={state.tracks.map((t) => t.name)} store={store} />
-    </section>
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,22rem)] border-t border-zinc-800">
+      <section aria-label="Modulators" className="grid min-h-0 grid-rows-[auto_1fr] gap-1.5 p-2">
+        <div className="grid grid-cols-16 gap-1">
+          {state.modulators.map((m, i) => {
+            const off = m.kind === 0
+            const targets = state.routes.filter((r) => r?.src === i).length
+            const onHovered = hover !== null && state.routes.some((r) => r?.src === i && r.track === hover.row && r.param === hover.param)
+            const v = live(i)
+            return (
+              <div key={i} role="button" tabIndex={0} draggable={!off} aria-pressed={slot === i}
+                aria-label={off ? `Slot ${i + 1} empty` : `${modLabel(i, m)}, ${targets} targets`}
+                onClick={() => pick(i)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    pick(i)
+                  }
+                }}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(MOD_DRAG_TYPE, String(i))
+                  e.dataTransfer.effectAllowed = 'link'
+                }}
+                className={[
+                  'relative flex h-9 min-w-0 overflow-hidden rounded border outline-none focus-visible:ring-2 focus-visible:ring-acc',
+                  off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-400'
+                    : 'cursor-grab border-sky-950 bg-[#0a141a]',
+                  slot === i && !off ? (mapping ? 'ring-2 ring-mod' : 'ring-1 ring-mod') : '',
+                  onHovered ? 'bg-sky-900/70' : '',
+                ].join(' ')}>
+                {off ? '+' : (
+                  <>
+                    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                      <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-mod" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+                      <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
+                        className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                    </svg>
+                    <span className="relative self-start truncate bg-[#0a141a]/70 px-1 text-[9px] text-mod">{modLabel(i, m)}</span>
+                    {targets > 0 && (
+                      <span className="absolute top-0.5 right-0.5 rounded-full bg-mod px-1 text-[8px] leading-tight text-black">{targets}</span>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        <ModPage slot={slot} m={state.modulators[slot]} live={live(slot)} mapping={mapping}
+          tracks={state.tracks.map((t) => t.name)} store={store} />
+      </section>
+      <MacroFaders state={state} store={store} />
+    </div>
   )
 }
 
