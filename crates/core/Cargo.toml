@@ -1,0 +1,7 @@
+[package]
+name = "utero-core"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "utero_core"

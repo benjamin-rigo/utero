@@ -1,0 +1,10 @@
+[package]
+name = "utero-wasm"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+utero-core = { path = "../core" }
