@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>utero</title>
+    <!-- GitHub Pages cannot send COOP/COEP; this service worker adds them so SharedArrayBuffer works. -->
+    <script src="./coi-serviceworker.min.js"></script>
   </head>
   <body>
     <div id="root"></div>

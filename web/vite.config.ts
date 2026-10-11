@@ -10,6 +10,7 @@ const isolation = {
 }
 
 export default defineConfig({
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   server: { headers: isolation },

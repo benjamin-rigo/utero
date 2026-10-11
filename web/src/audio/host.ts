@@ -15,7 +15,7 @@ export async function startEngine(onError: (message: string) => void): Promise<E
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' })
   try {
     await ctx.audioWorklet.addModule(workletUrl)
-    const module = await WebAssembly.compileStreaming(fetch('/utero.wasm'))
+    const module = await WebAssembly.compileStreaming(fetch(`${import.meta.env.BASE_URL}utero.wasm`))
     const ring = CommandRing.create(2048)
     const snap = new SharedArrayBuffer(SNAP_FLOATS * 4)
     const node = new AudioWorkletNode(ctx, 'utero-engine', {
