@@ -50,8 +50,10 @@ export function ModStrip({ state, frame, store }: Props) {
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,22rem)] border-t border-zinc-800">
-      <section aria-label="Modulators" className="grid min-h-0 grid-rows-[auto_1fr] gap-1.5 p-2">
-        <div className="grid grid-cols-16 gap-1">
+      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[minmax(0,1fr)_auto] gap-2 p-2">
+        <ModPage slot={slot} m={state.modulators[slot]} live={live(slot)} mapping={mapping}
+          tracks={state.tracks.map((t) => t.name)} store={store} />
+        <div className="grid min-h-0 w-64 grid-cols-4 grid-rows-4 gap-1">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
@@ -72,7 +74,7 @@ export function ModStrip({ state, frame, store }: Props) {
                   e.dataTransfer.effectAllowed = 'link'
                 }}
                 className={[
-                  'relative flex h-9 min-w-0 overflow-hidden rounded border outline-none focus-visible:ring-2 focus-visible:ring-acc',
+                  'relative flex min-h-0 min-w-0 overflow-hidden rounded border outline-none focus-visible:ring-2 focus-visible:ring-acc',
                   off ? 'cursor-pointer items-center justify-center border-dashed border-zinc-800 text-[9px] text-zinc-400'
                     : 'cursor-grab border-sky-950 bg-[#0a141a]',
                   slot === i && !off ? (mapping ? 'ring-2 ring-mod' : 'ring-1 ring-mod') : '',
@@ -95,8 +97,6 @@ export function ModStrip({ state, frame, store }: Props) {
             )
           })}
         </div>
-        <ModPage slot={slot} m={state.modulators[slot]} live={live(slot)} mapping={mapping}
-          tracks={state.tracks.map((t) => t.name)} store={store} />
       </section>
       <MacroFaders state={state} store={store} />
     </div>
