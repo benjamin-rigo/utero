@@ -96,7 +96,7 @@ impl Engine {
                 self.kick_params[k].advance();
                 s += self.kicks[k].render(&self.kick_params[k]);
             }
-            let y = s.clamp(-1.0, 1.0);
+            let y = if s.is_finite() { s.clamp(-1.0, 1.0) } else { 0.0 };
             self.out_l[i] = y;
             self.out_r[i] = y;
         }

@@ -91,6 +91,8 @@ impl KickVoice {
         self.t = 0;
         self.phase = 0.0;
         self.active = true;
+        self.lp = 0.0;
+        self.drive = Drive2x::new();
         self.vel = vel.clamp(0.0, 1.0);
         // ±1% pitch per hit: no two kicks are identical, like an analog circuit.
         self.drift = rng.bipolar() * 0.01;
@@ -125,6 +127,10 @@ impl KickVoice {
 
         let x = self.drive.process(body + click + layer, p.get(DRIVE));
         self.lp += (x - self.lp) * one_pole_coef(p.get(TONE), self.sample_rate);
+        if !self.lp.is_finite() {
+            self.lp = 0.0;
+            self.drive = Drive2x::new();
+        }
 
         self.t = self.t.saturating_add(1);
         if amp < 1.0e-4 && ts > 0.01 {
@@ -198,6 +204,22 @@ mod tests {
             v.trigger(1.0, &mut Rng::new(3));
             assert!(render(&mut v, &mut p, 48_000).iter().all(|s| s.is_finite()));
         }
+    }
+
+    #[test]
+    fn retrigger_resets_filter_and_drive_state() {
+        let mut p = KickParams::new(SR);
+        p.set_norm(NOISE, 0.0);
+        p.set_norm(CLICK, 0.0);
+        p.set_norm(DRIVE, 1.0);
+        let mut used = KickVoice::new(SR, 1);
+        used.trigger(1.0, &mut Rng::new(3));
+        render(&mut used, &mut p, 48_000);
+        used.trigger(1.0, &mut Rng::new(3));
+        let mut fresh = KickVoice::new(SR, 1);
+        fresh.trigger(1.0, &mut Rng::new(3));
+        p.advance();
+        assert_eq!(used.render(&p), fresh.render(&p));
     }
 
     #[test]
