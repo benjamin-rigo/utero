@@ -28,7 +28,10 @@ pub const SNAP_EFFECTIVE: usize = SNAP_MODS + MOD_SLOTS;
 /// Per bus: peak, rms; then master: peak L, peak R, short-term LUFS, gain reduction dB.
 pub const SNAP_METERS: usize = SNAP_EFFECTIVE + ROWS * MOD_PARAMS;
 pub const SNAP_MUTED: usize = SNAP_METERS + BUSES * 2 + 4;
-pub const SNAP_LEN: usize = SNAP_MUTED + BUSES;
+/// Per kick track: settled body frequency in Hz (tuner), 0 before the first hit.
+pub const SNAP_TUNER: usize = SNAP_MUTED + BUSES;
+pub const KICK_TRACKS: usize = 2;
+pub const SNAP_LEN: usize = SNAP_TUNER + KICK_TRACKS;
 
 const _: () = assert!(ROWS == MOD_ROWS && MAX_PARAMS == MOD_PARAMS);
 
@@ -314,6 +317,11 @@ impl Engine {
             self.snapshot[SNAP_METERS + 2 * b + 1] = self.buses[b].rms();
             self.snapshot[SNAP_MUTED + b] = if self.buses[b].muted() { 1.0 } else { 0.0 };
         }
+        for k in 0..KICK_TRACKS {
+            if let Voice::Kick(v) = &self.machines[k].voice {
+                self.snapshot[SNAP_TUNER + k] = v.pitch_hz();
+            }
+        }
         let m = SNAP_METERS + 2 * BUSES;
         self.snapshot[m] = self.master.peak(0);
         self.snapshot[m + 1] = self.master.peak(1);
@@ -512,7 +520,7 @@ mod tests {
         assert_eq!(e.snapshot[SNAP_PLAYHEADS], e.playhead(0) as f32);
         assert_eq!(e.snapshot[SNAP_MODS + 2], e.mod_output(2));
         assert_eq!(e.snapshot[SNAP_EFFECTIVE + DECAY], e.effective_norm(0, DECAY));
-        assert_eq!(SNAP_LEN, 561);
+        assert_eq!(SNAP_LEN, 563);
     }
 
     #[test]
@@ -648,6 +656,17 @@ mod tests {
         let db = |p: f32| 20.0 * p.log10();
         assert!((db(max[0]) + 6.0).abs() < 1.5, "kick bus {} dBFS", db(max[0]));
         assert!((db(max[3]) + 8.0).abs() < 1.5, "bass bus {} dBFS", db(max[3]));
+    }
+
+    #[test]
+    fn tuner_reports_the_settled_kick_pitch() {
+        let mut e = Engine::new(48_000.0);
+        quarter_kick(&mut e);
+        e.play();
+        render_seconds(&mut e, 0.4);
+        let hz = e.snapshot[SNAP_TUNER];
+        assert!((hz - 43.65).abs() < 0.2, "{hz}");
+        assert_eq!(e.snapshot[SNAP_TUNER + 1], 0.0);
     }
 
     #[test]

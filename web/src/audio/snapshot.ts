@@ -9,7 +9,9 @@ export const SNAP_MODS = SNAP_PLAYHEADS + SNAP_TRACKS
 export const SNAP_EFFECTIVE = SNAP_MODS + SNAP_MOD_SLOTS
 export const SNAP_METERS = SNAP_EFFECTIVE + SNAP_ROWS * SNAP_PARAMS
 export const SNAP_MUTED = SNAP_METERS + SNAP_BUSES * 2 + 4
-export const SNAP_FLOATS = SNAP_MUTED + SNAP_BUSES
+export const SNAP_KICK_TRACKS = 2
+export const SNAP_TUNER = SNAP_MUTED + SNAP_BUSES
+export const SNAP_FLOATS = SNAP_TUNER + SNAP_KICK_TRACKS
 
 export const playheadOf = (snap: Float32Array, track: number) => snap[SNAP_PLAYHEADS + track]
 export const modOutputOf = (snap: Float32Array, slot: number) => snap[SNAP_MODS + slot]
@@ -19,4 +21,6 @@ export const masterMeterOf = (snap: Float32Array) => {
   const m = SNAP_METERS + SNAP_BUSES * 2
   return { peakL: snap[m], peakR: snap[m + 1], lufs: snap[m + 2], gr: snap[m + 3] }
 }
+/** Settled kick body frequency in Hz, 0 before the first hit. */
+export const kickPitchOf = (snap: Float32Array, kick: number) => snap[SNAP_TUNER + kick]
 export const busMutedOf = (snap: Float32Array, bus: number) => snap[SNAP_MUTED + bus] >= 0.5

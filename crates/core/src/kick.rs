@@ -47,6 +47,7 @@ pub struct KickVoice {
     lp: f32,
     rng: Rng,
     seed: u32,
+    settled_hz: f32,
 }
 
 impl KickVoice {
@@ -64,6 +65,7 @@ impl KickVoice {
             lp: 0.0,
             rng: Rng::new(seed),
             seed,
+            settled_hz: 0.0,
         }
     }
 
@@ -78,6 +80,11 @@ impl KickVoice {
         self.lp = 0.0;
         self.rng = Rng::new(self.seed);
         self.vel = vel.clamp(0.0, 1.0);
+    }
+
+    /// Body frequency once the pitch sweep has settled (the note the kick sounds at); 0 before the first hit.
+    pub fn pitch_hz(&self) -> f32 {
+        self.settled_hz
     }
 
     pub fn is_active(&self) -> bool {
@@ -99,6 +106,9 @@ impl KickVoice {
         // NOISE both adds a layer and micro-modulates pitch and amplitude.
         let semis = p.get(SWEEP) * self.pitch_env;
         let freq = p.get(TUNE) * (semis / 12.0).exp2();
+        if self.pitch_env < 0.02 {
+            self.settled_hz = freq;
+        }
         self.phase += freq / sr;
         if self.phase >= 1.0 {
             self.phase -= 1.0;

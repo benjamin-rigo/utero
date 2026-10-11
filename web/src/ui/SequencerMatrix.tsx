@@ -23,6 +23,8 @@ interface Props {
   onSetSpeed(track: number, code: number): void
   onSelect(track: number): void
   onSetNote(track: number, step: number, note: number): void
+  /** Tuner reading per track (kick note), shown small under the name. */
+  tuner?: (string | null)[]
 }
 
 /** Pixels before a press on a melodic step turns into a note drag instead of a click. */
@@ -32,7 +34,7 @@ const DRAG_START_PX = 4
  * First click selects the row; in the selected row click = trig, ⌥+click = track ends here. On melodic trigs ↑↓ / wheel / vertical drag = semitone,
  * ⇧ = octave. Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Space/Enter writes a trig.
  */
-export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetNote }: Props) {
+export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetNote, tuner = [] }: Props) {
   const drag = useRef<{ t: number; s: number; y: number; note: number; trig: boolean; moved: boolean } | null>(null)
   const dragged = useRef(false)
   // Trackpads send many small wheel events: step one semitone per ~50 px of scroll.
@@ -88,8 +90,9 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
           <div key={tr.name}
             className={`grid min-h-0 flex-1 grid-cols-[52px_repeat(16,1fr)_150px] items-stretch gap-[3px] rounded ${newBus ? 'mt-1.5' : ''} ${selected ? 'bg-zinc-900 ring-1 ring-acc/30' : ''}`}>
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
-              className={`rounded px-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-acc' : 'text-zinc-400'}`}>
+              className={`flex flex-col justify-center rounded px-1 text-left leading-tight outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-acc' : 'text-zinc-400'}`}>
               {tr.name}
+              {tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
             </button>
             {tr.steps.slice(0, VISIBLE).map((st, s) => {
               const beyond = s >= tr.length

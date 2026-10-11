@@ -103,6 +103,14 @@ const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 
 export const noteName = (n: number) => `${NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 1}`
 
 /** Same law as bus::fader_gain: 0.8 = 0 dB, 1 ≈ +6 dB. */
+/** Nearest note plus cents offset, e.g. 'F1' or 'F#1 -47'. */
+export function hzToNote(hz: number): string {
+  const midi = 69 + 12 * Math.log2(hz / 440)
+  const n = Math.round(midi)
+  const cents = Math.round((midi - n) * 100)
+  return cents === 0 ? noteName(n) : `${noteName(n)} ${cents > 0 ? '+' : ''}${cents}`
+}
+
 export function faderDb(norm: number): string {
   if (norm <= 0) return '−∞'
   const db = 20 * Math.log10((norm / 0.8) ** 3.1)
@@ -126,12 +134,7 @@ export function formatParam(meta: ParamMeta, norm: number): string {
   }
   const v = rangeValue(d, norm)
   if (d.unit === 'Hz') return formatHz(v)
-  if (d.unit === 'note') {
-    const midi = 69 + 12 * Math.log2(v / 440)
-    const n = Math.round(midi)
-    const cents = Math.round((midi - n) * 100)
-    return cents === 0 ? noteName(n) : `${noteName(n)} ${cents > 0 ? '+' : ''}${cents}`
-  }
+  if (d.unit === 'note') return hzToNote(v)
   if (d.unit === 'ms' && v >= 1000) return `${(v / 1000).toFixed(2)} s`
   const digits = d.digits ?? (Math.abs(v) < 10 && d.unit !== 'st' ? 1 : 0)
   return `${d.signed && v > 0 ? '+' : ''}${v.toFixed(digits)} ${d.unit}`

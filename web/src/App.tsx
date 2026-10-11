@@ -1,6 +1,7 @@
 import { useRef, useState, useSyncExternalStore } from 'react'
 import { startEngine, type EngineHost } from '@/audio/host'
-import { playheadOf, SNAP_TRACKS } from '@/audio/snapshot'
+import { kickPitchOf, playheadOf, SNAP_KICK_TRACKS, SNAP_TRACKS } from '@/audio/snapshot'
+import { hzToNote } from '@/state/machines'
 import { createStore } from '@/state/store'
 import { MachinePanel } from '@/ui/MachinePanel'
 import { Mixer } from '@/ui/Mixer'
@@ -51,7 +52,8 @@ export default function App() {
       <main className="grid min-h-0 grid-cols-[1fr_440px]">
         <div className="flex min-h-0 flex-col">
           <SequencerMatrix state={state} playheads={playheads} onToggle={store.toggleStep} onSetLength={store.setLength}
-            onSetSpeed={store.setSpeed} onSelect={store.select} onSetNote={store.setStepNote} />
+            onSetSpeed={store.setSpeed} onSelect={store.select} onSetNote={store.setStepNote}
+            tuner={frame ? Array.from({ length: SNAP_KICK_TRACKS }, (_, k) => (kickPitchOf(frame, k) > 0 ? hzToNote(kickPitchOf(frame, k)) : null)) : []} />
           <div className="h-[190px] shrink-0">
             <ModStrip state={state} frame={frame} store={store} />
           </div>

@@ -115,3 +115,10 @@ test('the length handle keeps dragging after the end step moves', () => {
   fireEvent.click(screen.getByRole('button', { name: 'KICK step 2' }))
   expect(store.getState().tracks[0].steps[1].trig).toBe(true)
 })
+
+test('kick rows show the tuner reading', () => {
+  const store = createStore()
+  render(<SequencerMatrix state={store.getState()} playheads={IDLE} onToggle={store.toggleStep} onSetLength={store.setLength}
+    onSetSpeed={store.setSpeed} onSelect={store.select} onSetNote={store.setStepNote} tuner={['F1 -3', null]} />)
+  expect(screen.getByRole('button', { name: 'KICK F1 -3' })).toBeTruthy()
+})
