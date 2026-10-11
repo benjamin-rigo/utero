@@ -49,3 +49,12 @@ test('double-click on the name renames the macro', () => {
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(store.getState().macros[1].name).toBe('DIRT')
 })
+
+test('Escape cancels a rename', () => {
+  const store = setup()
+  fireEvent.doubleClick(screen.getByRole('button', { name: 'M2' }))
+  const input = screen.getByLabelText('Rename M2')
+  fireEvent.change(input, { target: { value: 'XX' } })
+  fireEvent.keyDown(input, { key: 'Escape' })
+  expect(store.getState().macros[1].name).toBe('M2')
+})

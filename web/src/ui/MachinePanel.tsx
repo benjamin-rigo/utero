@@ -57,6 +57,7 @@ export function MachinePanel({ state, frame, store }: Props) {
 
   const routes = state.routes.flatMap((r, i) => (r && r.track === t && r.param === selParam ? [{ r, i }] : []))
   const active = state.modulators.flatMap((m, i) => (m.kind !== 0 ? [{ m, i }] : []))
+  const src = active.some((a) => a.i === addSrc) ? addSrc : active[0]?.i
 
   return (
     <aside aria-label="Machine" className="flex min-h-0 flex-col">
@@ -90,11 +91,12 @@ export function MachinePanel({ state, frame, store }: Props) {
           )
         })}
         <div className="flex items-center gap-2">
-          <select aria-label="Modulator to add" value={addSrc} onChange={(e) => setAddSrc(Number(e.target.value))}
+          <select aria-label="Modulator to add" value={src} onChange={(e) => setAddSrc(Number(e.target.value))}
             className="rounded bg-zinc-900 px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc">
             {active.map(({ m, i }) => <option key={i} value={i}>{modLabel(i, m)}</option>)}
           </select>
-          <button type="button" className={btn} onClick={() => store.addRoute(addSrc, t, selParam)}>+ route</button>
+          <button type="button" className={btn} disabled={src === undefined} aria-disabled={src === undefined}
+            onClick={() => { if (src !== undefined) store.addRoute(src, t, selParam) }}>+ route</button>
         </div>
       </div>
       <MacroFaders state={state} store={store} />

@@ -51,3 +51,11 @@ test('tracks without a machine say so', () => {
   act(() => { store.select(4) })
   expect(screen.getByText(/nincs még machine/)).toBeTruthy()
 })
+
+test('add-route source falls back to the first active modulator', () => {
+  const store = setup()
+  act(() => { store.updateModulator(0, { kind: 0 }) })
+  fireEvent.click(screen.getByRole('button', { name: 'DECAY' }))
+  fireEvent.click(screen.getByRole('button', { name: '+ route' }))
+  expect(store.getState().routes[0]).toMatchObject({ src: 1, track: 0, param: 3 })
+})

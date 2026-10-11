@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { KICK_PARAMS } from '@/state/kickParams'
 import type { Store } from '@/state/store'
 import type { AppState } from '@/state/types'
@@ -10,6 +10,7 @@ interface Props {
 
 export function MacroFaders({ state, store }: Props) {
   const [editing, setEditing] = useState<number | null>(null)
+  const cancelRename = useRef(false)
   const sel = state.macros[state.selectedMacro]
   const paramName = (t: number, p: number) => `${state.tracks[t]?.name}.${KICK_PARAMS[p]?.name ?? p}`
   const hint = state.learn
@@ -30,10 +31,14 @@ export function MacroFaders({ state, store }: Props) {
               {editing === m ? (
                 <input aria-label={`Rename ${mac.name}`} autoFocus defaultValue={mac.name}
                   className="w-full rounded bg-zinc-900 text-center text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-acc"
-                  onBlur={(e) => { store.renameMacro(m, e.target.value); setEditing(null) }}
+                  onBlur={(e) => {
+                    if (!cancelRename.current) store.renameMacro(m, e.target.value)
+                    cancelRename.current = false
+                    setEditing(null)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') e.currentTarget.blur()
-                    if (e.key === 'Escape') setEditing(null)
+                    if (e.key === 'Escape') { cancelRename.current = true; setEditing(null) }
                   }} />
               ) : (
                 <button type="button" aria-pressed={state.selectedMacro === m} onClick={() => store.selectMacro(m)} onDoubleClick={() => setEditing(m)}
