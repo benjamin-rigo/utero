@@ -343,7 +343,7 @@ impl Engine {
 
     fn trigger(&mut self, t: usize, trig: Trig) {
         match &mut self.machines[t].voice {
-            Voice::Kick(v) => v.trigger(trig.vel, &mut self.rng),
+            Voice::Kick(v) => v.trigger(trig.vel),
             Voice::Bass(v) => v.trigger(trig.vel, trig.note, &mut self.rng),
             Voice::None => {}
         }
@@ -548,7 +548,8 @@ mod tests {
         bass_step(&mut e, BASS_TRACK, 41);
         e.play();
         let out = render_seconds(&mut e, 0.5);
-        assert!(rms(&out) > 0.05, "{}", rms(&out));
+        let peak = out.iter().fold(0.0_f32, |m, s| m.max(s.abs()));
+        assert!(peak > 0.1, "{peak}");
     }
 
     #[test]
@@ -613,7 +614,7 @@ mod tests {
         square(&mut e, 0);
         e.set_route(0, route(0, MASTER_ROW as u8, master::LEVEL as u8, -0.3));
         render_seconds(&mut e, 0.3);
-        assert!((e.effective_norm(MASTER_ROW, master::LEVEL) - 0.5).abs() < 0.01);
+        assert!((e.effective_norm(MASTER_ROW, master::LEVEL) - (master::MASTER_PARAMS[master::LEVEL].default_norm - 0.3)).abs() < 0.01);
     }
 
     #[test]

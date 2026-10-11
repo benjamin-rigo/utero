@@ -1,14 +1,14 @@
 import { expect, test } from 'vitest'
 import { KICK_PARAMS } from './kickParams'
-import { BASS_PARAMS, BUS_PARAMS, faderDb, formatParam, MACHINES, MASTER_PARAMS, noteName, paramLabel, rowLabel, rowParamMetas } from './machines'
+import { faderNormForDb, BASS_PARAMS, BUS_PARAMS, faderDb, formatParam, MACHINES, MASTER_PARAMS, noteName, paramLabel, rowLabel, rowParamMetas } from './machines'
 
 const names = ['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'BASS', 'LD1', 'LD2', 'PAD', 'ORN']
 
 test('param tables mirror the engine', () => {
   expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'NOISE', 'TONE', 'LEVEL'])
-  expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.35, 0.45, 0.4, 0.2, 0.5, 0, 0.8, 0.5])
+  expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.51, 0.2, 0.14, 0.2, 0.176, 0, 0.8, 1])
   expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8])
-  expect(MASTER_PARAMS.map((p) => p.default)).toEqual([0.2, 0.6, 0.5, 1, 0.1, 0.5, 0.5, 0, 0.975, 0, 0.8])
+  expect(MASTER_PARAMS.map((p) => p.default)).toEqual([0.2, 0.6, 0.5, 1, 0.1, 0.5, 0.5, 0, 0.975, 0, 0.6402])
 })
 
 test('machines sit on KICK, KCK2 and BASS with one 8-knob page each', () => {
@@ -55,4 +55,11 @@ test('note names and fader dB', () => {
   expect(noteName(61)).toBe('C#4')
   expect(faderDb(0)).toBe('−∞')
   expect(faderDb(1)).toBe('+6.0 dB')
+})
+
+test('meters share the fader scale', async () => {
+  const { meterHeight } = await import('@/ui/Fader')
+  expect(meterHeight(1)).toBeCloseTo(80)
+  expect(meterHeight(0.5)).toBeCloseTo(faderNormForDb(-6.02) * 100, 1)
+  expect(meterHeight(0)).toBe(0)
 })

@@ -49,8 +49,8 @@ describe('mixer state', () => {
     const { store } = fresh()
     store.armLearn(0, 'a')
     store.setParam(20, 10, 0.3)
-    expect(store.getState().macros[0].targets[0]).toEqual({ track: 20, param: 10, a: 0.3, b: 0.8, slot: 0 })
-    expect(store.getState().master.params[10]).toBe(0.8)
+    expect(store.getState().macros[0].targets[0]).toEqual({ track: 20, param: 10, a: 0.3, b: 0.6402, slot: 0 })
+    expect(store.getState().master.params[10]).toBe(0.6402)
   })
 
   test('effectiveValue reads bus rows', () => {

@@ -1,4 +1,5 @@
 import { useRef, type KeyboardEvent } from 'react'
+import { faderNormForDb } from '@/state/machines'
 
 interface Props {
   label: string
@@ -13,10 +14,8 @@ interface Props {
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
-const meterHeight = (peak: number) => {
-  const db = peak > 0 ? 20 * Math.log10(peak) : -60
-  return Math.min(100, Math.max(0, ((db + 60) / 60) * 100))
-}
+/** Meter on the fader's own dB scale (like Ableton): a 0 dBFS peak sits at the 0 dB fader position. */
+export const meterHeight = (peak: number) => (peak > 0 ? Math.min(100, faderNormForDb(20 * Math.log10(peak)) * 100) : 0)
 
 /** Fill fader: relative drag (⇧ = fine), double-click = default, arrows ±0.01 (⇧ ±0.1), Home/End. */
 export function Fader({ label, pos, defaultPos, valueText, meter, empty = false, tone = 'mix', onPos }: Props) {

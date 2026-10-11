@@ -40,13 +40,13 @@ pub struct KickVoice {
     t: u32,
     active: bool,
     vel: f32,
-    drift: f32,
     amp: f32,
     pitch_env: f32,
     click_env: f32,
     click_coef: f32,
     lp: f32,
     rng: Rng,
+    seed: u32,
 }
 
 impl KickVoice {
@@ -57,17 +57,18 @@ impl KickVoice {
             t: 0,
             active: false,
             vel: 0.0,
-            drift: 0.0,
             amp: 0.0,
             pitch_env: 0.0,
             click_env: 0.0,
             click_coef: (-1.0 / (0.002 * sample_rate)).exp(),
             lp: 0.0,
             rng: Rng::new(seed),
+            seed,
         }
     }
 
-    pub fn trigger(&mut self, vel: f32, rng: &mut Rng) {
+    /// Every hit restarts at phase 0 with the same pitch and noise: kicks are identical and phase-locked to the grid.
+    pub fn trigger(&mut self, vel: f32) {
         self.t = 0;
         self.phase = 0.0;
         self.active = true;
@@ -75,9 +76,8 @@ impl KickVoice {
         self.pitch_env = 1.0;
         self.click_env = 1.0;
         self.lp = 0.0;
+        self.rng = Rng::new(self.seed);
         self.vel = vel.clamp(0.0, 1.0);
-        // ±1% pitch per hit: no two kicks are identical, like an analog circuit.
-        self.drift = rng.bipolar() * 0.01;
     }
 
     pub fn is_active(&self) -> bool {
@@ -98,7 +98,7 @@ impl KickVoice {
 
         // NOISE both adds a layer and micro-modulates pitch and amplitude.
         let semis = p.get(SWEEP) * self.pitch_env;
-        let freq = p.get(TUNE) * (1.0 + self.drift) * (semis / 12.0).exp2() * (1.0 + noise * nz * 0.02);
+        let freq = p.get(TUNE) * (semis / 12.0).exp2();
         self.phase += freq / sr;
         if self.phase >= 1.0 {
             self.phase -= 1.0;
@@ -165,7 +165,7 @@ mod tests {
     fn trigger_produces_decaying_sound() {
         let mut v = KickVoice::new(SR, 1);
         let mut p = kick_params(SR);
-        v.trigger(1.0, &mut Rng::new(3));
+        v.trigger(1.0);
         let out = render(&mut v, &mut p, 120_000);
         let head = &out[..4_800];
         let tail = &out[96_000..100_800];
@@ -177,7 +177,7 @@ mod tests {
     fn voice_deactivates_after_decay() {
         let mut v = KickVoice::new(SR, 1);
         let mut p = kick_params(SR);
-        v.trigger(1.0, &mut Rng::new(3));
+        v.trigger(1.0);
         render(&mut v, &mut p, 4 * 48_000);
         assert!(!v.is_active());
     }
@@ -190,9 +190,25 @@ mod tests {
                 p.set_norm(i, norm);
             }
             let mut v = KickVoice::new(SR, 5);
-            v.trigger(1.0, &mut Rng::new(3));
+            v.trigger(1.0);
             assert!(render(&mut v, &mut p, 48_000).iter().all(|s| s.is_finite()));
         }
+    }
+
+    #[test]
+    fn every_hit_is_phase_locked_and_identical() {
+        let mut p = kick_params(SR);
+        p.set_norm(NOISE, 0.0);
+        for _ in 0..48_000 {
+            p.advance();
+        }
+        let mut v = KickVoice::new(SR, 1);
+        let hit = |v: &mut KickVoice| {
+            v.trigger(1.0);
+            (0..4_800).map(|_| v.render(&p)).collect::<Vec<f32>>()
+        };
+        let (a, b) = (hit(&mut v), hit(&mut v));
+        assert!(a.iter().zip(&b).all(|(x, y)| (x - y).abs() < 1e-6));
     }
 
     #[test]
@@ -201,11 +217,11 @@ mod tests {
         p.set_norm(NOISE, 0.0);
         p.set_norm(CLICK, 0.0);
         let mut used = KickVoice::new(SR, 1);
-        used.trigger(1.0, &mut Rng::new(3));
+        used.trigger(1.0);
         render(&mut used, &mut p, 48_000);
-        used.trigger(1.0, &mut Rng::new(3));
+        used.trigger(1.0);
         let mut fresh = KickVoice::new(SR, 1);
-        fresh.trigger(1.0, &mut Rng::new(3));
+        fresh.trigger(1.0);
         p.advance();
         assert_eq!(used.render(&p), fresh.render(&p));
     }
@@ -252,7 +268,7 @@ mod tests {
     fn amp_envelope_never_rises_when_decay_is_modulated() {
         let mut v = KickVoice::new(SR, 1);
         let mut p = kick_params(SR);
-        v.trigger(1.0, &mut Rng::new(3));
+        v.trigger(1.0);
         let mut prev = v.envelope();
         for i in 0..24_000 {
             if i % 1000 == 0 {

@@ -24,14 +24,14 @@ const db: Display = { kind: 'db' }
 /** Mirrors BASS_PARAMS in crates/core/src/bass.rs. */
 export const BASS_PARAMS: ParamMeta[] = [
   { name: 'SUB', default: 0.8, display: db },
-  { name: 'CHAR', default: 0.35, display: pct },
-  { name: 'BRIGHT', default: 0.45, display: hz(40, 12000) },
-  { name: 'PLUCK', default: 0.4, display: pct },
+  { name: 'CHAR', default: 0.51, display: pct },
+  { name: 'BRIGHT', default: 0.2, display: hz(40, 12000) },
+  { name: 'PLUCK', default: 0.14, display: pct },
   { name: 'GRIT', default: 0.2, display: pct },
-  { name: 'DECAY', default: 0.5, display: ms(30, 4000) },
+  { name: 'DECAY', default: 0.176, display: ms(30, 4000) },
   { name: 'FM', default: 0, display: { kind: 'pct' } },
   { name: 'LEVEL', default: 0.8, display: db },
-  { name: 'SUB OCT', default: 0.5, display: { kind: 'choice', options: ['−1', '0', '+1'] } },
+  { name: 'SUB OCT', default: 1, display: { kind: 'choice', options: ['−1', '0', '+1'] } },
 ]
 /** Mirrors BUS_PARAMS in crates/core/src/bus.rs. */
 export const BUS_PARAMS: ParamMeta[] = [
@@ -51,7 +51,7 @@ export const MASTER_PARAMS: ParamMeta[] = [
   { name: 'LOW CUT', default: 0, display: hz(10, 150) },
   { name: 'CEIL', default: 0.975, display: { kind: 'range', min: -12, max: 0, unit: 'dB', digits: 1 } },
   { name: 'MODE', default: 0, display: { kind: 'choice', options: ['LIMIT', 'CLIP'] } },
-  { name: 'LEVEL', default: 0.8, display: db },
+  { name: 'LEVEL', default: 0.6402, display: db },
 ]
 
 const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: KICK_PARAMS, pages: KICK_PAGES }
@@ -66,7 +66,7 @@ export const TRACK_COUNT = 12
 export const BUS_COUNT = 8
 export const BUS_NAMES = ['KICK', 'HATS', 'PERC', 'BASS', 'LEAD', 'PAD', 'ORN', 'FX']
 /** Starting bus faders in dB (techno gain plan), mirrors BUS_DEFAULT_DB in crates/core/src/bus.rs. */
-export const BUS_DEFAULT_DB = [-6, -14, -12, -6, -12, -16, -16, -12]
+export const BUS_DEFAULT_DB = [-6, -14, -12, -3, -12, -16, -16, -12]
 /** Inverse of the fader law (0.8 = 0 dB). */
 export const faderNormForDb = (db: number) => 0.8 * 10 ** (db / 62)
 export const MASTER_ROW = TRACK_COUNT + BUS_COUNT

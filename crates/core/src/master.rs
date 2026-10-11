@@ -30,7 +30,8 @@ pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
     ParamDesc { name: "CEIL", min: -12.0, max: 0.0, default_norm: 0.975, curve: Curve::Lin },
     // < 0.5 limiter, ≥ 0.5 soft clip
     ParamDesc { name: "MODE", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
-    ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
+    // −6 dB on the fader law (bus::fader_norm_for_db(-6.0)): headroom into the limiter by default
+    ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.640_2, curve: Curve::Lin },
 ];
 
 const TILT_HZ: f32 = 800.0;

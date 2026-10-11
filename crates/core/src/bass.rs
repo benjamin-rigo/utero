@@ -20,18 +20,18 @@ pub const BASS_PARAM_COUNT: usize = 9;
 /// Order and default_norm are mirrored in web/src/state/machines.ts.
 pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
     ParamDesc { name: "SUB", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
-    ParamDesc { name: "CHAR", min: 0.0, max: 1.0, default_norm: 0.35, curve: Curve::Lin },
-    ParamDesc { name: "BRIGHT", min: 40.0, max: 12_000.0, default_norm: 0.45, curve: Curve::Exp },
-    ParamDesc { name: "PLUCK", min: 0.0, max: 1.0, default_norm: 0.4, curve: Curve::Lin },
+    ParamDesc { name: "CHAR", min: 0.0, max: 1.0, default_norm: 0.51, curve: Curve::Lin },
+    ParamDesc { name: "BRIGHT", min: 40.0, max: 12_000.0, default_norm: 0.2, curve: Curve::Exp },
+    ParamDesc { name: "PLUCK", min: 0.0, max: 1.0, default_norm: 0.14, curve: Curve::Lin },
     ParamDesc { name: "GRIT", min: 0.0, max: 1.0, default_norm: 0.2, curve: Curve::Lin },
-    ParamDesc { name: "DECAY", min: 30.0, max: 4000.0, default_norm: 0.5, curve: Curve::Exp },
+    ParamDesc { name: "DECAY", min: 30.0, max: 4000.0, default_norm: 0.176, curve: Curve::Exp },
     ParamDesc { name: "FM", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
-    ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
+    ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 1.0, curve: Curve::Lin },
 ];
 
 const XOVER_HZ: f32 = 90.0;
-const HEADROOM: f32 = 0.5;
+const HEADROOM: f32 = 0.45;
 const REESE_CENTS: f32 = 25.0;
 /// Peak phase-modulation index at FM = 1 (on the pluck transient).
 const FM_INDEX: f32 = 6.0;
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn sub_alone_plays_f1_for_note_29() {
-        let p = settled(&[(CHAR, 0.0), (GRIT, 0.0)]);
+        let p = settled(&[(CHAR, 0.0), (GRIT, 0.0), (DECAY, 1.0), (SUB_OCT, 0.5)]);
         let mut v = BassVoice::new(SR, 1);
         v.trigger(1.0, 29, &mut Rng::new(1));
         let out = render(&mut v, &p, 48_000);
