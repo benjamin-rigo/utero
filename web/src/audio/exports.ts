@@ -16,6 +16,7 @@ export interface EngineExports {
   utero_set_macro_target(macro: number, index: number, track: number, param: number, a: number, b: number): void
   utero_clear_macro_target(macro: number, index: number): void
   utero_set_macro_pos(macro: number, pos: number): void
+  utero_set_bus_mute(bus: number, muted: number, quantized: number): void
 }
 
 export interface WasmExports extends EngineExports {

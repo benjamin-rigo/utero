@@ -3,7 +3,7 @@ import type { MacroTargetState, ModulatorState, RouteState, StepState } from '@/
 export const Op = {
   SetParam: 1, SetStep: 2, SetLength: 3, SetSpeed: 4, Play: 5, Stop: 6, SetBpm: 7, SetFill: 8,
   SetModulator: 9, SetModStep: 10, SetModStepLen: 11, SetRoute: 12, ClearRoute: 13,
-  SetMacroTarget: 14, ClearMacroTarget: 15, SetMacroPos: 16,
+  SetMacroTarget: 14, ClearMacroTarget: 15, SetMacroPos: 16, SetBusMute: 17,
 } as const
 export const CMD_WORDS = 16
 
@@ -27,3 +27,4 @@ export const cmdClearRoute = (index: number) => [Op.ClearRoute, index]
 export const cmdSetMacroTarget = (m: number, i: number, t: MacroTargetState) => [Op.SetMacroTarget, m, i, t.track, t.param, t.a, t.b]
 export const cmdClearMacroTarget = (m: number, i: number) => [Op.ClearMacroTarget, m, i]
 export const cmdSetMacroPos = (m: number, pos: number) => [Op.SetMacroPos, m, pos]
+export const cmdSetBusMute = (bus: number, muted: boolean, quantized: boolean) => [Op.SetBusMute, bus, muted ? 1 : 0, quantized ? 1 : 0]

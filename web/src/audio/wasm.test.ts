@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import type { WasmExports } from './exports'
-import { SNAP_EFFECTIVE, SNAP_FLOATS } from './snapshot'
+import { SNAP_EFFECTIVE, SNAP_FLOATS, SNAP_MUTED } from './snapshot'
 
 async function load(): Promise<WasmExports> {
   const path = fileURLToPath(new URL('../../public/utero.wasm', import.meta.url))
@@ -65,8 +65,34 @@ test('garbage modulation commands do not trap', async () => {
   ex.utero_set_macro_target(0, 0, 99, 99, NaN, 1)
   ex.utero_set_macro_pos(0, NaN)
   ex.utero_clear_macro_target(99, 99)
+  ex.utero_set_bus_mute(99, 1, 1)
+  ex.utero_set_param(99, 0, 0.5)
   ex.utero_play()
   for (let i = 0; i < 10; i++) ex.utero_process(128)
   const out = new Float32Array(ex.memory.buffer, ex.utero_out_l(), 128)
   expect(out.every(Number.isFinite)).toBe(true)
+})
+
+test('SUB plays a note through the BASS bus', async () => {
+  const ex = await load()
+  ex.utero_init(48000)
+  ex.utero_set_step(7, 0, 1, 1, 100, 0, 1, 2, 0, 41)
+  ex.utero_play()
+  let peak = 0
+  for (let i = 0; i < 100; i++) {
+    ex.utero_process(128)
+    const out = new Float32Array(ex.memory.buffer, ex.utero_out_l(), 128)
+    peak = Math.max(peak, ...Array.from(out, Math.abs))
+  }
+  expect(peak).toBeGreaterThan(0.01)
+})
+
+test('bus mute reaches the snapshot', async () => {
+  const ex = await load()
+  ex.utero_init(48000)
+  ex.utero_set_bus_mute(2, 1, 0)
+  ex.utero_process(128)
+  const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
+  expect(snap[SNAP_MUTED + 2]).toBe(1)
+  expect(snap[SNAP_MUTED + 1]).toBe(0)
 })

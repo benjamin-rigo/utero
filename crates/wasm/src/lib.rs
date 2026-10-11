@@ -168,3 +168,8 @@ pub extern "C" fn utero_snapshot() -> *const f32 {
 pub extern "C" fn utero_snapshot_len() -> u32 {
     SNAP_LEN as u32
 }
+
+#[no_mangle]
+pub extern "C" fn utero_set_bus_mute(bus: u32, muted: u32, quantized: u32) {
+    eng().set_bus_mute(bus as usize, muted != 0, quantized != 0);
+}

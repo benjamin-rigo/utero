@@ -3,7 +3,7 @@ import { defaultModulator } from '@/state/modulation'
 import type { EngineExports } from './exports'
 import { dispatch } from './dispatch'
 import {
-  cmdClearMacroTarget, cmdClearRoute, cmdPlay, cmdSetBpm, cmdSetFill, cmdSetLength, cmdSetMacroPos, cmdSetMacroTarget,
+  cmdClearMacroTarget, cmdClearRoute, cmdSetBusMute, cmdPlay, cmdSetBpm, cmdSetFill, cmdSetLength, cmdSetMacroPos, cmdSetMacroTarget,
   cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, CMD_WORDS,
 } from './ops'
 
@@ -27,6 +27,7 @@ function fake() {
     utero_set_macro_target: rec('set_macro_target'),
     utero_clear_macro_target: rec('clear_macro_target'),
     utero_set_macro_pos: rec('set_macro_pos'),
+    utero_set_bus_mute: rec('set_bus_mute'),
   }
   return { ex, calls }
 }
@@ -40,7 +41,7 @@ test('every command builder reaches the matching export with its arguments in or
     cmdPlay(), cmdStop(), cmdSetBpm(128), cmdSetFill(true),
     cmdSetModulator(3, mod), cmdSetModStep(3, 7, -0.5), cmdSetModStepLen(3, 8),
     cmdSetRoute(10, { src: 3, track: 0, param: 4, amount: -0.25 }), cmdClearRoute(10),
-    cmdSetMacroTarget(2, 1, { track: 1, param: 0, a: 0.1, b: 0.9, slot: 1 }), cmdClearMacroTarget(2, 1), cmdSetMacroPos(2, 0.75),
+    cmdSetMacroTarget(2, 1, { track: 1, param: 0, a: 0.1, b: 0.9, slot: 1 }), cmdClearMacroTarget(2, 1), cmdSetMacroPos(2, 0.75), cmdSetBusMute(3, true, false),
   ]) {
     expect(cmd.length).toBeLessThanOrEqual(CMD_WORDS)
     dispatch(ex, cmd)
@@ -62,6 +63,7 @@ test('every command builder reaches the matching export with its arguments in or
     ['set_macro_target', [2, 1, 1, 0, 0.1, 0.9]],
     ['clear_macro_target', [2, 1]],
     ['set_macro_pos', [2, 0.75]],
+    ['set_bus_mute', [3, 1, 0]],
   ])
 })
 
