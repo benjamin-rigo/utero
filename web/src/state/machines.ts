@@ -1,8 +1,13 @@
-import { KICK_PAGES, KICK_PARAMS, type ParamMeta } from './kickParams'
+import { hz, KICK_PAGES, KICK_PARAMS, ms, type Display, type ParamMeta } from './kickParams'
 
 export interface Page {
   name: string
   params: number[]
+}
+
+export interface Switch {
+  param: number
+  label: string
 }
 
 export interface MachineDef {
@@ -10,31 +15,50 @@ export interface MachineDef {
   melodic: boolean
   params: ParamMeta[]
   pages: Page[]
+  switches?: Switch[]
 }
 
-const meta = (pairs: [string, number][]): ParamMeta[] => pairs.map(([name, d]) => ({ name, default: d }))
+const pct: Display = { kind: 'pct' }
+const db: Display = { kind: 'db' }
 
-/** Mirrors SUB_PARAMS in crates/core/src/sub.rs. */
-export const SUB_PARAMS = meta([['OCT', 0.5], ['PHASE', 0], ['DRIVE', 0.1], ['GLIDE', 0], ['DECAY', 0.6], ['DRIFT', 0.2], ['LEVEL', 0.8], ['ROUTE', 0]])
-/** Mirrors MID_PARAMS in crates/core/src/mid.rs. */
-export const MID_PARAMS = meta([
-  ['WAVE', 0], ['DETUNE', 0.3], ['FOLD', 0], ['NOISE', 0.05], ['DRIFT', 0.2], ['OCT', 0.5], ['GLIDE', 0], ['LINK', 0],
-  ['CUTOFF', 0.45], ['RES', 0.3], ['ENV AMT', 0.5], ['F.DECAY', 0.4], ['DRIVE', 0.2], ['KEYTRK', 0.5], ['TYPE', 0], ['LEVEL', 0.7],
-  ['A.DECAY', 0.5],
-])
+/** Mirrors BASS_PARAMS in crates/core/src/bass.rs. */
+export const BASS_PARAMS: ParamMeta[] = [
+  { name: 'SUB', default: 0.8, display: db },
+  { name: 'CHAR', default: 0.35, display: pct },
+  { name: 'BRIGHT', default: 0.45, display: hz(40, 12000) },
+  { name: 'PLUCK', default: 0.4, display: pct },
+  { name: 'GRIT', default: 0.2, display: pct },
+  { name: 'DECAY', default: 0.5, display: ms(30, 4000) },
+  { name: 'GLIDE', default: 0, display: ms(0, 300, 'lin') },
+  { name: 'LEVEL', default: 0.8, display: db },
+  { name: 'SUB OCT', default: 0.5, display: { kind: 'choice', options: ['0', '−1', '−2'] } },
+]
 /** Mirrors BUS_PARAMS in crates/core/src/bus.rs. */
-export const BUS_PARAMS = meta([['FLT', 0.5], ['DRV', 0], ['LEVEL', 0.8]])
+export const BUS_PARAMS: ParamMeta[] = [
+  { name: 'FLT', default: 0.5, display: { kind: 'djfilter' } },
+  { name: 'DRV', default: 0, display: pct },
+  { name: 'LEVEL', default: 0.8, display: db },
+]
 /** Mirrors MASTER_PARAMS in crates/core/src/master.rs. */
-export const MASTER_PARAMS = meta([
-  ['COMP', 0.2], ['ATK', 0.6], ['REL', 0.5], ['MIX', 1], ['SAT', 0.1], ['CURVE', 0.5], ['TILT', 0.5], ['LOW CUT', 0],
-  ['CEIL', 0.975], ['MODE', 0], ['LEVEL', 0.8],
-])
+export const MASTER_PARAMS: ParamMeta[] = [
+  { name: 'COMP', default: 0.2, display: pct },
+  { name: 'ATK', default: 0.6, display: ms(0.1, 30) },
+  { name: 'REL', default: 0.5, display: ms(30, 1000) },
+  { name: 'MIX', default: 1, display: pct },
+  { name: 'SAT', default: 0.1, display: pct },
+  { name: 'CURVE', default: 0.5, display: pct },
+  { name: 'TILT', default: 0.5, display: { kind: 'range', min: -6, max: 6, unit: 'dB', digits: 1, signed: true } },
+  { name: 'LOW CUT', default: 0, display: hz(10, 150) },
+  { name: 'CEIL', default: 0.975, display: { kind: 'range', min: -12, max: 0, unit: 'dB', digits: 1 } },
+  { name: 'MODE', default: 0, display: { kind: 'choice', options: ['LIMIT', 'CLIP'] } },
+  { name: 'LEVEL', default: 0.8, display: db },
+]
 
 const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: KICK_PARAMS, pages: KICK_PAGES }
-const SUB: MachineDef = { name: 'SUB', melodic: true, params: SUB_PARAMS, pages: [{ name: 'SRC', params: [0, 1, 2, 3, 4, 5, 6, 7] }] }
-const MID: MachineDef = {
-  name: 'MID BASS', melodic: true, params: MID_PARAMS,
-  pages: [{ name: 'SRC', params: [0, 1, 2, 3, 4, 5, 6, 7] }, { name: 'FLTR', params: [8, 9, 10, 11, 12, 13, 14, 15] }, { name: 'AMP', params: [16] }],
+const BASS: MachineDef = {
+  name: 'BASS', melodic: true, params: BASS_PARAMS,
+  pages: [{ name: 'BASS', params: [0, 1, 2, 3, 4, 5, 6, 7] }],
+  switches: [{ param: 8, label: 'SUB OCT' }],
 }
 
 export const TRACK_COUNT = 13
@@ -49,7 +73,7 @@ export const MASTER_MODE = 9
 export const MASTER_LEVEL = 10
 
 export const MACHINES: (MachineDef | null)[] = Array.from({ length: TRACK_COUNT }, (_, t) =>
-  t <= 1 ? KICK : t === 7 ? SUB : t === 8 ? MID : null)
+  t <= 1 ? KICK : t === 7 ? BASS : null)
 
 export const busRow = (b: number) => TRACK_COUNT + b
 export const isMelodic = (t: number) => MACHINES[t]?.melodic ?? false
@@ -78,4 +102,30 @@ export function faderDb(norm: number): string {
   if (norm <= 0) return '−∞'
   const db = 20 * Math.log10((norm / 0.8) ** 3.1)
   return `${db >= 0 ? '+' : ''}${db.toFixed(1)} dB`
+}
+
+function rangeValue(d: Extract<Display, { kind: 'range' }>, norm: number): number {
+  return d.curve === 'exp' ? d.min * (d.max / d.min) ** norm : d.min + (d.max - d.min) * norm
+}
+
+/** Human-readable value of a normalised param: dB, Hz/kHz, ms/s, %, semitones or a mode name. */
+export function formatParam(meta: ParamMeta, norm: number): string {
+  const d = meta.display
+  if (!d || d.kind === 'pct') return `${Math.round(norm * 100)}%`
+  if (d.kind === 'db') return faderDb(norm)
+  if (d.kind === 'choice') return d.options[Math.min(d.options.length - 1, Math.max(0, Math.round(norm * (d.options.length - 1))))]
+  if (d.kind === 'djfilter') {
+    if (norm < 0.48) return `LP ${formatHz(20 * 1000 ** (norm / 0.48))}`
+    if (norm > 0.52) return `HP ${formatHz(20 * 1000 ** ((norm - 0.52) / 0.48))}`
+    return 'OFF'
+  }
+  const v = rangeValue(d, norm)
+  if (d.unit === 'Hz') return formatHz(v)
+  if (d.unit === 'ms' && v >= 1000) return `${(v / 1000).toFixed(2)} s`
+  const digits = d.digits ?? (Math.abs(v) < 10 && d.unit !== 'st' ? 1 : 0)
+  return `${d.signed && v > 0 ? '+' : ''}${v.toFixed(digits)} ${d.unit}`
+}
+
+function formatHz(v: number): string {
+  return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 1 : 2)} kHz` : `${Math.round(v)} Hz`
 }

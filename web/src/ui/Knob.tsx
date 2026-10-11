@@ -36,12 +36,14 @@ export interface KnobProps {
   size?: 'md' | 'sm'
   /** Accessible name when the visible label is not unique (e.g. 'KICK filter'). */
   ariaLabel?: string
+  /** Shows the value in real units (dB, Hz, ms…); defaults to 0–100. */
+  format?(value: number): string
 }
 
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format,
 }: KnobProps) {
   const drag = useRef<{ y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
@@ -67,7 +69,7 @@ export function Knob({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct(value)}
-        aria-valuetext={`${pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
+        aria-valuetext={`${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
         width={size === 'sm' ? 40 : SIZE}
         height={size === 'sm' ? 40 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -135,7 +137,7 @@ export function Knob({
         {label}
       </button>
       {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
-      <span className={size === 'sm' ? 'text-[10px] tabular-nums' : 'text-sm tabular-nums'}>{pct(display)}</span>
+      <span className={size === 'sm' ? 'text-[10px] tabular-nums' : 'text-sm tabular-nums'}>{format ? format(display) : pct(display)}</span>
     </div>
   )
 }

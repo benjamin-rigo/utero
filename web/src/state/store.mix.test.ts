@@ -20,14 +20,14 @@ describe('mixer state', () => {
     expect(s.buses.map((b) => b.name)).toEqual(['KICK', 'HATS', 'PERC', 'BASS', 'LEAD', 'PAD', 'ORN', 'FX'])
     expect(s.buses.every((b) => b.params.length === 3 && !b.muted)).toBe(true)
     expect(s.master.params).toHaveLength(11)
-    expect(s.tracks[7].params).toHaveLength(8)
-    expect(s.tracks[8].params).toHaveLength(17)
+    expect(s.tracks[7].params).toHaveLength(9)
+    expect(s.tracks[8].params).toHaveLength(0)
     expect([s.muteQuantize, s.editMode]).toEqual([true, 'trig'])
   })
 
   test('connect sends machine, bus and master params plus bus mutes', () => {
     const { sent } = connected()
-    expect(sent.filter((c) => c[0] === Op.SetParam)).toHaveLength(9 * 2 + 8 + 17 + 8 * 3 + 11)
+    expect(sent.filter((c) => c[0] === Op.SetParam)).toHaveLength(8 * 2 + 9 + 8 * 3 + 11)
     expect(sent.filter((c) => c[0] === Op.SetBusMute)).toHaveLength(8)
   })
 

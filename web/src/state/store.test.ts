@@ -13,7 +13,7 @@ function connected() {
 describe('store', () => {
   test('initial state has 13 tracks and a four-on-the-floor kick', () => {
     const s = createStore().getState()
-    expect(s.tracks.map((t) => t.name)).toEqual(['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'SUB', 'MID', 'LD1', 'LD2', 'PAD', 'ORN'])
+    expect(s.tracks.map((t) => t.name)).toEqual(['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'BASS', 'FREE', 'LD1', 'LD2', 'PAD', 'ORN'])
     expect(s.tracks[0].steps.flatMap((st, i) => (st.trig ? [i] : []))).toEqual([0, 4, 8, 12])
   })
 
@@ -26,7 +26,7 @@ describe('store', () => {
     expect(count(Op.SetLength)).toBe(13)
     expect(count(Op.SetSpeed)).toBe(13)
     expect(count(Op.SetStep)).toBe(4)
-    expect(count(Op.SetParam)).toBe(78)
+    expect(count(Op.SetParam)).toBe(60)
   })
 
   test('toggleStep flips the step and sends it', () => {

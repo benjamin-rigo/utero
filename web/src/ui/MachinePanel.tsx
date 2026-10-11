@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MACHINES, type MachineDef } from '@/state/machines'
 import { modLabel } from '@/state/modulation'
-import type { Store } from '@/state/store'
+import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
 import { MacroFaders } from './MacroFaders'
 import { ParamKnob } from './ParamKnob'
@@ -59,6 +59,29 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
           </button>
         ))}
       </div>
+      {machine.switches?.map((sw) => {
+        const meta = machine.params[sw.param]
+        const opts = meta.display?.kind === 'choice' ? meta.display.options : []
+        const last = opts.length - 1
+        const idx = Math.round((rowParams(state, t)[sw.param] ?? meta.default) * last)
+        const pick = (i: number) => store.setParam(t, sw.param, Math.min(last, Math.max(0, i)) / last)
+        return (
+          <div key={sw.param} role="radiogroup" aria-label={sw.label} className="flex items-center gap-1 px-2 pt-2 text-[10px]">
+            <span className="mr-1 text-zinc-400">{sw.label}</span>
+            {opts.map((o, i) => (
+              <button key={o} type="button" role="radio" aria-checked={i === idx} tabIndex={i === idx ? 0 : -1}
+                onClick={() => pick(i)}
+                onKeyDown={(e) => {
+                  const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+                  if (d) { e.preventDefault(); pick(idx + d) }
+                }}
+                className={`min-w-8 rounded border px-2 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${i === idx ? 'border-acc text-acc' : 'border-zinc-700 text-zinc-300'}`}>
+                {o}
+              </button>
+            ))}
+          </div>
+        )
+      })}
       <div className="grid grid-cols-4 gap-y-2 p-2">
         {machine.pages[page].params.map((p) => (
           <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}

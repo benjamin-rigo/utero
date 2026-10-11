@@ -1,5 +1,6 @@
 import { effectiveOf } from '@/audio/snapshot'
 import type { ParamMeta } from '@/state/kickParams'
+import { formatParam } from '@/state/machines'
 import { effectiveValue, modAmountFor, routeIndexFor, rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
 import { Knob } from './Knob'
@@ -26,7 +27,7 @@ export function ParamKnob({ state, frame, store, row, param: p, meta, size, aria
   const value = learn ? (learnTarget ? learnTarget[learn.side] : base) : base
   const display = learn ? value : frame ? effectiveOf(frame, row, p) : effectiveValue(state, row, p)
   return (
-    <Knob label={meta.name} ariaLabel={ariaLabel} size={size} value={value} display={display} defaultValue={meta.default}
+    <Knob label={meta.name} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} size={size} value={value} display={display} defaultValue={meta.default}
       modAmount={modAmountFor(state, row, p)} markers={marker ? { a: marker.a, b: marker.b } : null}
       learning={learn !== null} selected={selected}
       onChange={(v) => store.setParam(row, p, v)}

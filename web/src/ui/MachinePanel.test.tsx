@@ -41,9 +41,9 @@ test('dropping a tile on a knob routes it to that parameter', () => {
 test('while learning, knobs edit the macro endpoint', () => {
   const store = setup()
   act(() => { store.armLearn(0, 'b') })
-  fireEvent.keyDown(screen.getByRole('slider', { name: 'DRIVE' }), { key: 'End' })
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'NOISE' }), { key: 'End' })
   expect(store.getState().macros[0].targets[0]).toMatchObject({ track: 0, param: 5, b: 1 })
-  expect(store.getState().tracks[0].params[5]).toBe(0.2)
+  expect(store.getState().tracks[0].params[5]).toBe(0.05)
 })
 
 test('tracks without a machine say so', () => {
@@ -69,19 +69,17 @@ test('a route from a switched-off modulator is labelled (off), not "+ add"', () 
   expect(screen.getByRole('button', { name: 'Remove MOD4 (off) route' })).toBeTruthy()
 })
 
-test('SUB shows its own params and edits its own track', () => {
+test('BASS shows 8 knobs and a SUB OCT switch', () => {
   const store = setup()
   act(() => store.select(7))
-  expect(screen.getByText('SUB', { selector: 'span' })).toBeTruthy()
-  expect(screen.getByRole('slider', { name: 'OCT' })).toBeTruthy()
+  expect(screen.getByText('BASS', { selector: 'span' })).toBeTruthy()
+  for (const n of ['SUB', 'CHAR', 'BRIGHT', 'PLUCK', 'GRIT', 'DECAY', 'GLIDE', 'LEVEL']) expect(screen.getByRole('slider', { name: n })).toBeTruthy()
   fireEvent.keyDown(screen.getByRole('slider', { name: 'DECAY' }), { key: 'End' })
-  expect(store.getState().tracks[7].params[4]).toBe(1)
-})
-
-test('MID has SRC, FLTR and AMP pages', () => {
-  const store = setup()
-  act(() => store.select(8))
-  expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['SRC', 'FLTR', 'AMP'])
-  fireEvent.click(screen.getByRole('tab', { name: 'FLTR' }))
-  expect(screen.getByRole('slider', { name: 'CUTOFF' })).toBeTruthy()
+  expect(store.getState().tracks[7].params[5]).toBe(1)
+  const group = screen.getByRole('radiogroup', { name: 'SUB OCT' })
+  expect(group.querySelector('[aria-checked="true"]')?.textContent).toBe('−1')
+  fireEvent.click(screen.getByRole('radio', { name: '−2' }))
+  expect(store.getState().tracks[7].params[8]).toBe(1)
+  fireEvent.keyDown(screen.getByRole('radio', { name: '−2' }), { key: 'ArrowLeft' })
+  expect(store.getState().tracks[7].params[8]).toBe(0.5)
 })

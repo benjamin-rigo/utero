@@ -73,7 +73,7 @@ test('garbage modulation commands do not trap', async () => {
   expect(out.every(Number.isFinite)).toBe(true)
 })
 
-test('SUB plays a note through the BASS bus', async () => {
+test('BASS plays a note through the BASS bus', async () => {
   const ex = await load()
   ex.utero_init(48000)
   ex.utero_set_step(7, 0, 1, 1, 100, 0, 1, 2, 0, 41)
