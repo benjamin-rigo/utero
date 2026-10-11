@@ -49,6 +49,7 @@ export default function App() {
   return (
     <div className="grid h-dvh grid-rows-[auto_1fr_200px] bg-background font-mono text-xs text-foreground">
       <TransportBar bpm={state.bpm} playing={state.playing} starting={starting} error={error} onTogglePlay={togglePlay} onBpm={store.setBpm} />
+      {/* 440px right column shared by machine, macros (ModStrip) and master (Mixer) so their edges line up */}
       <main className="grid min-h-0 grid-cols-[1fr_440px] grid-rows-[minmax(0,1fr)_190px]">
         <div className="flex min-h-0 flex-col">
           <SequencerMatrix state={state} playheads={playheads} onToggle={store.toggleStep} onSetLength={store.setLength}

@@ -29,7 +29,7 @@ export function Mixer({ state, frame, store }: Props) {
   const clip = state.master.params[MASTER_MODE] >= 0.5
 
   return (
-    <section aria-label="Mixer" className="grid h-full min-h-0 grid-cols-[repeat(8,minmax(0,1fr))_minmax(0,2.4fr)] gap-px border-t border-zinc-800 bg-zinc-800 text-[10px]">
+    <section aria-label="Mixer" className="grid h-full min-h-0 grid-cols-[repeat(8,minmax(0,1fr))_440px] gap-px border-t border-zinc-800 bg-zinc-800 text-[10px]">
       {state.buses.map((bus, b) => {
         const row = busRow(b)
         const meter = frame ? busMeterOf(frame, b) : { peak: 0, rms: 0 }
