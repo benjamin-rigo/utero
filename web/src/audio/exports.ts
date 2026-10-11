@@ -7,6 +7,15 @@ export interface EngineExports {
   utero_stop(): void
   utero_set_bpm(bpm: number): void
   utero_set_fill(on: number): void
+  utero_set_modulator(slot: number, kind: number, shape: number, color: number, sync: number, rateIndex: number, hz: number,
+    phase: number, bipolar: number, trigMode: number, trigSrc: number, smooth: number, depth: number): void
+  utero_set_mod_step(slot: number, index: number, value: number): void
+  utero_set_mod_step_len(slot: number, len: number): void
+  utero_set_route(index: number, src: number, track: number, param: number, amount: number): void
+  utero_clear_route(index: number): void
+  utero_set_macro_target(macro: number, index: number, track: number, param: number, a: number, b: number): void
+  utero_clear_macro_target(macro: number, index: number): void
+  utero_set_macro_pos(macro: number, pos: number): void
 }
 
 export interface WasmExports extends EngineExports {
@@ -17,4 +26,6 @@ export interface WasmExports extends EngineExports {
   utero_out_r(): number
   utero_tick(): number
   utero_playhead(track: number): number
+  utero_snapshot(): number
+  utero_snapshot_len(): number
 }

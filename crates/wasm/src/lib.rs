@@ -1,6 +1,8 @@
 use core::cell::UnsafeCell;
 
-use utero_core::engine::Engine;
+use utero_core::engine::{Engine, SNAP_LEN};
+use utero_core::macros::MacroTarget;
+use utero_core::modulation::{ModKind, ModSettings, NoiseColor, ParamRef, Route, Shape, TrigMode};
 use utero_core::seq::{Cond, Step};
 
 struct Global(UnsafeCell<Option<Engine>>);
@@ -94,4 +96,74 @@ pub extern "C" fn utero_tick() -> f64 {
 #[no_mangle]
 pub extern "C" fn utero_playhead(track: u32) -> i32 {
     eng().playhead(track as usize)
+}
+
+#[no_mangle]
+#[allow(clippy::too_many_arguments)]
+pub extern "C" fn utero_set_modulator(
+    slot: u32, kind: u32, shape: u32, color: u32, sync: u32, rate_index: u32, hz: f32, phase: f32,
+    bipolar: u32, trig_mode: u32, trig_src: i32, smooth: f32, depth: f32,
+) {
+    let s = ModSettings {
+        kind: ModKind::from_code(byte(kind)),
+        shape: Shape::from_code(byte(shape)),
+        color: NoiseColor::from_code(byte(color)),
+        sync: sync != 0,
+        rate_index: byte(rate_index),
+        hz,
+        phase,
+        bipolar: bipolar != 0,
+        trig_mode: TrigMode::from_code(byte(trig_mode)),
+        trig_src: trig_src.clamp(-1, 127) as i8,
+        smooth,
+        depth,
+    };
+    eng().set_modulator(slot as usize, s);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_set_mod_step(slot: u32, index: u32, value: f32) {
+    eng().set_mod_step(slot as usize, index as usize, value);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_set_mod_step_len(slot: u32, len: u32) {
+    eng().set_mod_step_len(slot as usize, byte(len));
+}
+
+#[no_mangle]
+pub extern "C" fn utero_set_route(index: u32, src: u32, track: u32, param: u32, amount: f32) {
+    let r = Route { src: byte(src), target: ParamRef { track: byte(track), param: byte(param) }, amount };
+    eng().set_route(index as usize, r);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_clear_route(index: u32) {
+    eng().clear_route(index as usize);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_set_macro_target(m: u32, index: u32, track: u32, param: u32, a: f32, b: f32) {
+    let t = MacroTarget { target: ParamRef { track: byte(track), param: byte(param) }, a, b };
+    eng().set_macro_target(m as usize, index as usize, t);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_clear_macro_target(m: u32, index: u32) {
+    eng().clear_macro_target(m as usize, index as usize);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_set_macro_pos(m: u32, pos: f32) {
+    eng().set_macro_pos(m as usize, pos);
+}
+
+#[no_mangle]
+pub extern "C" fn utero_snapshot() -> *const f32 {
+    eng().snapshot.as_ptr()
+}
+
+#[no_mangle]
+pub extern "C" fn utero_snapshot_len() -> u32 {
+    SNAP_LEN as u32
 }

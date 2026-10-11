@@ -11,5 +11,14 @@ export function dispatch(ex: EngineExports, c: ArrayLike<number>): void {
     case Op.Stop: ex.utero_stop(); break
     case Op.SetBpm: ex.utero_set_bpm(c[1]); break
     case Op.SetFill: ex.utero_set_fill(c[1]); break
+    case Op.SetModulator:
+      ex.utero_set_modulator(c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13]); break
+    case Op.SetModStep: ex.utero_set_mod_step(c[1], c[2], c[3]); break
+    case Op.SetModStepLen: ex.utero_set_mod_step_len(c[1], c[2]); break
+    case Op.SetRoute: ex.utero_set_route(c[1], c[2], c[3], c[4], c[5]); break
+    case Op.ClearRoute: ex.utero_clear_route(c[1]); break
+    case Op.SetMacroTarget: ex.utero_set_macro_target(c[1], c[2], c[3], c[4], c[5], c[6]); break
+    case Op.ClearMacroTarget: ex.utero_clear_macro_target(c[1], c[2]); break
+    case Op.SetMacroPos: ex.utero_set_macro_pos(c[1], c[2]); break
   }
 }

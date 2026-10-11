@@ -42,21 +42,21 @@ describe('CommandRing', () => {
   test('attach sees the same queue (other thread view)', () => {
     const a = CommandRing.create(8)
     const b = CommandRing.attach(a.sab)
-    a.push([7, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    a.push([7, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     const o = out()
     expect(b.pop(o)).toBe(true)
-    expect(Array.from(o)).toEqual([7, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    expect(Array.from(o)).toEqual([7, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
   })
 
   test('zero-fills unused command words when a slot is reused', () => {
     const r = CommandRing.create(2)
-    r.push([5, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    r.push(Array.from({ length: CMD_WORDS }, (_, i) => i + 1))
     r.pop(out())
     r.push([9])
     r.pop(out())
     r.push([6]) // lands in slot 0 again
     const o = out()
     r.pop(o)
-    expect(Array.from(o)).toEqual([6, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    expect(Array.from(o)).toEqual([6, ...Array(CMD_WORDS - 1).fill(0)])
   })
 })

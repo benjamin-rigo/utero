@@ -2,7 +2,7 @@ import { dispatch } from './dispatch'
 import type { WasmExports } from './exports'
 import { CMD_WORDS } from './ops'
 import { CommandRing } from './ring'
-import { SNAP_TRACKS } from './snapshot'
+import { SNAP_FLOATS } from './snapshot'
 
 interface Options {
   module: WebAssembly.Module
@@ -18,11 +18,16 @@ class UteroProcessor extends AudioWorkletProcessor {
   private mem: ArrayBuffer | null = null
   private outL = new Float32Array(0)
   private outR = new Float32Array(0)
+  private snapView = new Float32Array(0)
 
   constructor(options: AudioWorkletNodeOptions) {
     super()
     const { module, ring, snap } = options.processorOptions as Options
     this.ex = new WebAssembly.Instance(module, {}).exports as unknown as WasmExports
+    // A stale utero.wasm next to a newer UI would show wrong values; fail loudly instead.
+    if (this.ex.utero_snapshot_len() !== SNAP_FLOATS) {
+      throw new Error(`snapshot layout mismatch: engine ${this.ex.utero_snapshot_len()} vs UI ${SNAP_FLOATS}`)
+    }
     this.ex.utero_init(sampleRate)
     this.ring = CommandRing.attach(ring)
     this.snap = new Float32Array(snap)
@@ -30,7 +35,8 @@ class UteroProcessor extends AudioWorkletProcessor {
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     while (this.ring.pop(this.cmd)) dispatch(this.ex, this.cmd)
-    const [left, right] = outputs[0]
+    const out = outputs[0]
+    const left = out[0]
     const n = left.length
     this.ex.utero_process(n)
     // Re-create views only if wasm memory grew; avoids per-block allocation.
@@ -38,11 +44,11 @@ class UteroProcessor extends AudioWorkletProcessor {
       this.mem = this.ex.memory.buffer
       this.outL = new Float32Array(this.mem, this.ex.utero_out_l(), n)
       this.outR = new Float32Array(this.mem, this.ex.utero_out_r(), n)
+      this.snapView = new Float32Array(this.mem, this.ex.utero_snapshot(), SNAP_FLOATS)
     }
     left.set(this.outL)
-    right?.set(this.outR)
-    this.snap[0] = this.ex.utero_tick()
-    for (let t = 0; t < SNAP_TRACKS; t++) this.snap[1 + t] = this.ex.utero_playhead(t)
+    out[1]?.set(this.outR)
+    this.snap.set(this.snapView)
     return true
   }
 }

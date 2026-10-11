@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import type { WasmExports } from './exports'
+import { SNAP_EFFECTIVE, SNAP_FLOATS } from './snapshot'
 
 async function load(): Promise<WasmExports> {
   const path = fileURLToPath(new URL('../../public/utero.wasm', import.meta.url))
@@ -32,4 +33,40 @@ test('wasm engine survives garbage commands without trapping', async () => {
   ex.utero_play()
   ex.utero_process(4096)
   expect(ex.utero_playhead(99)).toBe(-1)
+})
+
+test('engine snapshot layout matches the UI', async () => {
+  const ex = await load()
+  expect(ex.utero_snapshot_len()).toBe(SNAP_FLOATS)
+})
+
+test('a routed LFO moves the effective value in the snapshot', async () => {
+  const ex = await load()
+  ex.utero_init(48000)
+  // slot 0: LFO square, unsynced 0.01 Hz → output stays +1 during the test
+  ex.utero_set_modulator(0, 1, 6, 0, 0, 6, 0.01, 0, 1, 0, -1, 0, 1)
+  ex.utero_set_route(0, 0, 0, 3, 0.3)
+  for (let i = 0; i < 100; i++) ex.utero_process(128)
+  const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
+  expect(snap[SNAP_EFFECTIVE + 3]).toBeCloseTo(0.5637 + 0.3, 1)
+})
+
+test('garbage modulation commands do not trap', async () => {
+  const ex = await load()
+  ex.utero_init(48000)
+  ex.utero_set_modulator(99, 9, 99, 9, 1, 255, NaN, NaN, 1, 9, 999, NaN, NaN)
+  ex.utero_set_modulator(0, 1, 0, 0, 1, 255, NaN, NaN, 1, 9, 999, NaN, NaN)
+  ex.utero_set_route(999, 99, 99, 99, NaN)
+  ex.utero_set_route(0, 0, 0, 0, Infinity)
+  ex.utero_clear_route(999)
+  ex.utero_set_mod_step(0, 99, NaN)
+  ex.utero_set_mod_step_len(0, 0)
+  ex.utero_set_macro_target(99, 99, 0, 0, 0, 1)
+  ex.utero_set_macro_target(0, 0, 99, 99, NaN, 1)
+  ex.utero_set_macro_pos(0, NaN)
+  ex.utero_clear_macro_target(99, 99)
+  ex.utero_play()
+  for (let i = 0; i < 10; i++) ex.utero_process(128)
+  const out = new Float32Array(ex.memory.buffer, ex.utero_out_l(), 128)
+  expect(out.every(Number.isFinite)).toBe(true)
 })
