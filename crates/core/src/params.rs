@@ -24,6 +24,15 @@ impl ParamDesc {
             Curve::Exp => self.min * (self.max / self.min).powf(n),
         }
     }
+
+    /// Inverse of `map`, clamped to 0..1.
+    pub fn norm_of(&self, value: f32) -> f32 {
+        let n = match self.curve {
+            Curve::Lin => (value - self.min) / (self.max - self.min),
+            Curve::Exp => (value / self.min).ln() / (self.max / self.min).ln(),
+        };
+        if n.is_finite() { n.clamp(0.0, 1.0) } else { 0.0 }
+    }
 }
 
 pub const MAX_PARAMS: usize = 24;

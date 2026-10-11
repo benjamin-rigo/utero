@@ -1,13 +1,12 @@
+pub mod bass;
 pub mod bus;
 pub mod dsp;
 pub mod engine;
 pub mod kick;
 pub mod macros;
 pub mod master;
-pub mod mid;
 pub mod modulation;
 pub mod params;
 pub mod rng;
 pub mod seq;
-pub mod sub;
 pub mod transport;

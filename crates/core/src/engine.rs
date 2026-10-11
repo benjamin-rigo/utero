@@ -1,13 +1,12 @@
+use crate::bass::{bass_params, BassVoice};
 use crate::bus::{Bus, BUSES};
 use crate::kick::{kick_params, KickVoice};
 use crate::macros::{MacroTarget, Macros};
 use crate::master::Master;
-use crate::mid::{is_linked, mid_params, MidVoice};
 use crate::modulation::{ModMatrix, ModSettings, Route, MOD_PARAMS, MOD_ROWS, MOD_SLOTS};
 use crate::params::{ParamBank, MAX_PARAMS};
 use crate::rng::Rng;
 use crate::seq::{CondCtx, Step, Track, Trig};
-use crate::sub::{is_direct, sub_params, SubVoice};
 use crate::transport::{Transport, PPQN};
 
 pub const BLOCK: usize = 128;
@@ -15,9 +14,8 @@ pub const TRACKS: usize = 13;
 /// Parameter rows: 0–12 tracks, 13–20 buses, 21 master (also the modulation/macro target rows).
 pub const ROWS: usize = TRACKS + BUSES + 1;
 pub const MASTER_ROW: usize = TRACKS + BUSES;
-pub const SUB_TRACK: usize = 7;
-pub const MID_TRACK: usize = 8;
-/// KICK·KCK2 → KICK, HH·OH → HATS, SNR·NOIS·SMPL → PERC, SUB·MID → BASS, LD1·LD2 → LEAD, PAD, ORN; bus 7 = FX RTN.
+pub const BASS_TRACK: usize = 7;
+/// KICK·KCK2 → KICK, HH·OH → HATS, SNR·NOIS·SMPL → PERC, BASS·FREE → BASS, LD1·LD2 → LEAD, PAD, ORN; bus 7 = FX RTN.
 pub const TRACK_BUS: [usize; TRACKS] = [0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 6];
 const BAR_TICKS: u64 = PPQN * 4;
 const MUTE_LEAD_TICKS: u64 = 3;
@@ -37,8 +35,7 @@ const _: () = assert!(ROWS == MOD_ROWS && MAX_PARAMS == MOD_PARAMS);
 enum Voice {
     None,
     Kick(KickVoice),
-    Sub(SubVoice),
-    Mid(MidVoice),
+    Bass(BassVoice),
 }
 
 struct Machine {
@@ -50,8 +47,7 @@ impl Machine {
     fn for_track(t: usize, sample_rate: f32) -> Self {
         match t {
             0 | 1 => Machine { voice: Voice::Kick(KickVoice::new(sample_rate, 0x00C0_FFEE + t as u32)), params: kick_params(sample_rate) },
-            SUB_TRACK => Machine { voice: Voice::Sub(SubVoice::new(sample_rate)), params: sub_params(sample_rate) },
-            MID_TRACK => Machine { voice: Voice::Mid(MidVoice::new(sample_rate, 0x000B_A55E)), params: mid_params(sample_rate) },
+            BASS_TRACK => Machine { voice: Voice::Bass(BassVoice::new(sample_rate, 0x000B_A55E)), params: bass_params(sample_rate) },
             _ => Machine { voice: Voice::None, params: ParamBank::new(&[], sample_rate) },
         }
     }
@@ -59,8 +55,7 @@ impl Machine {
     fn is_active(&self) -> bool {
         match &self.voice {
             Voice::Kick(v) => v.is_active(),
-            Voice::Sub(v) => v.is_active(),
-            Voice::Mid(v) => v.is_active(),
+            Voice::Bass(v) => v.is_active(),
             Voice::None => false,
         }
     }
@@ -269,7 +264,6 @@ impl Engine {
             self.macros.advance();
 
             let mut bus_in = [0.0_f32; BUSES];
-            let mut bus_post = [0.0_f32; BUSES];
             for t in 0..TRACKS {
                 if matches!(self.machines[t].voice, Voice::None) {
                     continue;
@@ -279,23 +273,17 @@ impl Engine {
                 params.apply_norms(&norms);
                 let y = match voice {
                     Voice::Kick(v) => v.render(params),
-                    Voice::Sub(v) => v.render(params),
-                    Voice::Mid(v) => v.render(params),
+                    Voice::Bass(v) => v.render(params),
                     Voice::None => 0.0,
                 };
-                let b = TRACK_BUS[t];
-                if t == SUB_TRACK && is_direct(params) {
-                    bus_post[b] += y;
-                } else {
-                    bus_in[b] += y;
-                }
+                bus_in[TRACK_BUS[t]] += y;
             }
 
             let (mut mix_l, mut mix_r) = (0.0, 0.0);
             for b in 0..BUSES {
                 let norms = self.resolve(TRACKS + b);
                 self.buses[b].params.apply_norms(&norms);
-                let (l, r) = self.buses[b].process(bus_in[b], bus_in[b], bus_post[b], bus_post[b]);
+                let (l, r) = self.buses[b].process(bus_in[b], bus_in[b], 0.0, 0.0);
                 mix_l += l;
                 mix_r += r;
             }
@@ -354,20 +342,11 @@ impl Engine {
     }
 
     fn trigger(&mut self, t: usize, trig: Trig) {
-        let linked = is_linked(&self.machines[MID_TRACK].params);
         let Machine { voice, params } = &mut self.machines[t];
         match voice {
             Voice::Kick(v) => v.trigger(trig.vel, &mut self.rng),
-            Voice::Sub(v) => v.trigger(trig.vel, trig.note, params, &mut self.rng),
-            Voice::Mid(v) if !linked => v.trigger(trig.vel, trig.note, params, &mut self.rng),
-            _ => {}
-        }
-        // LINK: MID plays SUB's notes instead of its own steps.
-        if t == SUB_TRACK && linked {
-            let Machine { voice, params } = &mut self.machines[MID_TRACK];
-            if let Voice::Mid(v) = voice {
-                v.trigger(trig.vel, trig.note, params, &mut self.rng);
-            }
+            Voice::Bass(v) => v.trigger(trig.vel, trig.note, params, &mut self.rng),
+            Voice::None => {}
         }
     }
 }
@@ -425,7 +404,6 @@ mod tests {
             }
             e.set_step(t, 0, Step { trig: true, ..Step::default() });
         }
-        e.set_param(0, crate::kick::DRIVE, 0.0);
         e.play();
         assert!(render_seconds(&mut e, 1.0).iter().all(|s| s.abs() <= 1.0));
     }
@@ -484,10 +462,10 @@ mod tests {
         let mut e = Engine::new(48_000.0);
         square(&mut e, 0);
         square(&mut e, 1);
-        e.set_route(0, route(0, 0, 8, 1.0));
-        e.set_route(1, route(1, 0, 8, 1.0));
+        e.set_route(0, route(0, 0, crate::kick::LEVEL as u8, 1.0));
+        e.set_route(1, route(1, 0, crate::kick::LEVEL as u8, 1.0));
         render_seconds(&mut e, 0.5);
-        assert_eq!(e.effective_norm(0, 8), 1.0);
+        assert_eq!(e.effective_norm(0, crate::kick::LEVEL), 1.0);
     }
 
     #[test]
@@ -560,17 +538,15 @@ mod tests {
     use crate::bus;
     use crate::dsp::db_to_gain;
     use crate::master;
-    use crate::mid;
-    use crate::sub;
 
     fn bass_step(e: &mut Engine, track: usize, note: u8) {
         e.set_step(track, 0, Step { trig: true, note, ..Step::default() });
     }
 
     #[test]
-    fn sub_plays_its_note_through_the_bass_bus() {
+    fn bass_plays_its_note_through_the_bass_bus() {
         let mut e = Engine::new(48_000.0);
-        bass_step(&mut e, SUB_TRACK, 41);
+        bass_step(&mut e, BASS_TRACK, 41);
         e.play();
         let out = render_seconds(&mut e, 0.5);
         assert!(rms(&out) > 0.05, "{}", rms(&out));
@@ -610,41 +586,17 @@ mod tests {
         assert!(!e.bus_muted(3));
     }
 
-    #[test]
-    fn linked_mid_follows_the_sub() {
-        for (link, expect) in [(0.0, false), (1.0, true)] {
-            let mut e = Engine::new(48_000.0);
-            e.set_param(MID_TRACK, mid::LINK, link);
-            bass_step(&mut e, SUB_TRACK, 41);
-            render_seconds(&mut e, 0.05); // let the LINK norm settle before the first trig
-            e.play();
-            render_seconds(&mut e, 0.05);
-            assert_eq!(e.track_active(MID_TRACK), expect);
-        }
-    }
 
-    #[test]
-    fn direct_sub_bypasses_the_bass_bus_filter() {
-        let level = |route: f32| {
-            let mut e = Engine::new(48_000.0);
-            e.set_param(TRACKS + 3, bus::FILTER, 0.0);
-            e.set_param(SUB_TRACK, sub::ROUTE, route);
-            bass_step(&mut e, SUB_TRACK, 41);
-            e.play();
-            rms(&render_seconds(&mut e, 0.5)[4_800..])
-        };
-        assert!(level(1.0) > 2.0 * level(0.0));
-    }
 
     #[test]
     fn limiter_holds_the_ceiling_under_heavy_modulation() {
         let mut e = Engine::new(48_000.0);
         square(&mut e, 0);
-        for (i, (row, param)) in [(0, 8), (1, 8), (TRACKS, bus::LEVEL), (MASTER_ROW, master::LEVEL), (MASTER_ROW, master::SAT)].into_iter().enumerate() {
+        for (i, (row, param)) in [(0, crate::kick::LEVEL), (1, crate::kick::LEVEL), (TRACKS, bus::LEVEL), (MASTER_ROW, master::LEVEL), (MASTER_ROW, master::SAT)].into_iter().enumerate() {
             e.set_route(i, route(0, row as u8, param as u8, 1.0));
         }
         quarter_kick(&mut e);
-        bass_step(&mut e, SUB_TRACK, 41);
+        bass_step(&mut e, BASS_TRACK, 41);
         e.play();
         let ceiling = db_to_gain(-0.3) + 1e-6;
         let mut out = Vec::new();

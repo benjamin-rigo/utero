@@ -1,6 +1,7 @@
 use core::f32::consts::TAU;
 
-use crate::dsp::{one_pole_coef, Drive2x};
+use crate::bus::fader_gain;
+use crate::dsp::one_pole_coef;
 use crate::params::{Curve, ParamBank, ParamDesc};
 use crate::rng::Rng;
 
@@ -9,11 +10,10 @@ pub const SWEEP: usize = 1;
 pub const STIME: usize = 2;
 pub const DECAY: usize = 3;
 pub const CLICK: usize = 4;
-pub const DRIVE: usize = 5;
-pub const NOISE: usize = 6;
-pub const TONE: usize = 7;
-pub const LEVEL: usize = 8;
-pub const KICK_PARAM_COUNT: usize = 9;
+pub const NOISE: usize = 5;
+pub const TONE: usize = 6;
+pub const LEVEL: usize = 7;
+pub const KICK_PARAM_COUNT: usize = 8;
 
 /// Order and default_norm are mirrored in web/src/state/kickParams.ts.
 pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
@@ -22,9 +22,9 @@ pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
     ParamDesc { name: "S.TIME", min: 5.0, max: 300.0, default_norm: 0.508, curve: Curve::Exp },
     ParamDesc { name: "DECAY", min: 50.0, max: 2000.0, default_norm: 0.5637, curve: Curve::Exp },
     ParamDesc { name: "CLICK", min: 0.0, max: 1.0, default_norm: 0.3, curve: Curve::Lin },
-    ParamDesc { name: "DRIVE", min: 0.0, max: 1.0, default_norm: 0.2, curve: Curve::Lin },
     ParamDesc { name: "NOISE", min: 0.0, max: 1.0, default_norm: 0.05, curve: Curve::Lin },
     ParamDesc { name: "TONE", min: 200.0, max: 12_000.0, default_norm: 0.8, curve: Curve::Exp },
+    // fader law: 0.8 = 0 dB
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
 ];
 
@@ -46,7 +46,6 @@ pub struct KickVoice {
     click_env: f32,
     click_coef: f32,
     lp: f32,
-    drive: Drive2x,
     rng: Rng,
 }
 
@@ -64,7 +63,6 @@ impl KickVoice {
             click_env: 0.0,
             click_coef: (-1.0 / (0.002 * sample_rate)).exp(),
             lp: 0.0,
-            drive: Drive2x::new(),
             rng: Rng::new(seed),
         }
     }
@@ -77,7 +75,6 @@ impl KickVoice {
         self.pitch_env = 1.0;
         self.click_env = 1.0;
         self.lp = 0.0;
-        self.drive = Drive2x::new();
         self.vel = vel.clamp(0.0, 1.0);
         // ±1% pitch per hit: no two kicks are identical, like an analog circuit.
         self.drift = rng.bipolar() * 0.01;
@@ -112,13 +109,12 @@ impl KickVoice {
         let click = (impulse + noise * 0.6) * self.click_env * p.get(CLICK);
         let layer = noise * nz * 0.15 * self.amp;
 
-        let x = self.drive.process(body + click + layer, p.get(DRIVE));
+        let x = body + click + layer;
         self.lp += (x - self.lp) * one_pole_coef(p.get(TONE), sr);
         if !self.lp.is_finite() {
             self.lp = 0.0;
-            self.drive = Drive2x::new();
         }
-        let out = self.lp * self.vel * p.get(LEVEL);
+        let out = self.lp * self.vel * fader_gain(p.get(LEVEL));
 
         // Recursive envelopes: modulating DECAY/S.TIME bends the curve, never jumps or swells.
         self.amp *= (-1.0 / (p.get(DECAY) * 0.001 * sr)).exp();
@@ -200,11 +196,10 @@ mod tests {
     }
 
     #[test]
-    fn retrigger_resets_filter_and_drive_state() {
+    fn retrigger_resets_filter_state() {
         let mut p = kick_params(SR);
         p.set_norm(NOISE, 0.0);
         p.set_norm(CLICK, 0.0);
-        p.set_norm(DRIVE, 1.0);
         let mut used = KickVoice::new(SR, 1);
         used.trigger(1.0, &mut Rng::new(3));
         render(&mut used, &mut p, 48_000);
