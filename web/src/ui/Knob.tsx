@@ -43,6 +43,8 @@ export interface KnobProps {
   onMap?(delta: number): void
   onMapClear?(): void
   onHover?(on: boolean): void
+  /** 'mono' draws the value arc in neutral grey instead of the accent. */
+  tone?: 'acc' | 'mono'
   /** Discrete knob with this many positions: arrows move one position, drags accumulate across them. */
   steps?: number
 }
@@ -50,7 +52,7 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc',
 }: KnobProps) {
   const drag = useRef<{ y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
@@ -137,7 +139,7 @@ export function Knob({
       >
         <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-zinc-800"
           strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
-        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-acc"
+        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className={tone === 'mono' ? 'stroke-zinc-300' : 'stroke-acc'}
           strokeDasharray={`${0.75 * C * value} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
         {map && (
           <circle cx={MID} cy={MID} r={RM} fill="none" strokeWidth={1} className="stroke-mod/40"

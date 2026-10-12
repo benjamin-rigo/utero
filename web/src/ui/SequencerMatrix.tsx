@@ -3,12 +3,13 @@ import { isMelodic, noteName } from '@/state/machines'
 import { Knob } from './Knob'
 import type { AppState } from '@/state/types'
 
+/** Engine speed codes shown as Elektron-style multipliers of the 1/16 grid. */
 export const SPEEDS = [
-  { code: 0, label: '1/32' }, { code: 1, label: '1/16' }, { code: 2, label: '1/8' }, { code: 3, label: '1/4' },
-  { code: 4, label: '1 BAR' }, { code: 5, label: '1/16T' }, { code: 6, label: '1/8T' },
+  { code: 0, label: '2×' }, { code: 1, label: '1×' }, { code: 2, label: '1/2×' }, { code: 3, label: '1/4×' },
+  { code: 4, label: '1/16×' }, { code: 5, label: '3/2×' }, { code: 6, label: '3/4×' },
 ]
-/** Speed codes in musical order (fastest first) for the rate knob. */
-const SPEED_ORDER = [0, 5, 1, 6, 2, 3, 4]
+/** Slowest to fastest, so turning the rate knob right speeds the track up. */
+const SPEED_ORDER = [4, 3, 2, 6, 1, 5, 0]
 const speedIndex = (code: number) => Math.max(0, SPEED_ORDER.indexOf(code))
 const speedLabel = (code: number) => SPEEDS.find((sp) => sp.code === code)?.label ?? ''
 const VISIBLE = 16
@@ -81,16 +82,15 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
       }}
       onPointerUp={() => { lengthDrag.current = null }}
       onPointerCancel={() => { lengthDrag.current = null }}
-      className="flex min-h-0 flex-1 flex-col gap-[3px] border-r border-zinc-800 p-2">
+      className="flex min-h-0 flex-1 flex-col gap-px border-r border-zinc-800 p-2">
       {state.tracks.map((tr, t) => {
-        const newBus = t > 0 && state.tracks[t - 1].bus !== tr.bus
         const selected = state.selected === t
         const melodic = isMelodic(t)
         return (
           <div key={tr.name}
-            className={`grid min-h-0 flex-1 grid-cols-[52px_repeat(16,1fr)_150px] items-stretch gap-[3px] rounded ${newBus ? 'mt-1.5' : ''} ${selected ? 'bg-zinc-900 ring-1 ring-acc/30' : ''}`}>
+            className="grid min-h-0 flex-1 grid-cols-[52px_repeat(16,1fr)_auto] items-stretch gap-px">
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
-              className={`flex flex-col justify-center rounded px-1 text-left leading-tight outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-acc' : 'text-zinc-400'}`}>
+              className={`flex flex-col justify-center px-1 text-left lowercase leading-tight outline-none focus-visible:ring-1 focus-visible:ring-zinc-100 ${selected ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}>
               {tr.name}
               {tuner[t] && ' '}{tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
             </button>
@@ -159,19 +159,19 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   }}
                   onPointerCancel={() => { drag.current = null }}
                   className={[
-                    'relative overflow-hidden rounded-sm text-[9px] leading-none text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-acc',
-                    st.trig ? 'bg-acc/70' : 'bg-zinc-900',
+                    'relative overflow-hidden text-[9px] leading-none outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100',
+                    st.trig ? 'bg-zinc-200 text-black' : selected ? 'bg-zinc-800' : 'bg-zinc-900',
                     beyond ? 'opacity-30 [background-image:repeating-linear-gradient(45deg,transparent_0_3px,#27272a_3px_6px)]' : '',
                     melodic ? 'touch-none' : '',
                     noteEdit ? 'cursor-ns-resize' : '',
                     s % 4 === 0 ? 'ml-0.5' : '',
 
-                    isHead ? 'ring-1 ring-zinc-200' : '',
+                    isHead ? 'ring-1 ring-inset ring-zinc-500' : '',
                   ].join(' ')}>
                   {noteEdit ? noteName(st.note) : null}
                   {isEnd && (
                     <span aria-hidden="true" data-length-handle
-                      className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize touch-none bg-acc hover:w-2"
+                      className="absolute inset-y-0 right-0 w-1 cursor-ew-resize touch-none bg-zinc-500 hover:w-1.5 hover:bg-zinc-300"
                       onPointerDown={(e) => {
                         // capture on the section: this handle moves (re-mounts) as the length changes
                         e.stopPropagation()
@@ -182,7 +182,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                 </button>
               )
             })}
-            <div className="flex items-center justify-end gap-1 pl-2 text-[10px] text-zinc-400">
+            <div className="flex items-center gap-1.5 pl-1.5 text-[10px] text-zinc-400">
               <span role="slider" tabIndex={0} aria-label={`${tr.name} length`} aria-valuemin={1} aria-valuemax={MAX_LENGTH}
                 aria-valuenow={tr.length} title="húzd a sáv végét, ⌥+klikk, vagy ←→"
                 onKeyDown={(e) => {
@@ -191,17 +191,17 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   e.preventDefault()
                   onSetLength(t, Math.min(MAX_LENGTH, Math.max(1, tr.length + d)))
                 }}
-                className="w-8 rounded text-center tabular-nums text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-acc">
+                className="w-6 text-right tabular-nums text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-zinc-100">
                 {tr.length}
               </span>
-              <Knob size="xs" label="RATE" ariaLabel={`${tr.name} rate`} steps={SPEED_ORDER.length}
+              <Knob size="xs" tone="mono" label="RATE" ariaLabel={`${tr.name} rate`} steps={SPEED_ORDER.length}
                 value={speedIndex(tr.speed) / (SPEED_ORDER.length - 1)} defaultValue={speedIndex(1) / (SPEED_ORDER.length - 1)}
                 format={(v) => speedLabel(SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))])}
                 onChange={(v) => {
                   const code = SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))]
                   if (code !== tr.speed) onSetSpeed(t, code)
                 }} />
-              <span className="w-10 tabular-nums text-zinc-300">{speedLabel(tr.speed)}</span>
+              <span className="w-9 tabular-nums text-zinc-400">{speedLabel(tr.speed)}</span>
             </div>
           </div>
         )

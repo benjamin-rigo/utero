@@ -90,15 +90,16 @@ test('length: ⌥+click sets the end, the length slider takes arrows', () => {
   expect(store.getState().tracks[0].length).toBe(9)
 })
 
-test('the row rate knob walks the speeds in musical order', () => {
+test('the row rate knob shows multipliers, right = faster', () => {
   const store = setup()
   const rate = screen.getByRole('slider', { name: 'KICK rate' })
-  expect(rate.getAttribute('aria-valuetext')).toBe('1/16')
+  expect(rate.getAttribute('aria-valuetext')).toBe('1×')
   fireEvent.keyDown(rate, { key: 'ArrowRight' })
-  expect(store.getState().tracks[0].speed).toBe(6)
-  fireEvent.keyDown(rate, { key: 'ArrowLeft' })
-  fireEvent.keyDown(rate, { key: 'ArrowLeft' })
   expect(store.getState().tracks[0].speed).toBe(5)
+  expect(rate.getAttribute('aria-valuetext')).toBe('3/2×')
+  fireEvent.keyDown(rate, { key: 'ArrowLeft' })
+  fireEvent.keyDown(rate, { key: 'ArrowLeft' })
+  expect(store.getState().tracks[0].speed).toBe(6)
 })
 
 test('the length handle keeps dragging after the end step moves', () => {
