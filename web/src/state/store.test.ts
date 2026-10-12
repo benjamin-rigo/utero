@@ -26,7 +26,7 @@ describe('store', () => {
     expect(count(Op.SetLength)).toBe(12)
     expect(count(Op.SetSpeed)).toBe(12)
     expect(count(Op.SetStep)).toBe(4)
-    expect(count(Op.SetParam)).toBe(122)
+    expect(count(Op.SetParam)).toBe(155)
     expect(count(Op.SetFxOrder)).toBe(3)
   })
 

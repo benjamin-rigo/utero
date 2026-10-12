@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import type { WasmExports } from './exports'
-import { SNAP_EFFECTIVE, SNAP_FLOATS, SNAP_MUTED } from './snapshot'
+import { SNAP_EFFECTIVE, SNAP_FLOATS, SNAP_MUTED, SNAP_PARAMS } from './snapshot'
 
 async function load(): Promise<WasmExports> {
   const path = fileURLToPath(new URL('../../public/utero.wasm', import.meta.url))
@@ -107,7 +107,7 @@ test('engine param defaults match the UI tables', async () => {
   const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
   for (let row = 0; row <= 20; row++) {
     rowParamMetas(row).forEach((meta, p) => {
-      expect(snap[SNAP_EFFECTIVE + row * 24 + p], `row ${row} param ${meta.name}`).toBeCloseTo(rowParams(ui, row)[p], 3)
+      expect(snap[SNAP_EFFECTIVE + row * SNAP_PARAMS + p], `row ${row} param ${meta.name}`).toBeCloseTo(rowParams(ui, row)[p], 3)
     })
   }
 })

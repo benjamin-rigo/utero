@@ -54,20 +54,32 @@ export const MASTER_PARAMS: ParamMeta[] = [
   { name: 'CEIL', default: 0.975, display: { kind: 'range', min: -12, max: 0, unit: 'dB', digits: 1 } },
   { name: 'MODE', default: 0, display: { kind: 'choice', options: ['LIMIT', 'CLIP'] } },
   { name: 'LEVEL', default: 0.6402, display: db },
-  // global insert-FX settings shared by every machine's delay / reverb
+  // global insert-FX settings shared by every machine's delay / reverb (mirrors master.rs 11..26)
   { name: 'DLY TIME', default: 0.4, display: { kind: 'choice', options: ['1/16', '1/8', '1/8D', '1/4', '1/4D', '1/2'] } },
   { name: 'DLY FB', default: 0.45, display: { kind: 'range', min: 0, max: 95, unit: '%' } },
-  { name: 'DLY TONE', default: 0.5, display: hz(500, 12000) },
+  { name: 'DLY PING', default: 0.5, display: pct },
+  { name: 'DLY WIDTH', default: 1, display: pct },
+  { name: 'DLY HPF', default: 0.2, display: hz(20, 2000) },
+  { name: 'DLY LPF', default: 0.6, display: hz(500, 16000) },
+  { name: 'DLY SAT', default: 0.2, display: pct },
+  { name: 'DLY WOW', default: 0.15, display: pct },
   { name: 'REV SIZE', default: 0.6, display: pct },
   { name: 'REV DECAY', default: 0.5, display: { kind: 'range', min: 0.3, max: 12, curve: 'exp', unit: 's', digits: 1 } },
-  { name: 'REV DAMP', default: 0.5, display: pct },
-  { name: 'REV PRE', default: 0.1, display: ms(0, 100, 'lin') },
+  { name: 'REV ABSORB', default: 0.5, display: pct },
+  { name: 'REV PRE', default: 0.08, display: ms(0, 250, 'lin') },
+  { name: 'REV HPF', default: 0.35, display: hz(20, 1000) },
+  { name: 'REV TILT', default: 0.5, display: { kind: 'range', min: -6, max: 6, unit: 'dB', digits: 1, signed: true } },
+  { name: 'REV SPEED', default: 0.4, display: { kind: 'range', min: 0.05, max: 5, curve: 'exp', unit: 'Hz', digits: 2 } },
+  { name: 'REV DEPTH', default: 0.3, display: pct },
 ]
-export const MASTER_DELAY = [11, 12, 13]
-export const MASTER_REVERB = [14, 15, 16, 17]
+export const MASTER_DELAY = [11, 12, 13, 14, 15, 16, 17, 18]
+export const MASTER_REVERB = [19, 20, 21, 22, 23, 24, 25, 26]
 
 /** Insert FX ids = order of their amount params at FX_BASE + id (mirrors crates/core/src/fx.rs). */
-export const FX_NAMES = ['drive', 'fold', 'filter', 'noise', 'chorus', 'disperse', 'delay', 'reverb']
+export const FX_NAMES = ['drive', 'feedback', 'filter', 'noise', 'chorus', 'disperse', 'delay', 'reverb']
+export const FX_DRIVE = 0
+export const FX_DRIVE_MODE = 24
+export const DRIVE_MODES = ['drive', 'fold']
 export const FX_FILTER = 2
 export const FX_DELAY = 6
 export const FX_REVERB = 7
@@ -82,12 +94,16 @@ export const ENV_NAMES = ['ATK', 'HOLD', 'DEC', 'SUS', 'REL']
 export const ENV_DISPLAYS: Display[] = [ms(0.5, 4000), ms(0.5, 4000), ms(1, 8000), pct, ms(1, 8000)]
 export const envMeta = (i: number, def: number): ParamMeta => ({ name: ENV_NAMES[i], default: def, display: ENV_DISPLAYS[i] })
 
-/** A machine's row: its params, the amp envelope at 10..14, the FX controls at 15..23 (mirrors fx::with_fx). */
+/** Params per engine row (params::MAX_PARAMS). */
+export const ROW_PARAMS = 32
+
+/** A machine's row: its params, the amp envelope at 10..14, the FX controls at 15..24 (mirrors fx::with_fx). */
 function withFx(machine: ParamMeta[], env: number[]): ParamMeta[] {
-  const row: ParamMeta[] = Array.from({ length: 24 }, () => ({ name: '', default: 0 }))
+  const row: ParamMeta[] = Array.from({ length: ROW_PARAMS }, () => ({ name: '', default: 0 }))
   machine.forEach((m, i) => { row[i] = m })
   env.forEach((d, i) => { row[ENV_BASE + i] = envMeta(i, d) })
   row[FX_FILTER_MODE] = { name: 'FLT MODE', default: 0, display: { kind: 'choice', options: FILTER_MODES } }
+  row[FX_DRIVE_MODE] = { name: 'DRV MODE', default: 0, display: { kind: 'choice', options: DRIVE_MODES } }
   FX_NAMES.forEach((n, k) => { row[FX_BASE + k] = { name: n.toUpperCase(), default: 0, display: pct } })
   return row
 }

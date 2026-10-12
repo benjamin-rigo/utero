@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  FILTER_MODES, FX_BASE, FX_DELAY, FX_FILTER, FX_FILTER_MODE, FX_NAMES, FX_REVERB, MASTER_DELAY, MASTER_PARAMS, MASTER_REVERB, MASTER_ROW,
+  DRIVE_MODES, FILTER_MODES, FX_BASE, FX_DELAY, FX_DRIVE, FX_DRIVE_MODE, FX_FILTER, FX_FILTER_MODE, FX_NAMES, FX_REVERB, MASTER_DELAY, MASTER_PARAMS, MASTER_REVERB, MASTER_ROW,
   type MachineDef,
 } from '@/state/machines'
 import { rowParams, type Store } from '@/state/store'
@@ -25,6 +25,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
   const [page, setPage] = useState<'delay' | 'reverb' | null>(null)
   const order = state.tracks[t].fxOrder
   const mode = Math.round((rowParams(state, t)[FX_FILTER_MODE] ?? 0) * (FILTER_MODES.length - 1))
+  const drive = Math.round(rowParams(state, t)[FX_DRIVE_MODE] ?? 0)
 
   if (page) {
     const params = page === 'delay' ? MASTER_DELAY : MASTER_REVERB
@@ -48,7 +49,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
     <section aria-label="Insert FX" className="grid grid-cols-4 gap-y-2 border-t border-zinc-800 p-2">
       {order.map((id, pos) => {
         const param = FX_BASE + id
-        const label = id === FX_FILTER ? FILTER_MODES[mode] : FX_NAMES[id]
+        const label = id === FX_FILTER ? FILTER_MODES[mode] : id === FX_DRIVE ? DRIVE_MODES[drive] : FX_NAMES[id]
         return (
           <div key={id}
             onDragOver={(e) => { if (Array.from(e.dataTransfer.types).includes(FX_DRAG_TYPE)) e.preventDefault() }}
@@ -64,9 +65,11 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
                 e.dataTransfer.setData(FX_DRAG_TYPE, String(pos))
                 e.dataTransfer.effectAllowed = 'move'
               }}
-              onTap={id === FX_FILTER ? () => store.setParam(t, FX_FILTER_MODE, ((mode + 1) % FILTER_MODES.length) / (FILTER_MODES.length - 1)) : undefined}
-              // filter: double-click is just two taps (two mode steps), never a reset to 0 = bypass
-              onOpen={id === FX_DELAY ? () => setPage('delay') : id === FX_REVERB ? () => setPage('reverb') : id === FX_FILTER ? () => {} : undefined} />
+              onTap={id === FX_FILTER ? () => store.setParam(t, FX_FILTER_MODE, ((mode + 1) % FILTER_MODES.length) / (FILTER_MODES.length - 1))
+                : id === FX_DRIVE ? () => store.setParam(t, FX_DRIVE_MODE, drive ? 0 : 1) : undefined}
+              // mode knobs: double-click is just two taps (two mode steps), never a reset to 0 = bypass
+              onOpen={id === FX_DELAY ? () => setPage('delay') : id === FX_REVERB ? () => setPage('reverb')
+                : id === FX_FILTER || id === FX_DRIVE ? () => {} : undefined} />
           </div>
         )
       })}
