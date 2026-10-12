@@ -3,6 +3,7 @@ use core::f32::consts::TAU;
 use crate::bus::fader_gain;
 use crate::dsp::{fold, midi_to_hz, Drive2x, Osc, Svf};
 use crate::params::{Curve, ParamBank, ParamDesc};
+use crate::env::{Ahdsr, EnvTimes};
 use crate::rng::Rng;
 
 pub const SUB: usize = 0;
@@ -10,7 +11,6 @@ pub const CHAR: usize = 1;
 pub const BRIGHT: usize = 2;
 pub const PLUCK: usize = 3;
 pub const GRIT: usize = 4;
-pub const DECAY: usize = 5;
 pub const FM: usize = 6;
 pub const LEVEL: usize = 7;
 /// Switch, not a knob: the sub plays one octave under (−1), at (0) or over (+1) the step note.
@@ -24,7 +24,8 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
     ParamDesc { name: "BRIGHT", min: 40.0, max: 12_000.0, default_norm: 0.2, curve: Curve::Exp },
     ParamDesc { name: "PLUCK", min: 0.0, max: 1.0, default_norm: 0.14, curve: Curve::Lin },
     ParamDesc { name: "GRIT", min: 0.0, max: 1.0, default_norm: 0.2, curve: Curve::Lin },
-    ParamDesc { name: "DECAY", min: 30.0, max: 4000.0, default_norm: 0.176, curve: Curve::Exp },
+    // 5: free (the amp decay moved to the envelope)
+    ParamDesc { name: "", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "FM", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
     ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 1.0, curve: Curve::Step },
@@ -41,7 +42,8 @@ const REESE_CENTS: f32 = 25.0;
 const FM_INDEX: f32 = 6.0;
 
 /// The bass row: its 9 params plus the insert FX controls.
-pub static BASS_ROW: [ParamDesc; crate::params::MAX_PARAMS] = crate::fx::with_fx(BASS_PARAMS);
+/// Amp envelope defaults: 2 ms attack, 12 ms hold (the old one-pole attack's peak), 355 ms decay to 0, 60 ms release.
+pub static BASS_ROW: [ParamDesc; crate::params::MAX_PARAMS] = crate::fx::with_fx(BASS_PARAMS, [0.1543, 0.3536, 0.6534, 0.0, 0.4556]);
 
 pub fn bass_params(sample_rate: f32) -> ParamBank {
     ParamBank::new(&BASS_ROW, sample_rate)
@@ -66,8 +68,7 @@ pub struct BassVoice {
     drive: Drive2x,
     note: f32,
     amp: f32,
-    attack: bool,
-    att_coef: f32,
+    env: Ahdsr,
     fenv: f32,
     active: bool,
     vel: f32,
@@ -89,8 +90,7 @@ impl BassVoice {
             drive: Drive2x::new(),
             note: 29.0,
             amp: 0.0,
-            attack: false,
-            att_coef: 1.0 - (-1.0 / (0.002 * sample_rate)).exp(),
+            env: Ahdsr::default(),
             fenv: 0.0,
             active: false,
             vel: 0.0,
@@ -110,7 +110,7 @@ impl BassVoice {
     pub fn trigger(&mut self, vel: f32, note: u8, rng: &mut Rng) {
         self.note = note as f32;
         // Reset phases only from (near) silence: resetting even a quiet tail would click.
-        if !self.active || self.amp < 1.0e-3 {
+        if !self.active || self.env.level() < 1.0e-3 {
             self.sub_phase = 0.0;
             self.fm_car = 0.0;
             self.fm_mod = 0.0;
@@ -119,7 +119,7 @@ impl BassVoice {
             self.xover.iter_mut().for_each(Svf::reset);
             self.filter.reset();
         }
-        self.attack = true;
+        self.env.trigger();
         self.fenv = 1.0;
         self.active = true;
         self.vel = vel.clamp(0.0, 1.0);
@@ -130,6 +130,7 @@ impl BassVoice {
             return 0.0;
         }
         let sr = self.sample_rate;
+        self.amp = self.env.next(&EnvTimes::from_bank(p), sr);
         let grit = p.get(GRIT);
         let dirt = (grit * 2.0).min(1.0); // first half: tape drive
         let noise_amt = ((grit - 0.5) * 2.0).max(0.0); // second half: noise AM, jitter, fold
@@ -185,16 +186,8 @@ impl BassVoice {
         // scaled-down mix leaves headroom so default settings never reach the safety clamp
         let out = ((upper + sub) * HEADROOM * self.amp * self.vel * fader_gain(p.get(LEVEL))).clamp(-1.0, 1.0);
 
-        if self.attack {
-            self.amp += (1.0 - self.amp) * self.att_coef;
-            if self.amp > 0.999 {
-                self.attack = false;
-            }
-        } else {
-            self.amp *= (-1.0 / (p.get(DECAY) * 0.001 * sr)).exp();
-            if self.amp < 1.0e-4 {
-                self.active = false;
-            }
+        if self.env.is_idle() {
+            self.active = false;
         }
         let f_decay_ms = 400.0 - 360.0 * pluck;
         self.fenv *= (-1.0 / (f_decay_ms * 0.001 * sr)).exp();
@@ -213,6 +206,8 @@ impl BassVoice {
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// The amp decay now lives in the envelope.
+    const DECAY: usize = crate::env::ENV_BASE + crate::env::DEC;
 
     const SR: f32 = 48_000.0;
 

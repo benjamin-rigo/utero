@@ -405,7 +405,7 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kick::DECAY;
+    const DECAY: usize = crate::env::ENV_BASE + crate::env::DEC;
 
     fn render_seconds(e: &mut Engine, secs: f32) -> Vec<f32> {
         let mut out = Vec::new();
@@ -438,7 +438,7 @@ mod tests {
     fn kick_lands_on_the_second_beat() {
         let mut e = Engine::new(48_000.0);
         e.set_bpm(120.0); // quarter = 24000 samples
-        e.set_param(0, DECAY, 0.0); // 50 ms
+        e.set_param(0, DECAY, 0.4353); // 50 ms
         quarter_kick(&mut e);
         e.play();
         let out = render_seconds(&mut e, 1.0);
@@ -502,9 +502,9 @@ mod tests {
     fn routed_lfo_moves_the_effective_value() {
         let mut e = Engine::new(48_000.0);
         square(&mut e, 0);
-        e.set_route(0, route(0, 0, DECAY as u8, 0.3));
+        e.set_route(0, route(0, 0, DECAY as u8, -0.3));
         render_seconds(&mut e, 0.2);
-        let expected = crate::kick::KICK_PARAMS[DECAY].default_norm + 0.3;
+        let expected = crate::kick::KICK_ROW[DECAY].default_norm - 0.3;
         assert!((e.effective_norm(0, DECAY) - expected).abs() < 0.01, "{}", e.effective_norm(0, DECAY));
     }
 

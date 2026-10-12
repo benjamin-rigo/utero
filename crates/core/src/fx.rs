@@ -24,13 +24,19 @@ const fn amount(name: &'static str) -> ParamDesc {
     ParamDesc { name, min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin }
 }
 
-/// A machine's params padded to the full row with the FX controls appended (mirrored in web/src/state/machines.ts).
-pub const fn with_fx<const N: usize>(machine: [ParamDesc; N]) -> [ParamDesc; MAX_PARAMS] {
+/// A machine's row: its params, its amp envelope at 10..14, the FX controls at 15..23 (mirrored in web/src/state/machines.ts).
+/// `env` = the machine's amp-envelope defaults (ATK HOLD DEC SUS REL, normalised) at `env::ENV_BASE..`.
+pub const fn with_fx<const N: usize>(machine: [ParamDesc; N], env: [f32; crate::env::ENV_COUNT]) -> [ParamDesc; MAX_PARAMS] {
     let mut out = [PAD; MAX_PARAMS];
     let mut i = 0;
     while i < N {
         out[i] = machine[i];
         i += 1;
+    }
+    let mut e = 0;
+    while e < crate::env::ENV_COUNT {
+        out[crate::env::ENV_BASE + e] = crate::env::env_desc(e, env[e]);
+        e += 1;
     }
     // 0 = lp, 1 = hp, 2 = comb
     out[FX_FILTER_MODE] = ParamDesc { name: "FLT MODE", min: 0.0, max: 2.0, default_norm: 0.0, curve: Curve::Step };
@@ -464,7 +470,7 @@ mod tests {
 
     #[test]
     fn padded_table_keeps_the_machine_and_appends_fx() {
-        let t = with_fx(crate::kick::KICK_PARAMS);
+        let t = with_fx(crate::kick::KICK_PARAMS, [0.0; 5]);
         assert_eq!(t[0].name, "TUNE");
         assert_eq!(t[8].name, "");
         assert_eq!(t[FX_FILTER_MODE].name, "FLT MODE");

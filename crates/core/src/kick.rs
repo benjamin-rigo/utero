@@ -3,12 +3,12 @@ use core::f32::consts::TAU;
 use crate::bus::fader_gain;
 use crate::dsp::one_pole_coef;
 use crate::params::{Curve, ParamBank, ParamDesc};
+use crate::env::{Ahdsr, EnvTimes};
 use crate::rng::Rng;
 
 pub const TUNE: usize = 0;
 pub const SWEEP: usize = 1;
 pub const STIME: usize = 2;
-pub const DECAY: usize = 3;
 pub const CLICK: usize = 4;
 pub const NOISE: usize = 5;
 pub const TONE: usize = 6;
@@ -20,7 +20,8 @@ pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
     ParamDesc { name: "TUNE", min: 30.0, max: 120.0, default_norm: 0.270_567, curve: Curve::Exp },
     ParamDesc { name: "SWEEP", min: 0.0, max: 48.0, default_norm: 0.5, curve: Curve::Lin },
     ParamDesc { name: "S.TIME", min: 5.0, max: 300.0, default_norm: 0.508, curve: Curve::Exp },
-    ParamDesc { name: "DECAY", min: 50.0, max: 2000.0, default_norm: 0.5637, curve: Curve::Exp },
+    // 3: free (the amp decay moved to the envelope; the slot waits for the sub/mid redesign)
+    ParamDesc { name: "", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "CLICK", min: 0.0, max: 1.0, default_norm: 0.3, curve: Curve::Lin },
     ParamDesc { name: "NOISE", min: 0.0, max: 1.0, default_norm: 0.05, curve: Curve::Lin },
     ParamDesc { name: "TONE", min: 200.0, max: 12_000.0, default_norm: 0.8, curve: Curve::Exp },
@@ -31,7 +32,8 @@ pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
 pub type KickParams = ParamBank;
 
 /// The kick's row: its 8 params plus the insert FX controls.
-pub static KICK_ROW: [ParamDesc; crate::params::MAX_PARAMS] = crate::fx::with_fx(KICK_PARAMS);
+/// Amp envelope defaults: instant attack, no hold, 1.5 s decay to 0, 50 ms release.
+pub static KICK_ROW: [ParamDesc; crate::params::MAX_PARAMS] = crate::fx::with_fx(KICK_PARAMS, [0.0, 0.0, 0.8137, 0.0, 0.4353]);
 
 pub fn kick_params(sample_rate: f32) -> KickParams {
     ParamBank::new(&KICK_ROW, sample_rate)
@@ -44,6 +46,7 @@ pub struct KickVoice {
     active: bool,
     vel: f32,
     amp: f32,
+    env: Ahdsr,
     pitch_env: f32,
     click_env: f32,
     click_coef: f32,
@@ -62,6 +65,7 @@ impl KickVoice {
             active: false,
             vel: 0.0,
             amp: 0.0,
+            env: Ahdsr::default(),
             pitch_env: 0.0,
             click_env: 0.0,
             click_coef: (-1.0 / (0.002 * sample_rate)).exp(),
@@ -77,7 +81,7 @@ impl KickVoice {
         self.t = 0;
         self.phase = 0.0;
         self.active = true;
-        self.amp = 1.0;
+        self.env.restart();
         self.pitch_env = 1.0;
         self.click_env = 1.0;
         self.lp = 0.0;
@@ -103,6 +107,7 @@ impl KickVoice {
             return 0.0;
         }
         let sr = self.sample_rate;
+        self.amp = self.env.next(&EnvTimes::from_bank(p), sr);
         let noise = self.rng.bipolar();
         let nz = p.get(NOISE);
 
@@ -129,12 +134,11 @@ impl KickVoice {
         }
         let out = self.lp * self.vel * fader_gain(p.get(LEVEL));
 
-        // Recursive envelopes: modulating DECAY/S.TIME bends the curve, never jumps or swells.
-        self.amp *= (-1.0 / (p.get(DECAY) * 0.001 * sr)).exp();
+        // Recursive pitch envelope: modulating S.TIME bends the curve, never jumps.
         self.pitch_env *= (-1.0 / (p.get(STIME) * 0.001 * sr)).exp();
         self.click_env *= self.click_coef;
         self.t = self.t.saturating_add(1);
-        if self.amp < 1.0e-4 && self.t as f32 > 0.01 * sr {
+        if self.env.is_idle() {
             self.active = false;
         }
         out
@@ -144,6 +148,8 @@ impl KickVoice {
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// The amp decay now lives in the envelope.
+    const DECAY: usize = crate::env::ENV_BASE + crate::env::DEC;
     use crate::params::MAX_PARAMS;
 
     const SR: f32 = 48_000.0;
@@ -250,7 +256,7 @@ mod tests {
         let mut p = kick_params(SR);
         p.apply_norms(&[1.0; MAX_PARAMS]);
         assert_eq!(p.get(TUNE), 120.0);
-        assert_eq!(p.get(DECAY), 2000.0);
+        assert_eq!(p.get(DECAY), 8_000.0);
         p.apply_norms(&[0.0; MAX_PARAMS]);
         assert_eq!(p.get(TUNE), 30.0);
     }
@@ -290,7 +296,10 @@ mod tests {
             p.advance();
             v.render(&p);
             let e = v.envelope();
-            assert!(e <= prev, "envelope rose at sample {i}: {prev} -> {e}");
+            // after the 0.5 ms attack the envelope may only fall
+            if i > 48 {
+                assert!(e <= prev, "envelope rose at sample {i}: {prev} -> {e}");
+            }
             prev = e;
         }
     }
