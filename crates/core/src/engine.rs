@@ -1,8 +1,10 @@
 use crate::bass::{bass_params, BassVoice};
 use crate::bus::{self, Bus, BUSES};
+use crate::dsp::midi_to_hz;
+use crate::fx::{FxChain, FxGlobals, DELAY_BEATS, FX_BASE, FX_COUNT, FX_FILTER_MODE};
 use crate::kick::{kick_params, KickVoice};
 use crate::macros::{MacroTarget, Macros};
-use crate::master::Master;
+use crate::master::{self, Master};
 use crate::modulation::{ModMatrix, ModSettings, Route, MOD_PARAMS, MOD_ROWS, MOD_SLOTS};
 use crate::params::{ParamBank, MAX_PARAMS};
 use crate::rng::Rng;
@@ -44,14 +46,23 @@ enum Voice {
 struct Machine {
     voice: Voice,
     params: ParamBank,
+    fx: Option<FxChain>,
 }
 
 impl Machine {
     fn for_track(t: usize, sample_rate: f32) -> Self {
         match t {
-            0 | 1 => Machine { voice: Voice::Kick(KickVoice::new(sample_rate, 0x00C0_FFEE + t as u32)), params: kick_params(sample_rate) },
-            BASS_TRACK => Machine { voice: Voice::Bass(BassVoice::new(sample_rate, 0x000B_A55E)), params: bass_params(sample_rate) },
-            _ => Machine { voice: Voice::None, params: ParamBank::new(&[], sample_rate) },
+            0 | 1 => Machine {
+                voice: Voice::Kick(KickVoice::new(sample_rate, 0x00C0_FFEE + t as u32)),
+                params: kick_params(sample_rate),
+                fx: Some(FxChain::new(sample_rate, 0xF0 + t as u32)),
+            },
+            BASS_TRACK => Machine {
+                voice: Voice::Bass(BassVoice::new(sample_rate, 0x000B_A55E)),
+                params: bass_params(sample_rate),
+                fx: Some(FxChain::new(sample_rate, 0xF0 + t as u32)),
+            },
+            _ => Machine { voice: Voice::None, params: ParamBank::new(&[], sample_rate), fx: None },
         }
     }
 
@@ -173,6 +184,27 @@ impl Engine {
     }
 
     /// A quantized change while playing waits for the next bar; stopped, it applies at once.
+    /// Insert FX order of a machine track (a permutation of the 8 effect ids; anything else is ignored).
+    pub fn set_fx_order(&mut self, track: usize, order: [u8; FX_COUNT]) {
+        if let Some(Machine { fx: Some(chain), .. }) = self.machines.get_mut(track) {
+            chain.set_order(order);
+        }
+    }
+
+    fn fx_globals(&self, bpm: f32) -> FxGlobals {
+        let p = &self.master.params;
+        FxGlobals {
+            delay_beats: DELAY_BEATS[(p.get(master::DLY_TIME).round() as usize).min(DELAY_BEATS.len() - 1)],
+            delay_fb: p.get(master::DLY_FB),
+            delay_tone: p.get(master::DLY_TONE),
+            rev_size: p.get(master::REV_SIZE),
+            rev_decay: p.get(master::REV_DECAY),
+            rev_damp: p.get(master::REV_DAMP),
+            rev_pre_ms: p.get(master::REV_PRE),
+            bpm,
+        }
+    }
+
     pub fn set_bus_mute(&mut self, bus: usize, muted: bool, quantized: bool) {
         if bus >= BUSES {
             return;
@@ -266,18 +298,29 @@ impl Engine {
             self.mods.advance(bpm, self.sample_rate);
             self.macros.advance();
 
+            let globals = self.fx_globals(bpm);
             let mut bus_in = [0.0_f32; BUSES];
             for t in 0..TRACKS {
                 if matches!(self.machines[t].voice, Voice::None) {
                     continue;
                 }
                 let norms = self.resolve(t);
-                let Machine { voice, params } = &mut self.machines[t];
+                let Machine { voice, params, fx } = &mut self.machines[t];
                 params.apply_norms(&norms);
-                let y = match voice {
-                    Voice::Kick(v) => v.render(params),
-                    Voice::Bass(v) => v.render(params),
-                    Voice::None => 0.0,
+                let (dry, pitch_hz) = match voice {
+                    Voice::Kick(v) => {
+                        let y = v.render(params);
+                        (y, if v.pitch_hz() > 0.0 { v.pitch_hz() } else { params.get(crate::kick::TUNE) })
+                    }
+                    Voice::Bass(v) => (v.render(params), midi_to_hz(v.pitch())),
+                    Voice::None => (0.0, 0.0),
+                };
+                let y = match fx {
+                    Some(chain) => {
+                        let amounts: [f32; FX_COUNT] = core::array::from_fn(|k| params.get(FX_BASE + k));
+                        chain.process(dry, &amounts, params.get(FX_FILTER_MODE), pitch_hz, &globals)
+                    }
+                    None => dry,
                 };
                 bus_in[TRACK_BUS[t]] += y;
             }
@@ -549,6 +592,19 @@ mod tests {
 
     fn bass_step(e: &mut Engine, track: usize, note: u8) {
         e.set_step(track, 0, Step { trig: true, note, ..Step::default() });
+    }
+
+    #[test]
+    fn machine_reverb_leaves_a_tail_after_the_note() {
+        let tail = |amount: f32| {
+            let mut e = Engine::new(48_000.0);
+            bass_step(&mut e, BASS_TRACK, 41);
+            e.set_param(BASS_TRACK, crate::fx::FX_BASE + crate::fx::REVERB as usize, amount);
+            e.play();
+            let out = render_seconds(&mut e, 0.6);
+            rms(&out[out.len() - 4_800..])
+        };
+        assert!(tail(1.0) > tail(0.0) * 4.0 + 1e-4, "{} vs {}", tail(1.0), tail(0.0));
     }
 
     #[test]

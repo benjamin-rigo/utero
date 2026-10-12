@@ -102,3 +102,21 @@ fn full_modulation_runs_under_quarter_of_realtime() {
     println!("10 s with 16 mods / 64 routes / 8 macros took {elapsed:.3} s");
     assert!(elapsed < 2.5, "took {elapsed:.3} s");
 }
+
+#[test]
+#[ignore = "benchmark: run with cargo test --release -- --ignored"]
+fn every_insert_fx_on_every_machine_runs_under_quarter_of_realtime() {
+    use utero_core::fx::{FX_BASE, FX_COUNT, FX_FILTER_MODE};
+    let mut e = groove();
+    for t in [0, 1, 7] {
+        for k in 0..FX_COUNT {
+            e.set_param(t, FX_BASE + k, 0.6);
+        }
+        e.set_param(t, FX_FILTER_MODE, 1.0);
+    }
+    let start = Instant::now();
+    let out = render(&mut e, 10.0);
+    let elapsed = start.elapsed().as_secs_f32();
+    assert!(out.iter().all(|s| s.is_finite()));
+    assert!(elapsed < 2.5, "10 s of audio took {elapsed:.3} s");
+}

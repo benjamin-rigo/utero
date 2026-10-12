@@ -2,6 +2,7 @@ pub mod bass;
 pub mod bus;
 pub mod dsp;
 pub mod engine;
+pub mod fx;
 pub mod kick;
 pub mod macros;
 pub mod master;

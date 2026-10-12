@@ -40,8 +40,11 @@ const REESE_CENTS: f32 = 25.0;
 /// Peak phase-modulation index at FM = 1 (on the pluck transient).
 const FM_INDEX: f32 = 6.0;
 
+/// The bass row: its 9 params plus the insert FX controls.
+pub static BASS_ROW: [ParamDesc; crate::params::MAX_PARAMS] = crate::fx::with_fx(BASS_PARAMS);
+
 pub fn bass_params(sample_rate: f32) -> ParamBank {
-    ParamBank::new(&BASS_PARAMS, sample_rate)
+    ParamBank::new(&BASS_ROW, sample_rate)
 }
 
 fn smoothstep(x: f32) -> f32 {

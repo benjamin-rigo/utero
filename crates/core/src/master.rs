@@ -13,7 +13,15 @@ pub const LOW_CUT: usize = 7;
 pub const CEILING: usize = 8;
 pub const MODE: usize = 9;
 pub const LEVEL: usize = 10;
-pub const MASTER_PARAM_COUNT: usize = 11;
+/// Global insert-FX settings (used by every machine's delay/reverb), not part of the master chain itself.
+pub const DLY_TIME: usize = 11;
+pub const DLY_FB: usize = 12;
+pub const DLY_TONE: usize = 13;
+pub const REV_SIZE: usize = 14;
+pub const REV_DECAY: usize = 15;
+pub const REV_DAMP: usize = 16;
+pub const REV_PRE: usize = 17;
+pub const MASTER_PARAM_COUNT: usize = 18;
 
 /// Order and default_norm are mirrored in web/src/state/machines.ts.
 pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
@@ -32,6 +40,14 @@ pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
     ParamDesc { name: "MODE", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     // −6 dB on the fader law (bus::fader_norm_for_db(-6.0)): headroom into the limiter by default
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.640_2, curve: Curve::Lin },
+    // index into fx::DELAY_BEATS (1/16 1/8 1/8D 1/4 1/4D 1/2); default 1/8D
+    ParamDesc { name: "DLY TIME", min: 0.0, max: 5.0, default_norm: 0.4, curve: Curve::Lin },
+    ParamDesc { name: "DLY FB", min: 0.0, max: 0.95, default_norm: 0.45, curve: Curve::Lin },
+    ParamDesc { name: "DLY TONE", min: 500.0, max: 12_000.0, default_norm: 0.5, curve: Curve::Exp },
+    ParamDesc { name: "REV SIZE", min: 0.0, max: 1.0, default_norm: 0.6, curve: Curve::Lin },
+    ParamDesc { name: "REV DECAY", min: 0.3, max: 12.0, default_norm: 0.5, curve: Curve::Exp },
+    ParamDesc { name: "REV DAMP", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
+    ParamDesc { name: "REV PRE", min: 0.0, max: 100.0, default_norm: 0.1, curve: Curve::Lin },
 ];
 
 const TILT_HZ: f32 = 800.0;
@@ -148,15 +164,21 @@ impl Master {
         let ceiling = db_to_gain(p.get(CEILING));
         let clip = p.get(MODE) >= 0.5;
 
-        // 1) low cut + tilt
+        // chain order: sat → eq → comp → level → limiter
+        // 1) saturation
         let mut x = [l, r];
+        for (c, v) in x.iter_mut().enumerate() {
+            *v = self.saturate(c, *v, sat, curve);
+        }
+
+        // 2) low cut + tilt
         for c in 0..2 {
             let hp = self.low_cut[c].process(x[c], low_cut, 1.414, sr).hp;
             let low = self.tilt[c].lp(hp, self.tilt_coef);
             x[c] = low * low_gain + (hp - low) * high_gain;
         }
 
-        // 2) glue compressor, stereo-linked peak detector in dB
+        // 3) glue compressor, stereo-linked peak detector in dB
         let threshold = -24.0 * amount;
         let ratio = 1.0 + 3.0 * amount;
         let over = gain_to_db(x[0].abs().max(x[1].abs())) - threshold;
@@ -166,10 +188,10 @@ impl Master {
         let makeup = -threshold * (1.0 - 1.0 / ratio) * 0.5;
         let comp_gain = db_to_gain(makeup - self.gr_db);
 
-        // 3) saturation, 4) level
-        for (c, v) in x.iter_mut().enumerate() {
+        // 4) level
+        for v in x.iter_mut() {
             *v += (*v * comp_gain - *v) * mix;
-            *v = self.saturate(c, *v, sat, curve) * level;
+            *v *= level;
         }
 
         // 5) limiter or soft clip to the ceiling

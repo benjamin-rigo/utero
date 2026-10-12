@@ -170,6 +170,11 @@ pub extern "C" fn utero_snapshot_len() -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn utero_set_fx_order(track: u32, a: u32, b: u32, c: u32, d: u32, e: u32, f: u32, g: u32, h: u32) {
+    eng().set_fx_order(track as usize, [a, b, c, d, e, f, g, h].map(|v| v.min(255) as u8));
+}
+
+#[no_mangle]
 pub extern "C" fn utero_set_bus_mute(bus: u32, muted: u32, quantized: u32) {
     eng().set_bus_mute(bus as usize, muted != 0, quantized != 0);
 }

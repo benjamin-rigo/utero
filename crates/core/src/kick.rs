@@ -30,8 +30,11 @@ pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
 
 pub type KickParams = ParamBank;
 
+/// The kick's row: its 8 params plus the insert FX controls.
+pub static KICK_ROW: [ParamDesc; crate::params::MAX_PARAMS] = crate::fx::with_fx(KICK_PARAMS);
+
 pub fn kick_params(sample_rate: f32) -> KickParams {
-    ParamBank::new(&KICK_PARAMS, sample_rate)
+    ParamBank::new(&KICK_ROW, sample_rate)
 }
 
 pub struct KickVoice {
