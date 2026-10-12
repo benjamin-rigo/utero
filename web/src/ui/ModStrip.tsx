@@ -20,7 +20,7 @@ const normOfHz = (hz: number) => Math.log(hz / HZ_MIN) / Math.log(HZ_MAX / HZ_MI
 const formatHz = (hz: number) => `${hz < 10 ? hz.toFixed(2) : hz.toFixed(1)} Hz`
 const select = 'bg-zinc-900 px-1 py-0.5 text-zinc-200 outline-none focus-visible:ring-1 focus-visible:ring-zinc-100'
 const segment = (on: boolean) =>
-  `flex-1 px-1 py-0.5 lowercase outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${on ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`
+  `flex-1 px-1 py-0.5 lowercase outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${on ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`
 
 interface Props {
   state: AppState
@@ -75,7 +75,7 @@ export function ModStrip({ state, frame, store }: Props) {
                 }}
                 className={[
                   'relative flex min-h-0 min-w-0 overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100',
-                  off ? 'cursor-pointer items-center justify-center bg-background text-[9px] text-zinc-600 hover:text-zinc-300'
+                  off ? 'cursor-pointer items-center justify-center bg-background text-[9px] text-zinc-400 hover:text-zinc-200'
                     : slot === i ? 'cursor-grab bg-zinc-700' : onHovered ? 'cursor-grab bg-zinc-800' : 'cursor-grab bg-zinc-900',
                   slot === i && mapping ? 'ring-1 ring-inset ring-zinc-100' : '',
                 ].join(' ')}>
@@ -139,7 +139,7 @@ function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
         className={`flex flex-col items-start justify-between p-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 disabled:opacity-40 ${mapping ? 'bg-zinc-100 text-black' : 'bg-background text-zinc-100 hover:bg-zinc-900'}`}>
         <span className="lowercase">{modLabel(slot, m)}</span>
         <span className="text-lg leading-none font-bold">MAP</span>
-        <span className={`text-[9px] leading-tight ${mapping ? 'text-zinc-700' : 'text-zinc-500'}`}>{mapping ? 'húzd a gombokat · esc' : 'tekerd rá a gombokra'}</span>
+        <span className={`text-[9px] leading-tight ${mapping ? 'text-zinc-700' : 'text-zinc-400'}`}>{mapping ? 'húzd a gombokat · esc' : 'tekerd rá a gombokra'}</span>
       </button>
       <div className="flex min-h-0 flex-col gap-px bg-background p-1">
         <div className="flex gap-px">
@@ -175,7 +175,7 @@ function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
           </div>
         )}
         {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
-        {m.kind === 0 && <p className="p-1 text-zinc-500">üres slot – válassz típust</p>}
+        {m.kind === 0 && <p className="p-1 text-zinc-400">üres slot – válassz típust</p>}
       </div>
     </div>
   )

@@ -37,8 +37,10 @@ test('keyboard moves a fader', () => {
   const fader = screen.getByRole('slider', { name: 'M1 macro' })
   fireEvent.keyDown(fader, { key: 'ArrowDown', shiftKey: true })
   expect(store.getState().macros[0].pos).toBeCloseTo(0.1)
-  fireEvent.keyDown(fader, { key: 'End' })
+  fireEvent.keyDown(fader, { key: 'Home' })
   expect(store.getState().macros[0].pos).toBe(1)
+  fireEvent.keyDown(fader, { key: 'End' })
+  expect(store.getState().macros[0].pos).toBe(0)
 })
 
 test('double-click on the name renames the macro', () => {

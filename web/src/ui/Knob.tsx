@@ -107,7 +107,9 @@ export function Knob({
     onPointerMove: (e: PointerEvent<Element>) => {
       if (!drag.current) return
       // slots also follow horizontal drags (left/right reads naturally on a bar)
-      const moved = (drag.current.y - e.clientY) + (size === 'slot' ? e.clientX - drag.current.x : 0)
+      const dy = drag.current.y - e.clientY
+      const dx = size === 'slot' ? e.clientX - drag.current.x : 0
+      const moved = Math.abs(dx) > Math.abs(dy) ? dx : dy
       const delta = moved / (e.shiftKey ? 1000 : 200)
       drag.current.x = e.clientX
       drag.current.y = e.clientY
@@ -154,12 +156,12 @@ export function Knob({
         {map && <div className="absolute inset-0 border border-dashed border-mod/50" />}
         {markers && (
           <>
-            <div className="absolute top-0 h-1 w-px bg-zinc-400" style={{ left: `${markers.a * 100}%` }} />
-            <div className="absolute top-0 h-1 w-px bg-mod" style={{ left: `${markers.b * 100}%` }} />
+            <div className="absolute top-0 h-1 w-px bg-zinc-500" style={{ left: `${markers.a * 100}%` }} />
+            <div className="absolute top-0 h-1.5 w-0.5 bg-zinc-100" style={{ left: `${markers.b * 100}%` }} />
           </>
         )}
         <div className="relative flex h-full items-center justify-between gap-1 px-1 leading-none">
-          <span className="truncate lowercase text-zinc-400">{label}</span>
+          <span className="truncate lowercase text-zinc-300">{label}</span>
           <span className={`tabular-nums ${map ? 'text-mod' : 'text-zinc-200'}`}>{shown}</span>
         </div>
       </div>
@@ -189,8 +191,8 @@ export function Knob({
         )}
         {markers && (
           <>
-            <circle cx={pointAt(markers.a, RM).x} cy={pointAt(markers.a, RM).y} r={2.5} className="fill-zinc-400" />
-            <circle cx={pointAt(markers.b, RM).x} cy={pointAt(markers.b, RM).y} r={2.5} className="fill-mod" />
+            <circle cx={pointAt(markers.a, RM).x} cy={pointAt(markers.a, RM).y} r={2} className="fill-zinc-500" />
+            <circle cx={pointAt(markers.b, RM).x} cy={pointAt(markers.b, RM).y} r={3} className="fill-zinc-100" />
           </>
         )}
         {reduction !== undefined && reduction > 0.05 && (
@@ -202,7 +204,7 @@ export function Knob({
 {size !== 'xs' && (
         <>
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
-        className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'text-mod' : 'text-zinc-400'}`}>
+        className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
         {label}
       </button>
       {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}

@@ -10,7 +10,7 @@ interface Props {
   meter?: number
   empty?: boolean
   tone?: 'mix' | 'mod'
-  /** Top = 0 (macros: A above, B below). */
+  /** Top = value 0 (macros: A above, B below); aria and keys follow the screen (up = higher). */
   invert?: boolean
   onPos(pos: number): void
 }
@@ -32,7 +32,7 @@ export function Fader({ label, pos: value, defaultPos, valueText, meter, empty =
     }
     if (e.key === 'Home' || e.key === 'End') {
       e.preventDefault()
-      setValue(e.key === 'Home' ? 0 : 1)
+      onPos(e.key === 'Home' ? 0 : 1)
     } else if (e.key in keys) {
       e.preventDefault()
       onPos(clamp01(keys[e.key]))
@@ -40,7 +40,7 @@ export function Fader({ label, pos: value, defaultPos, valueText, meter, empty =
   }
   return (
     <div role="slider" tabIndex={0} aria-label={label} aria-orientation="vertical" aria-valuemin={0} aria-valuemax={100}
-      aria-valuenow={Math.round(value * 100)} aria-valuetext={valueText}
+      aria-valuenow={Math.round(pos * 100)} aria-valuetext={valueText}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId)
         drag.current = { y: e.clientY, pos, h: e.currentTarget.getBoundingClientRect().height || 100 }

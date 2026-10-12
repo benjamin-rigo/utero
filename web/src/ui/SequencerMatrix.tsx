@@ -90,7 +90,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
           <div key={tr.name}
             className="grid min-h-0 flex-1 grid-cols-[52px_repeat(16,1fr)_auto] items-stretch gap-px">
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
-              className={`flex flex-col justify-center px-1 text-left lowercase leading-tight outline-none focus-visible:ring-1 focus-visible:ring-zinc-100 ${selected ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}>
+              className={`flex flex-col justify-center px-1 text-left lowercase leading-tight outline-none focus-visible:ring-1 focus-visible:ring-zinc-100 ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}>
               {tr.name}
               {tuner[t] && ' '}{tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
             </button>

@@ -46,7 +46,7 @@ export function Mixer({ state, frame, store }: Props) {
         return (
           <div key={bus.name} className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-1 bg-background p-1.5">
             <div className="flex items-center justify-between">
-              <span className={`lowercase ${bus.muted ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>{bus.name}</span>
+              <span className={`lowercase ${bus.muted ? 'text-zinc-400 line-through' : 'text-zinc-200'}`}>{bus.name}</span>
               <button type="button" aria-label={`Mute ${bus.name}${pending ? ', pending' : ''}`} aria-pressed={bus.muted} onClick={() => store.toggleMute(b)}
                 className={`w-5 outline-none focus-visible:ring-1 focus-visible:ring-acc ${bus.muted ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-zinc-100'}`}>
                 {pending ? 'q' : 'm'}

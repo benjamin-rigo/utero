@@ -29,17 +29,13 @@ pub fn fader_gain(norm: f32) -> f32 {
     }
 }
 
-/// Inverse of `fader_gain` for a level in dB.
-/// Equal-power pan law normalised to unity at the centre (hard left/right = +3 dB on that side).
+/// Balance law: unity at the centre, the far side fades out, the near side never boosts (safe on stereo buses).
 pub fn pan_gains(pan: f32) -> (f32, f32) {
-    // exact at the centre so a default bus stays bit-transparent
-    if pan == 0.5 {
-        return (1.0, 1.0);
-    }
-    let theta = pan.clamp(0.0, 1.0) * core::f32::consts::FRAC_PI_2;
-    (theta.cos() * core::f32::consts::SQRT_2, theta.sin() * core::f32::consts::SQRT_2)
+    let p = pan.clamp(0.0, 1.0);
+    ((2.0 * (1.0 - p)).min(1.0), (2.0 * p).min(1.0))
 }
 
+/// Inverse of `fader_gain` for a level in dB.
 pub fn fader_norm_for_db(db: f32) -> f32 {
     0.8 * 10f32.powf(db / 62.0)
 }
@@ -148,18 +144,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pan_is_unity_at_centre_and_moves_power_sideways() {
+    fn pan_is_a_balance_with_unity_centre() {
         let (l, r) = pan_gains(0.5);
         assert!((l - 1.0).abs() < 1e-5 && (r - 1.0).abs() < 1e-5);
         let (l, r) = pan_gains(0.0);
-        assert!(r.abs() < 1e-5 && (l - core::f32::consts::SQRT_2).abs() < 1e-5);
+        assert!(r.abs() < 1e-5 && (l - 1.0).abs() < 1e-5);
+        let (l, r) = pan_gains(0.75);
+        assert!((l - 0.5).abs() < 1e-5 && (r - 1.0).abs() < 1e-5);
         let mut b = Bus::new(SR);
         b.params.set_norm(PAN, 1.0);
         for _ in 0..48_000 {
             b.params.advance();
         }
         let (l, r) = b.process(0.5, 0.5, 0.0, 0.0);
-        assert!(l.abs() < 1e-4 && r > 0.5, "{l} {r}");
+        assert!(l.abs() < 1e-4 && (r - 0.5).abs() < 1e-4, "{l} {r}");
     }
     use core::f32::consts::TAU;
 

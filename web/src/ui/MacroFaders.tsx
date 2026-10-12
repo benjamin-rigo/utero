@@ -40,7 +40,7 @@ export function MacroFaders({ state, store }: Props) {
                 ) : (
                   <button type="button" aria-pressed={selected} onClick={() => store.selectMacro(m)} onDoubleClick={() => startRename(m)}
                     onKeyDown={(e) => { if (e.key === 'F2') { e.preventDefault(); startRename(m) } }} aria-keyshortcuts="F2"
-                    className={`min-w-0 truncate lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${selected ? 'text-acc' : 'text-zinc-200'}`}>
+                    className={`min-w-0 truncate lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
                     {mac.name}
                   </button>
                 )}
