@@ -81,13 +81,14 @@ test('trig steps show their note name', () => {
   expect(screen.getByRole('button', { name: 'BASS step 1, F1' }).textContent).toBe('F1')
 })
 
-test('length: ⌥+click sets the end, the length slider takes arrows', () => {
+test('length: ⌥+click or ⌥+Enter sets the end, no length number is shown', () => {
   const store = setup()
   fireEvent.click(screen.getByRole('button', { name: 'KICK step 8' }), { altKey: true })
   expect(store.getState().tracks[0].length).toBe(8)
   expect(store.getState().tracks[0].steps[7].trig).toBe(false)
-  fireEvent.keyDown(screen.getByRole('slider', { name: 'KICK length' }), { key: 'ArrowRight' })
-  expect(store.getState().tracks[0].length).toBe(9)
+  fireEvent.keyDown(screen.getByRole('button', { name: 'KICK step 12' }), { key: 'Enter', altKey: true })
+  expect(store.getState().tracks[0].length).toBe(12)
+  expect(screen.queryByRole('slider', { name: 'KICK length' })).toBeNull()
 })
 
 test('the row rate knob shows multipliers, right = faster', () => {

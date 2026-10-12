@@ -13,7 +13,6 @@ const SPEED_ORDER = [4, 3, 2, 6, 1, 5, 0]
 const speedIndex = (code: number) => Math.max(0, SPEED_ORDER.indexOf(code))
 const speedLabel = (code: number) => SPEEDS.find((sp) => sp.code === code)?.label ?? ''
 const VISIBLE = 16
-const MAX_LENGTH = 64
 const PX_PER_SEMITONE = 8
 
 interface Props {
@@ -33,7 +32,7 @@ const DRAG_START_PX = 4
 
 /**
  * First click selects the row; in the selected row click = trig, ⌥+click = track ends here. On melodic trigs ↑↓ / wheel / vertical drag = semitone,
- * ⇧ = octave; a horizontal drag paints trigs (or erases, when it starts on a trig). Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Enter writes a trig (Space is start/stop).
+ * ⇧ = octave; a horizontal drag paints trigs (or erases, when it starts on a trig). Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Enter writes a trig, ⌥+Enter ends the track there (Space is start/stop).
  */
 export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetNote, tuner = [] }: Props) {
   // 'note' = vertical drag on a melodic step, 'paint' = horizontal drag writes (or erases) trigs along the row
@@ -60,6 +59,11 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
   }
 
   const onStepKey = (e: KeyboardEvent, t: number, s: number, note: number, noteEdit: boolean) => {
+    if (e.key === 'Enter' && e.altKey) {
+      e.preventDefault()
+      onSetLength(t, s + 1)
+      return
+    }
     const moves: Record<string, () => void> = {
       ArrowLeft: () => focusStep(t, s - 1),
       ArrowRight: () => focusStep(t, s + 1),
@@ -183,17 +187,6 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
               )
             })}
             <div className="flex items-center gap-1.5 pl-1.5 text-[10px] text-zinc-400">
-              <span role="slider" tabIndex={0} aria-label={`${tr.name} length`} aria-valuemin={1} aria-valuemax={MAX_LENGTH}
-                aria-valuenow={tr.length}
-                onKeyDown={(e) => {
-                  const d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : 0
-                  if (!d) return
-                  e.preventDefault()
-                  onSetLength(t, Math.min(MAX_LENGTH, Math.max(1, tr.length + d)))
-                }}
-                className="w-6 text-right tabular-nums text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-zinc-100">
-                {tr.length}
-              </span>
               <Knob size="xs" tone="mono" label="RATE" ariaLabel={`${tr.name} rate`} steps={SPEED_ORDER.length}
                 value={speedIndex(tr.speed) / (SPEED_ORDER.length - 1)} defaultValue={speedIndex(1) / (SPEED_ORDER.length - 1)}
                 format={(v) => speedLabel(SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))])}
