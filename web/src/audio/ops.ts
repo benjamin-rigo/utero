@@ -3,7 +3,7 @@ import type { MacroTargetState, ModulatorState, RouteState, StepState } from '@/
 export const Op = {
   SetParam: 1, SetStep: 2, SetLength: 3, SetSpeed: 4, Play: 5, Stop: 6, SetBpm: 7, SetFill: 8,
   SetModulator: 9, SetModStep: 10, SetModStepLen: 11, SetRoute: 12, ClearRoute: 13,
-  SetMacroTarget: 14, ClearMacroTarget: 15, SetMacroPos: 16, SetBusMute: 17, SetFxOrder: 18,
+  SetMacroTarget: 14, ClearMacroTarget: 15, SetMacroPos: 16, SetBusMute: 17, SetFxOrder: 18, SetModEnv: 19,
 } as const
 export const CMD_WORDS = 16
 
@@ -22,6 +22,7 @@ export const cmdSetModulator = (slot: number, m: ModulatorState) => [
 ]
 export const cmdSetModStep = (slot: number, i: number, v: number) => [Op.SetModStep, slot, i, v]
 export const cmdSetModStepLen = (slot: number, len: number) => [Op.SetModStepLen, slot, len]
+export const cmdSetModEnv = (slot: number, env: number[]) => [Op.SetModEnv, slot, ...env]
 export const cmdSetRoute = (index: number, r: RouteState) => [Op.SetRoute, index, r.src, r.track, r.param, r.amount]
 export const cmdClearRoute = (index: number) => [Op.ClearRoute, index]
 export const cmdSetMacroTarget = (m: number, i: number, t: MacroTargetState) => [Op.SetMacroTarget, m, i, t.track, t.param, t.a, t.b]

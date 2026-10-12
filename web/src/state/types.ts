@@ -25,8 +25,8 @@ export interface TrackState {
   fxOrder: number[]
 }
 
-/** 0 OFF, 1 LFO, 2 NOISE, 3 STEP (ModKind::from_code). */
-export type ModKind = 0 | 1 | 2 | 3
+/** 0 OFF, 1 LFO, 2 NOISE, 3 STEP, 4 ENV (ModKind::from_code). */
+export type ModKind = 0 | 1 | 2 | 3 | 4
 
 export interface ModulatorState {
   kind: ModKind
@@ -47,6 +47,8 @@ export interface ModulatorState {
   depth: number
   steps: number[]
   stepLen: number
+  /** ENV kind: ATK HOLD DEC SUS REL, normalised (same ranges as the amp envelope). */
+  env: number[]
 }
 
 export interface RouteState {

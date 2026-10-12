@@ -23,13 +23,13 @@ const setup = () => {
 test('map mode: knobs edit the selected modulator amount, double-click clears it', () => {
   const store = setup()
   act(() => { store.selectMod(1); store.setMapping(true) })
-  const decay = screen.getByRole('slider', { name: 'DECAY' })
+  const decay = screen.getByRole('slider', { name: 'CLICK' })
   fireEvent.keyDown(decay, { key: 'ArrowUp' })
   fireEvent.keyDown(decay, { key: 'ArrowUp' })
-  expect(store.getState().routes.find((r) => r)).toMatchObject({ src: 1, track: 0, param: 3 })
+  expect(store.getState().routes.find((r) => r)).toMatchObject({ src: 1, track: 0, param: 4 })
   expect(store.getState().routes.find((r) => r)?.amount).toBeCloseTo(0.02)
   expect(decay.getAttribute('aria-valuetext')).toBe('LFO2 amount +2')
-  expect(store.getState().tracks[0].params[3]).toBe(KICK_PARAMS[3].default)
+  expect(store.getState().tracks[0].params[4]).toBe(KICK_PARAMS[4].default)
   fireEvent.doubleClick(decay)
   expect(store.getState().routes.every((r) => r === null)).toBe(true)
 })
@@ -61,11 +61,11 @@ test('tracks without a machine say so', () => {
 test('BASS shows its 8 knobs and no switch row', () => {
   const store = setup()
   act(() => store.select(7))
-  for (const n of ['SUB', 'CHAR', 'BRIGHT', 'PLUCK', 'GRIT', 'DECAY', 'FM', 'LEVEL']) expect(screen.getByRole('slider', { name: n })).toBeTruthy()
-  fireEvent.keyDown(screen.getByRole('slider', { name: 'DECAY' }), { key: 'End' })
-  expect(store.getState().tracks[7].params[5]).toBe(1)
-  expect(screen.queryByRole('radiogroup', { name: 'SUB OCT' })).toBeNull()
-  expect(store.getState().tracks[7].params[8]).toBe(1)
+  for (const n of ['SUB', 'CHAR', 'BRIGHT', 'PLUCK', 'GRIT', 'SUB OCT', 'FM', 'LEVEL']) expect(screen.getByRole('slider', { name: n })).toBeTruthy()
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'amp DEC' }), { key: 'End' })
+  expect(store.getState().tracks[7].params[12]).toBe(1)
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'SUB OCT' }), { key: 'ArrowLeft' })
+  expect(store.getState().tracks[7].params[8]).toBe(0.5)
 })
 
 test('the insert FX grid: filter click cycles its mode, delay double-click opens its settings', () => {

@@ -20,14 +20,16 @@ export const SHAPES = [
   { code: 6, label: 'SQR' }, { code: 7, label: 'EXP' }, { code: 8, label: 'DRIFT' },
 ]
 export const FAVORITE_SHAPE_COUNT = 3
-export const MOD_KINDS = ['OFF', 'LFO', 'NOISE', 'STEP']
+export const MOD_KINDS = ['OFF', 'LFO', 'NOISE', 'STEP', 'ENV']
+/** Mirrors modulation::DEFAULT_ENV: 5 ms attack, no hold, 400 ms decay, 200 ms release. */
+export const DEFAULT_ENV = [0.25, 0, 0.667, 0, 0.59]
 export const NOISE_COLORS = ['WHITE', 'PINK', 'CRACKLE']
 export const TRIG_MODES = ['FREE', 'RETRIG', 'ONESHOT']
 
 export function defaultModulator(): ModulatorState {
   return {
     kind: 0, shape: 0, color: 0, sync: true, rateIndex: DEFAULT_RATE, hz: 1, phase: 0, bipolar: true,
-    trigMode: 0, trigSrc: -1, smooth: 0, depth: 1, steps: Array(STEP_COUNT).fill(0), stepLen: STEP_COUNT,
+    trigMode: 0, trigSrc: -1, smooth: 0, depth: 1, steps: Array(STEP_COUNT).fill(0), stepLen: STEP_COUNT, env: [...DEFAULT_ENV],
   }
 }
 
@@ -53,6 +55,17 @@ export function rateLabel(m: ModulatorState): string {
   return m.sync ? SYNC_LABELS[m.rateIndex] : `${m.hz.toFixed(2)} Hz`
 }
 
+const fall = (p: number) => (Math.exp(-5 * p) - Math.exp(-5)) / (1 - Math.exp(-5))
+/** AHDSR level at position p of the graph (each stage up to a quarter of the width, like EnvGraph). */
+function envAt([a, h, d, s, r]: number[], p: number): number {
+  const x = p * 4
+  if (x < a) return x / a
+  if (x < a + h) return 1
+  if (x < a + h + d) return s + (1 - s) * fall((x - a - h) / d)
+  if (x < a + h + d + r) return s * fall((x - a - h - d) / r)
+  return 0
+}
+
 const FIXED_RANDOM = [0.3, -0.7, 0.8, -0.2, 0.5, -0.9, 0.1, 0.6]
 
 /** One cycle for tile/editor previews, values −1..1; random shapes use a fixed pattern. */
@@ -61,6 +74,7 @@ export function previewShape(m: ModulatorState, n: number): number[] {
     const p = i / (n - 1)
     if (m.kind === 2) return FIXED_RANDOM[i % FIXED_RANDOM.length]
     if (m.kind === 3) return m.steps[Math.min(m.stepLen - 1, Math.floor(p * m.stepLen))]
+    if (m.kind === 4) return envAt(m.env, p) * 2 - 1
     switch (m.shape) {
       case 0: return Math.sin(p * 2 * Math.PI)
       case 2: return FIXED_RANDOM[Math.min(3, Math.floor(p * 4))]

@@ -94,9 +94,9 @@ test('target count badge follows routes', () => {
 
 test('the selected modulator lists its targets, each removable', () => {
   const store = setup()
-  act(() => { store.addRoute(0, 0, 3, 0.4) })
+  act(() => { store.addRoute(0, 0, 4, 0.4) })
   expect(screen.getByLabelText('LFO1 targets').textContent).toContain('+40')
-  fireEvent.click(screen.getByRole('button', { name: 'Remove kick.decay route' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove kick.click route' }))
   expect(store.getState().routes.every((r) => r === null)).toBe(true)
 })
 

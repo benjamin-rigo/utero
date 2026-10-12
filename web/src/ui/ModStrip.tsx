@@ -1,14 +1,15 @@
 import { useEffect, type PointerEvent } from 'react'
 import { modOutputOf } from '@/audio/snapshot'
 import {
-  DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
+  DEFAULT_ENV, DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
 } from '@/state/modulation'
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
 import { Knob } from './Knob'
 import { MacroFaders } from './MacroFaders'
 import { Segmented } from './Segmented'
-import { paramLabel } from '@/state/machines'
+import { envMeta, ENV_NAMES, formatParam, paramLabel } from '@/state/machines'
+import { EnvGraph } from './EnvGraph'
 
 const W = 100
 const H = 24
@@ -139,11 +140,30 @@ function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
     <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] gap-px bg-zinc-800 text-[10px]">
       <div className="flex min-h-0 flex-col gap-px bg-background p-1">
         <div className="flex gap-1.5">
-          <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind} onIndex={(i) => update({ kind: i as ModKind })} className="flex-[2]" />
+          <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind} className="flex-[2]"
+            onIndex={(i) => update(i === 4 ? { kind: 4, bipolar: false } : { kind: i as ModKind })} />
           {timed && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} className="flex-1" />}
           {m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} className="flex-1" />}
         </div>
-        {m.kind !== 0 && (
+        {m.kind === 4 && (
+          <div className="flex min-h-0 flex-col gap-px">
+            <div className="h-9">
+              <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />
+            </div>
+            <div className="grid grid-cols-5 gap-px">
+              {ENV_NAMES.map((n, i) => (
+                <Knob key={n} size="slot" label={n} ariaLabel={`${modLabel(slot, m)} ${n}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
+                  format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-px">
+              <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
+              <Knob size="slot" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />
+              <Knob size="slot" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />
+            </div>
+          </div>
+        )}
+        {m.kind !== 0 && m.kind !== 4 && (
           <div className="grid grid-cols-2 gap-px">
             {timed && (m.sync ? (
               <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />

@@ -1,6 +1,6 @@
 import {
   cmdClearMacroTarget, cmdClearRoute, cmdPlay, cmdSetBpm, cmdSetLength, cmdSetMacroPos, cmdSetMacroTarget,
-  cmdSetFxOrder, cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, cmdSetBusMute,
+  cmdSetFxOrder, cmdSetModEnv, cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, cmdSetBusMute,
 } from '@/audio/ops'
 import { BUS_DEFAULT_DB, BUS_LEVEL, BUS_NAMES, BUS_PARAMS, DEFAULT_FX_ORDER, faderNormForDb, isMelodic, MACHINES, MASTER_PARAMS, MASTER_ROW, rowParamMetas, TRACK_COUNT } from './machines'
 import { initialMacros, initialModulators, MACRO_TARGETS, MAX_ROUTES, STEP_COUNT } from './modulation'
@@ -109,6 +109,7 @@ export function createStore(initial: AppState = initialState()) {
       send(cmdSetModulator(slot, m))
       m.steps.forEach((v, i) => { if (v !== 0) send(cmdSetModStep(slot, i, v)) })
       if (m.stepLen !== STEP_COUNT) send(cmdSetModStepLen(slot, m.stepLen))
+      send(cmdSetModEnv(slot, m.env))
     })
     state.routes.forEach((r, i) => { if (r) send(cmdSetRoute(i, r)) })
     state.macros.forEach((mac, m) => {
@@ -246,6 +247,13 @@ export function createStore(initial: AppState = initialState()) {
       if (next.kind === 0 && slot === state.selectedMod && state.mapping) set({ ...state, mapping: false })
       send(cmdSetModulator(slot, next))
       if (patch.stepLen !== undefined) send(cmdSetModStepLen(slot, next.stepLen))
+    },
+    setModEnv(slot: number, i: number, v: number) {
+      if (!Number.isFinite(v)) return
+      const m = state.modulators[slot]
+      const env = m.env.map((x, k) => (k === i ? clamp(v, 0, 1) : x))
+      updateMod(slot, { ...m, env })
+      send(cmdSetModEnv(slot, env))
     },
     setModStep(slot: number, i: number, v: number) {
       const value = clamp(v, -1, 1)

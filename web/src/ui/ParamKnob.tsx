@@ -38,7 +38,7 @@ export function ParamKnob({ state, frame, store, row, param: p, meta, size, bipo
   const mapAmount = mapRoute ? mapRoute.amount : 0
   const display = learn ? value : frame ? effectiveOf(frame, row, p) : effectiveValue(state, row, p)
   return (
-    <Knob label={label ?? meta.name} reduction={reduction} onTap={onTap} onOpen={onOpen} onLabelDragStart={onLabelDragStart} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} size={size} bipolar={bipolar} value={value} display={display} defaultValue={meta.default}
+    <Knob label={label ?? meta.name} steps={meta.display?.kind === 'choice' ? meta.display.options.length : undefined} reduction={reduction} onTap={onTap} onOpen={onOpen} onLabelDragStart={onLabelDragStart} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} size={size} bipolar={bipolar} value={value} display={display} defaultValue={meta.default}
       modAmount={modAmountFor(state, row, p)} markers={marker ? { a: marker.a, b: marker.b } : null}
       learning={learn !== null} selected={selected}
       onChange={(v) => store.setParam(row, p, v)}

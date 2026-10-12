@@ -45,10 +45,10 @@ test('a routed LFO moves the effective value in the snapshot', async () => {
   ex.utero_init(48000)
   // slot 0: LFO square, unsynced 0.01 Hz → output stays +1 during the test
   ex.utero_set_modulator(0, 1, 6, 0, 0, 6, 0.01, 0, 1, 0, -1, 0, 1)
-  ex.utero_set_route(0, 0, 0, 3, 0.3)
+  ex.utero_set_route(0, 0, 0, 1, 0.3)
   for (let i = 0; i < 100; i++) ex.utero_process(128)
   const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
-  expect(snap[SNAP_EFFECTIVE + 3]).toBeCloseTo(0.5637 + 0.3, 1)
+  expect(snap[SNAP_EFFECTIVE + 1]).toBeCloseTo(0.5 + 0.3, 1)
 })
 
 test('garbage modulation commands do not trap', async () => {

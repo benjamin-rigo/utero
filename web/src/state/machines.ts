@@ -28,7 +28,8 @@ export const BASS_PARAMS: ParamMeta[] = [
   { name: 'BRIGHT', default: 0.2, display: hz(40, 12000) },
   { name: 'PLUCK', default: 0.14, display: pct },
   { name: 'GRIT', default: 0.2, display: pct },
-  { name: 'DECAY', default: 0.176, display: ms(30, 4000) },
+  // 5: free — the amp decay moved to the envelope
+  { name: '', default: 0 },
   { name: 'FM', default: 0, display: { kind: 'pct' } },
   { name: 'LEVEL', default: 0.8, display: db },
   { name: 'SUB OCT', default: 1, display: { kind: 'choice', options: ['−1', '0', '+1'] } },
@@ -75,20 +76,27 @@ export const FX_BASE = 16
 export const FILTER_MODES = ['lp', 'hp', 'comb']
 export const DEFAULT_FX_ORDER = [0, 1, 2, 3, 4, 5, 6, 7]
 
-/** A machine's params padded to the 24-param row with the FX controls appended (mirrors fx::with_fx). */
-function withFx(machine: ParamMeta[]): ParamMeta[] {
+/** Amp envelope at row 10..14 (mirrors crates/core/src/env.rs); also the ENV modulator's ranges. */
+export const ENV_BASE = 10
+export const ENV_NAMES = ['ATK', 'HOLD', 'DEC', 'SUS', 'REL']
+export const ENV_DISPLAYS: Display[] = [ms(0.5, 4000), ms(0.5, 4000), ms(1, 8000), pct, ms(1, 8000)]
+export const envMeta = (i: number, def: number): ParamMeta => ({ name: ENV_NAMES[i], default: def, display: ENV_DISPLAYS[i] })
+
+/** A machine's row: its params, the amp envelope at 10..14, the FX controls at 15..23 (mirrors fx::with_fx). */
+function withFx(machine: ParamMeta[], env: number[]): ParamMeta[] {
   const row: ParamMeta[] = Array.from({ length: 24 }, () => ({ name: '', default: 0 }))
   machine.forEach((m, i) => { row[i] = m })
+  env.forEach((d, i) => { row[ENV_BASE + i] = envMeta(i, d) })
   row[FX_FILTER_MODE] = { name: 'FLT MODE', default: 0, display: { kind: 'choice', options: FILTER_MODES } }
   FX_NAMES.forEach((n, k) => { row[FX_BASE + k] = { name: n.toUpperCase(), default: 0, display: pct } })
   return row
 }
 
-const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: withFx(KICK_PARAMS), pages: KICK_PAGES }
+const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: withFx(KICK_PARAMS, [0, 0, 0.8137, 0, 0.4353]), pages: KICK_PAGES }
 const BASS: MachineDef = {
-  name: 'BASS', melodic: true, params: withFx(BASS_PARAMS),
-  // SUB CHAR FM DECAY / PLUCK BRIGHT GRIT LEVEL (template in kickParams.ts)
-  pages: [{ name: 'BASS', params: [0, 1, 6, 5, 3, 2, 4, 7] }],
+  name: 'BASS', melodic: true, params: withFx(BASS_PARAMS, [0.1543, 0.3536, 0.6534, 0, 0.4556]),
+  // SUB CHAR FM SUB OCT / PLUCK BRIGHT GRIT LEVEL (template in kickParams.ts)
+  pages: [{ name: 'BASS', params: [0, 1, 6, 8, 3, 2, 4, 7] }],
 }
 
 export const TRACK_COUNT = 12

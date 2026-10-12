@@ -5,8 +5,8 @@ import { faderNormForDb, BASS_PARAMS, BUS_PARAMS, faderDb, formatParam, MACHINES
 const names = ['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'BASS', 'LD1', 'LD2', 'PAD', 'ORN']
 
 test('param tables mirror the engine', () => {
-  expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'NOISE', 'TONE', 'LEVEL'])
-  expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.51, 0.2, 0.14, 0.2, 0.176, 0, 0.8, 1])
+  expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', '', 'CLICK', 'NOISE', 'TONE', 'LEVEL'])
+  expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.51, 0.2, 0.14, 0.2, 0, 0, 0.8, 1])
   expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8, 0.5])
   expect(formatParam(BUS_PARAMS[3], 0.5)).toBe("C")
   expect(formatParam(BUS_PARAMS[3], 0.25)).toBe("L50")
@@ -15,10 +15,10 @@ test('param tables mirror the engine', () => {
 
 test('machines sit on KICK, KCK2 and BASS with one 8-knob page each', () => {
   expect(MACHINES.map((m) => m?.name ?? null)).toEqual(['ANALOG BD', 'ANALOG BD', null, null, null, null, null, 'BASS', null, null, null, null])
-  expect(MACHINES[0]?.pages).toEqual([{ name: 'KICK', params: [0, 1, 2, 3, 4, 6, 5, 7] }])
-  const order = (t: number) => MACHINES[t]?.pages[0].params.map((p) => MACHINES[t]?.params[p].name)
-  expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'TONE', 'NOISE', 'LEVEL'])
-  expect(order(7)).toEqual(['SUB', 'CHAR', 'FM', 'DECAY', 'PLUCK', 'BRIGHT', 'GRIT', 'LEVEL'])
+  expect(MACHINES[0]?.pages).toEqual([{ name: 'KICK', params: [0, 1, 2, -1, 4, 6, 5, 7] }])
+  const order = (t: number) => MACHINES[t]?.pages[0].params.map((p) => (p < 0 ? undefined : MACHINES[t]?.params[p].name))
+  expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', undefined, 'CLICK', 'TONE', 'NOISE', 'LEVEL'])
+  expect(order(7)).toEqual(['SUB', 'CHAR', 'FM', 'SUB OCT', 'PLUCK', 'BRIGHT', 'GRIT', 'LEVEL'])
   expect(MACHINES[7]?.pages[0].params).toHaveLength(8)
   expect(MACHINES[7]?.switches).toBeUndefined()
   expect(MACHINES[7]?.melodic).toBe(true)
@@ -37,8 +37,9 @@ test('rows and labels', () => {
 test('values are shown in real units', () => {
   expect(formatParam(KICK_PARAMS[0], 0.270567)).toBe('F1')
   expect(formatParam(KICK_PARAMS[0], 0.2925)).toBe('F#1 -47')
-  expect(formatParam(KICK_PARAMS[3], 0)).toBe('50 ms')
-  expect(formatParam(KICK_PARAMS[3], 1)).toBe('2.00 s')
+  expect(formatParam(MACHINES[0]!.params[12], 0)).toBe('1.0 ms')
+  expect(formatParam(MACHINES[0]!.params[12], 1)).toBe('8.00 s')
+  expect(MACHINES[0]!.params.slice(10, 15).map((p) => p.name)).toEqual(['ATK', 'HOLD', 'DEC', 'SUS', 'REL'])
   expect(formatParam(KICK_PARAMS[1], 0.5)).toBe('24 st')
   expect(formatParam(KICK_PARAMS[4], 0.3)).toBe('30%')
   expect(formatParam(KICK_PARAMS[7], 0.8)).toBe('+0.0 dB')

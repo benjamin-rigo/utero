@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MACHINES, type MachineDef } from '@/state/machines'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
+import { AmpEnv } from './AmpEnv'
 import { FxGrid } from './FxGrid'
 import { Segmented } from './Segmented'
 import { ParamKnob } from './ParamKnob'
@@ -49,11 +50,12 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
         ))}
       </div>}
       <div className="grid grid-cols-4 gap-y-2 p-2">
-        {machine.pages[page].params.map((p) => (
+        {machine.pages[page].params.map((p, i) => (p < 0 ? <div key={`empty${i}`} aria-hidden="true" /> : (
           <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}
             selected={selParam === p} onSelect={() => setSelParam(p)} />
-        ))}
+        )))}
       </div>
+      <AmpEnv state={state} frame={frame} store={store} track={t} machine={machine} />
       {machine.switches?.map((sw) => {
         const meta = machine.params[sw.param]
         const opts = meta.display?.kind === 'choice' ? meta.display.options : []
