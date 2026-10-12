@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { isMelodic, noteName } from '@/state/machines'
 import { Knob } from './Knob'
 import type { AppState } from '@/state/types'
@@ -42,6 +42,8 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
   const wheel = useRef(0)
   const root = useRef<HTMLElement>(null)
   const lengthDrag = useRef<number | null>(null)
+  // while the handle is held only the picture follows; the engine keeps the old length until release
+  const [preview, setPreview] = useState<{ t: number; len: number } | null>(null)
 
   /** Index of the visible step whose column the pointer is over (clamped to the row). */
   const stepUnder = (t: number, x: number) => {
@@ -82,10 +84,17 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
         const t = lengthDrag.current
         if (t === null) return
         const len = stepUnder(t, e.clientX) + 1
-        if (len !== state.tracks[t].length) onSetLength(t, len)
+        if (len !== (preview?.t === t ? preview.len : state.tracks[t].length)) setPreview({ t, len })
       }}
-      onPointerUp={() => { lengthDrag.current = null }}
-      onPointerCancel={() => { lengthDrag.current = null }}
+      onPointerUp={() => {
+        if (preview && preview.len !== state.tracks[preview.t].length) onSetLength(preview.t, preview.len)
+        lengthDrag.current = null
+        setPreview(null)
+      }}
+      onPointerCancel={() => {
+        lengthDrag.current = null
+        setPreview(null)
+      }}
       className="flex min-h-0 flex-1 flex-col gap-px border-r border-zinc-800 p-2">
       {state.tracks.map((tr, t) => {
         const selected = state.selected === t
@@ -99,8 +108,9 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
               {tuner[t] && ' '}{tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
             </button>
             {tr.steps.slice(0, VISIBLE).map((st, s) => {
-              const beyond = s >= tr.length
-              const isEnd = s === tr.length - 1
+              const length = preview?.t === t ? preview.len : tr.length
+              const beyond = s >= length
+              const isEnd = s === length - 1
               const isHead = playheads[t] === s
               const noteEdit = melodic && st.trig
               return (

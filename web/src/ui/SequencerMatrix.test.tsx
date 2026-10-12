@@ -103,7 +103,7 @@ test('the row rate knob shows multipliers, right = faster', () => {
   expect(store.getState().tracks[0].speed).toBe(6)
 })
 
-test('the length handle keeps dragging after the end step moves', () => {
+test('the length handle previews while held and applies on release', () => {
   const store = setup()
   act(() => store.setLength(0, 8))
   const handle = document.querySelector('[data-track="0"] [data-length-handle]')!
@@ -111,8 +111,10 @@ test('the length handle keeps dragging after the end step moves', () => {
   const section = screen.getByRole('region', { name: 'Sequencer' })
   // jsdom lays every cell at x = 0, so any x lands on the last visible step
   fireEvent.pointerMove(section, { clientX: 50, pointerId: 1 })
-  expect(store.getState().tracks[0].length).toBe(16)
+  expect(store.getState().tracks[0].length).toBe(8)
+  expect(document.querySelector('[data-track="0"][data-step="15"] [data-length-handle]')).toBeTruthy()
   fireEvent.pointerUp(section, { pointerId: 1 })
+  expect(store.getState().tracks[0].length).toBe(16)
   fireEvent.pointerMove(section, { clientX: 0, pointerId: 1 })
   fireEvent.click(screen.getByRole('button', { name: 'KICK step 2' }))
   expect(store.getState().tracks[0].steps[1].trig).toBe(true)
