@@ -50,7 +50,7 @@ export function ModStrip({ state, frame, store }: Props) {
   }
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_18rem] border-t border-zinc-800">
       <section aria-label="Modulators" className="grid min-h-0 grid-cols-2 gap-2 p-2">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
@@ -62,7 +62,7 @@ export function ModStrip({ state, frame, store }: Props) {
             const v = live(i)
             return (
               <div key={i} role="button" tabIndex={0} draggable={!off} aria-pressed={slot === i}
-                aria-label={off ? `Slot ${i + 1} empty` : `${modLabel(i, m)}, ${targets} targets`}
+                aria-label={off ? `Slot ${i + 1} empty` : `${modLabel(i, m)}, ${targets} targets${slot === i && mapping ? ', mapping' : ''}`}
                 onClick={() => pick(i)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -87,7 +87,7 @@ export function ModStrip({ state, frame, store }: Props) {
                       <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
                         className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                     </svg>
-                    <span className="relative self-start truncate px-1 text-[9px] lowercase text-zinc-100">{modLabel(i, m)}</span>
+                    <span className="relative self-start truncate px-1 text-[9px] lowercase text-zinc-100">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
                     {targets > 0 && (
                       <span className="absolute top-0.5 right-1 text-[9px] tabular-nums text-zinc-400">{targets}</span>
                     )}
@@ -137,8 +137,8 @@ function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
   const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
   const pct = (v: number) => `${Math.round(v * 100)}%`
   return (
-    <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] gap-px bg-zinc-800 text-[10px]">
-      <div className="flex min-h-0 flex-col gap-px bg-background p-1">
+    <div className="flex min-h-0 min-w-0 text-[10px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-px bg-background p-1">
         <div className="flex gap-1.5">
           <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind} className="flex-[2]"
             onIndex={(i) => update(i === 4 ? { kind: 4, bipolar: false } : { kind: i as ModKind })} />
@@ -203,11 +203,6 @@ function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
           </div>
         )}
       </div>
-      <button type="button" aria-label="MAP" aria-pressed={mapping} disabled={m.kind === 0} onClick={() => store.setMapping(!mapping)}
-        className={`flex flex-col items-start justify-between p-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 disabled:opacity-40 ${mapping ? 'bg-zinc-100 text-black' : 'bg-background text-zinc-100 hover:bg-zinc-900'}`}>
-        <span className="lowercase">{modLabel(slot, m)}</span>
-        <span className="text-lg leading-none font-bold">MAP</span>
-      </button>
     </div>
   )
 }
