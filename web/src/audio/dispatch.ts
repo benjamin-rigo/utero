@@ -21,5 +21,6 @@ export function dispatch(ex: EngineExports, c: ArrayLike<number>): void {
     case Op.ClearMacroTarget: ex.utero_clear_macro_target(c[1], c[2]); break
     case Op.SetMacroPos: ex.utero_set_macro_pos(c[1], c[2]); break
     case Op.SetBusMute: ex.utero_set_bus_mute(c[1], c[2], c[3]); break
+    case Op.SetFxOrder: ex.utero_set_fx_order(c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9]); break
   }
 }

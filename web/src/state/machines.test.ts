@@ -10,7 +10,7 @@ test('param tables mirror the engine', () => {
   expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8, 0.5])
   expect(formatParam(BUS_PARAMS[3], 0.5)).toBe("C")
   expect(formatParam(BUS_PARAMS[3], 0.25)).toBe("L50")
-  expect(MASTER_PARAMS.map((p) => p.default)).toEqual([0.2, 0.6, 0.5, 1, 0.1, 0.5, 0.5, 0, 0.975, 0, 0.6402])
+  expect(MASTER_PARAMS.map((p) => p.default)).toEqual([0.2, 0.6, 0.5, 1, 0.1, 0.5, 0.5, 0, 0.975, 0, 0.6402, 0.4, 0.45, 0.5, 0.6, 0.5, 0.5, 0.1])
 })
 
 test('machines sit on KICK, KCK2 and BASS with one 8-knob page each', () => {

@@ -28,6 +28,7 @@ function fake() {
     utero_clear_macro_target: rec('clear_macro_target'),
     utero_set_macro_pos: rec('set_macro_pos'),
     utero_set_bus_mute: rec('set_bus_mute'),
+    utero_set_fx_order: rec('set_fx_order'),
   }
   return { ex, calls }
 }

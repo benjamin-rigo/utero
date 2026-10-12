@@ -1,8 +1,8 @@
 import {
   cmdClearMacroTarget, cmdClearRoute, cmdPlay, cmdSetBpm, cmdSetLength, cmdSetMacroPos, cmdSetMacroTarget,
-  cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, cmdSetBusMute,
+  cmdSetFxOrder, cmdSetModStep, cmdSetModStepLen, cmdSetModulator, cmdSetParam, cmdSetRoute, cmdSetSpeed, cmdSetStep, cmdStop, cmdSetBusMute,
 } from '@/audio/ops'
-import { BUS_DEFAULT_DB, BUS_LEVEL, BUS_NAMES, BUS_PARAMS, faderNormForDb, isMelodic, MACHINES, MASTER_PARAMS, MASTER_ROW, rowParamMetas, TRACK_COUNT } from './machines'
+import { BUS_DEFAULT_DB, BUS_LEVEL, BUS_NAMES, BUS_PARAMS, DEFAULT_FX_ORDER, faderNormForDb, isMelodic, MACHINES, MASTER_PARAMS, MASTER_ROW, rowParamMetas, TRACK_COUNT } from './machines'
 import { initialMacros, initialModulators, MACRO_TARGETS, MAX_ROUTES, STEP_COUNT } from './modulation'
 import type { AppState, BusState, MacroState, MacroTargetState, ModulatorState, StepState, TrackState } from './types'
 
@@ -26,6 +26,7 @@ export function initialState(): AppState {
     speed: 1,
     steps: Array.from({ length: 64 }, emptyStep),
     params: MACHINES[i]?.params.map((p) => p.default) ?? [],
+    fxOrder: [...DEFAULT_FX_ORDER],
   }))
   for (const s of [0, 4, 8, 12]) tracks[0].steps[s].trig = true
   return {
@@ -97,6 +98,7 @@ export function createStore(initial: AppState = initialState()) {
       send(cmdSetSpeed(t, tr.speed))
       tr.steps.forEach((st, s) => { if (!isDefault(st)) send(cmdSetStep(t, s, st)) })
       tr.params.forEach((v, p) => send(cmdSetParam(t, p, v)))
+      if (MACHINES[t]) send(cmdSetFxOrder(t, tr.fxOrder))
     })
     state.buses.forEach((b, i) => {
       b.params.forEach((v, p) => send(cmdSetParam(TRACK_COUNT + i, p, v)))
@@ -197,6 +199,16 @@ export function createStore(initial: AppState = initialState()) {
       const step = { ...state.tracks[t].steps[s], note: clamp(Math.round(note), 0, 127) }
       updateTrack(t, (tr) => ({ ...tr, steps: tr.steps.map((st, i) => (i === s ? step : st)) }))
       send(cmdSetStep(t, s, step))
+    },
+    /** Moves the effect at chain position `from` to position `to` (the order is the chain). */
+    moveFx(t: number, from: number, to: number) {
+      const tr = state.tracks[t]
+      if (!MACHINES[t] || from === to || from < 0 || to < 0 || from >= tr.fxOrder.length || to >= tr.fxOrder.length) return
+      const order = [...tr.fxOrder]
+      const [id] = order.splice(from, 1)
+      order.splice(to, 0, id)
+      set({ ...state, tracks: state.tracks.map((x, i) => (i === t ? { ...x, fxOrder: order } : x)) })
+      send(cmdSetFxOrder(t, order))
     },
     toggleMute(b: number) {
       const muted = !state.buses[b].muted

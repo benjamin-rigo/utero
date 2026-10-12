@@ -17,6 +17,7 @@ export interface EngineExports {
   utero_clear_macro_target(macro: number, index: number): void
   utero_set_macro_pos(macro: number, pos: number): void
   utero_set_bus_mute(bus: number, muted: number, quantized: number): void
+  utero_set_fx_order(track: number, a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number): void
 }
 
 export interface WasmExports extends EngineExports {

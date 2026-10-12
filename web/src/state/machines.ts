@@ -53,11 +53,40 @@ export const MASTER_PARAMS: ParamMeta[] = [
   { name: 'CEIL', default: 0.975, display: { kind: 'range', min: -12, max: 0, unit: 'dB', digits: 1 } },
   { name: 'MODE', default: 0, display: { kind: 'choice', options: ['LIMIT', 'CLIP'] } },
   { name: 'LEVEL', default: 0.6402, display: db },
+  // global insert-FX settings shared by every machine's delay / reverb
+  { name: 'DLY TIME', default: 0.4, display: { kind: 'choice', options: ['1/16', '1/8', '1/8D', '1/4', '1/4D', '1/2'] } },
+  { name: 'DLY FB', default: 0.45, display: { kind: 'range', min: 0, max: 95, unit: '%' } },
+  { name: 'DLY TONE', default: 0.5, display: hz(500, 12000) },
+  { name: 'REV SIZE', default: 0.6, display: pct },
+  { name: 'REV DECAY', default: 0.5, display: { kind: 'range', min: 0.3, max: 12, curve: 'exp', unit: 's', digits: 1 } },
+  { name: 'REV DAMP', default: 0.5, display: pct },
+  { name: 'REV PRE', default: 0.1, display: ms(0, 100, 'lin') },
 ]
+export const MASTER_DELAY = [11, 12, 13]
+export const MASTER_REVERB = [14, 15, 16, 17]
 
-const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: KICK_PARAMS, pages: KICK_PAGES }
+/** Insert FX ids = order of their amount params at FX_BASE + id (mirrors crates/core/src/fx.rs). */
+export const FX_NAMES = ['drive', 'fold', 'filter', 'noise', 'chorus', 'disperse', 'delay', 'reverb']
+export const FX_FILTER = 2
+export const FX_DELAY = 6
+export const FX_REVERB = 7
+export const FX_FILTER_MODE = 15
+export const FX_BASE = 16
+export const FILTER_MODES = ['lp', 'hp', 'comb']
+export const DEFAULT_FX_ORDER = [0, 1, 2, 3, 4, 5, 6, 7]
+
+/** A machine's params padded to the 24-param row with the FX controls appended (mirrors fx::with_fx). */
+function withFx(machine: ParamMeta[]): ParamMeta[] {
+  const row: ParamMeta[] = Array.from({ length: 24 }, () => ({ name: '', default: 0 }))
+  machine.forEach((m, i) => { row[i] = m })
+  row[FX_FILTER_MODE] = { name: 'FLT MODE', default: 0, display: { kind: 'choice', options: FILTER_MODES } }
+  FX_NAMES.forEach((n, k) => { row[FX_BASE + k] = { name: n.toUpperCase(), default: 0, display: pct } })
+  return row
+}
+
+const KICK: MachineDef = { name: 'ANALOG BD', melodic: false, params: withFx(KICK_PARAMS), pages: KICK_PAGES }
 const BASS: MachineDef = {
-  name: 'BASS', melodic: true, params: BASS_PARAMS,
+  name: 'BASS', melodic: true, params: withFx(BASS_PARAMS),
   // SUB CHAR FM DECAY / PLUCK BRIGHT GRIT LEVEL (template in kickParams.ts)
   pages: [{ name: 'BASS', params: [0, 1, 6, 5, 3, 2, 4, 7] }],
   switches: [{ param: 8, label: 'SUB OCT' }],

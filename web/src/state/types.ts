@@ -21,6 +21,8 @@ export interface TrackState {
   speed: number
   steps: StepState[]
   params: number[]
+  /** Insert FX order (a permutation of the 8 effect ids); only machine tracks use it. */
+  fxOrder: number[]
 }
 
 /** 0 OFF, 1 LFO, 2 NOISE, 3 STEP (ModKind::from_code). */

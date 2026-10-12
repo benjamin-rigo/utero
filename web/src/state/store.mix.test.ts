@@ -19,15 +19,15 @@ describe('mixer state', () => {
     const s = createStore().getState()
     expect(s.buses.map((b) => b.name)).toEqual(['KICK', 'HATS', 'PERC', 'BASS', 'LEAD', 'PAD', 'ORN', 'FX'])
     expect(s.buses.every((b) => b.params.length === 4 && !b.muted)).toBe(true)
-    expect(s.master.params).toHaveLength(11)
-    expect(s.tracks[7].params).toHaveLength(9)
+    expect(s.master.params).toHaveLength(18)
+    expect(s.tracks[7].params).toHaveLength(24)
     expect(s.tracks[8].name).toBe('LD1')
     expect(s.muteQuantize).toBe(true)
   })
 
   test('connect sends machine, bus and master params plus bus mutes', () => {
     const { sent } = connected()
-    expect(sent.filter((c) => c[0] === Op.SetParam)).toHaveLength(8 * 2 + 9 + 8 * 4 + 11)
+    expect(sent.filter((c) => c[0] === Op.SetParam)).toHaveLength(24 * 3 + 8 * 4 + 18)
     expect(sent.filter((c) => c[0] === Op.SetBusMute)).toHaveLength(8)
   })
 
@@ -76,6 +76,15 @@ describe('mixer state', () => {
     expect(store.getState().tracks[7].steps[0].note).toBe(127)
     store.setStepNote(0, 0, 50)
     expect(store.getState().tracks[0].steps[0].note).toBe(29)
+    expect(sent).toHaveLength(1)
+  })
+
+  test('moveFx reorders the chain and sends it', () => {
+    const { store, sent } = fresh()
+    store.moveFx(7, 7, 0)
+    expect(store.getState().tracks[7].fxOrder).toEqual([7, 0, 1, 2, 3, 4, 5, 6])
+    expect(sent).toEqual([[Op.SetFxOrder, 7, 7, 0, 1, 2, 3, 4, 5, 6]])
+    store.moveFx(4, 0, 1)
     expect(sent).toHaveLength(1)
   })
 })
