@@ -20,7 +20,7 @@ const normOfHz = (hz: number) => Math.log(hz / HZ_MIN) / Math.log(HZ_MAX / HZ_MI
 const formatHz = (hz: number) => `${hz < 10 ? hz.toFixed(2) : hz.toFixed(1)} Hz`
 const select = 'bg-zinc-900 px-1 py-0.5 text-zinc-200 outline-none focus-visible:ring-1 focus-visible:ring-zinc-100'
 const segment = (on: boolean) =>
-  `flex-1 px-1 py-0.5 lowercase outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${on ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`
+  `flex-1 px-1 py-0.5 lowercase outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${on ? 'bg-zinc-100 text-black' : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`
 
 interface Props {
   state: AppState
@@ -134,13 +134,7 @@ function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
   const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
   const pct = (v: number) => `${Math.round(v * 100)}%`
   return (
-    <div className="grid min-h-0 min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] gap-px bg-zinc-800 text-[10px]">
-      <button type="button" aria-label="MAP" aria-pressed={mapping} disabled={m.kind === 0} onClick={() => store.setMapping(!mapping)}
-        className={`flex flex-col items-start justify-between p-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 disabled:opacity-40 ${mapping ? 'bg-zinc-100 text-black' : 'bg-background text-zinc-100 hover:bg-zinc-900'}`}>
-        <span className="lowercase">{modLabel(slot, m)}</span>
-        <span className="text-lg leading-none font-bold">MAP</span>
-        <span className={`text-[9px] leading-tight ${mapping ? 'text-zinc-700' : 'text-zinc-400'}`}>{mapping ? 'húzd a gombokat · esc' : 'tekerd rá a gombokra'}</span>
-      </button>
+    <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] gap-px bg-zinc-800 text-[10px]">
       <div className="flex min-h-0 flex-col gap-px bg-background p-1">
         <div className="flex gap-px">
           <div role="group" aria-label="Modulator type" className="flex flex-1 gap-px">
@@ -175,8 +169,12 @@ function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
           </div>
         )}
         {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
-        {m.kind === 0 && <p className="p-1 text-zinc-400">üres slot – válassz típust</p>}
       </div>
+      <button type="button" aria-label="MAP" aria-pressed={mapping} disabled={m.kind === 0} onClick={() => store.setMapping(!mapping)}
+        className={`flex flex-col items-start justify-between p-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 disabled:opacity-40 ${mapping ? 'bg-zinc-100 text-black' : 'bg-background text-zinc-100 hover:bg-zinc-900'}`}>
+        <span className="lowercase">{modLabel(slot, m)}</span>
+        <span className="text-lg leading-none font-bold">MAP</span>
+      </button>
     </div>
   )
 }

@@ -11,7 +11,6 @@ interface Props {
   store: Store
 }
 
-const btn = 'rounded border border-zinc-700 px-1.5 text-zinc-300 outline-none hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-acc disabled:opacity-40'
 
 export function MachinePanel({ state, frame, store }: Props) {
   const t = state.selected
@@ -22,7 +21,7 @@ export function MachinePanel({ state, frame, store }: Props) {
         // keyed by track so page and selected param reset when switching tracks
         <MachineBody key={t} state={state} frame={frame} store={store} track={t} machine={machine} />
       ) : (
-        <p className="p-3 text-zinc-400"><b className="text-acc">{state.tracks[t].name}</b>: nincs még machine (későbbi terv).</p>
+        <p className="p-3 lowercase text-zinc-400">{state.tracks[t].name} · no machine</p>
       )}
     </aside>
   )
@@ -80,33 +79,24 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
                   else if (e.key === 'Home') move(e, 0)
                   else if (e.key === 'End') move(e, last)
                 }}
-                className={`min-w-8 rounded border px-2 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${i === idx ? 'border-acc text-acc' : 'border-zinc-700 text-zinc-300'}`}>
+                className={`min-w-8 rounded border px-2 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${i === idx ? 'border-zinc-100 bg-zinc-100 text-black' : 'border-zinc-700 text-zinc-300'}`}>
                 {o}
               </button>
             ))}
           </div>
         )
       })}
-      {(state.mapping || routes.length > 0) && (
-        <div className="flex min-h-7 flex-wrap items-center gap-1 border-t border-zinc-800 px-2 py-1">
-          {state.mapping ? (
-            <span className="text-mod">
-              MAP {label(state.selectedMod)}: húzd a gombokat a mértékhez · dupla katt törli ·{' '}
-              <button type="button" className={btn} onClick={() => store.setMapping(false)}>kész (Esc)</button>
+      {routes.length > 0 && (
+        <div className="flex min-h-7 flex-wrap items-center gap-px border-t border-zinc-800 px-2 py-1">
+          <span className="mr-1 lowercase text-zinc-400">{machine.params[selParam].name}</span>
+          {routes.map(({ r, i }) => (
+            <span key={i} className="flex items-center gap-1 bg-zinc-900 py-0.5 pl-1.5 lowercase">
+              <span className="text-zinc-300">{label(r.src)}</span>
+              <span className="tabular-nums text-zinc-100">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+              <button type="button" aria-label={`Remove ${label(r.src)} route`} onClick={() => store.removeRoute(i)}
+                className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
             </span>
-          ) : (
-            <>
-              <span className="mr-1 text-zinc-400">{machine.params[selParam].name}</span>
-              {routes.map(({ r, i }) => (
-                <span key={i} className="flex items-center gap-1 rounded-full border border-mod/50 py-0.5 pr-0.5 pl-2">
-                  <span className="text-mod">{label(r.src)}</span>
-                  <span className="tabular-nums">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
-                  <button type="button" aria-label={`Remove ${label(r.src)} route`} onClick={() => store.removeRoute(i)}
-                    className="rounded-full px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-acc">×</button>
-                </span>
-              ))}
-            </>
-          )}
+          ))}
         </div>
       )}
     </>

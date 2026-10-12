@@ -21,7 +21,7 @@ const MASTER_KNOBS = [
 ]
 
 const toggle = (on: boolean) =>
-  `px-1 text-[10px] lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${on ? 'text-acc' : 'text-zinc-400 hover:text-zinc-200'}`
+  `px-1 text-[10px] lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${on ? 'bg-zinc-100 text-black' : 'text-zinc-400 hover:text-zinc-200'}`
 
 export function Mixer({ state, frame, store }: Props) {
   // The fader edits the base (or the armed macro endpoint), like every knob.
@@ -48,7 +48,7 @@ export function Mixer({ state, frame, store }: Props) {
             <div className="flex items-center justify-between">
               <span className={`lowercase ${bus.muted ? 'text-zinc-400 line-through' : 'text-zinc-200'}`}>{bus.name}</span>
               <button type="button" aria-label={`Mute ${bus.name}${pending ? ', pending' : ''}`} aria-pressed={bus.muted} onClick={() => store.toggleMute(b)}
-                className={`w-5 outline-none focus-visible:ring-1 focus-visible:ring-acc ${bus.muted ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-zinc-100'}`}>
+                className={`w-5 outline-none focus-visible:ring-1 focus-visible:ring-acc ${bus.muted ? 'bg-zinc-100 text-black' : 'text-zinc-400 hover:text-zinc-100'}`}>
                 {pending ? 'q' : 'm'}
               </button>
             </div>
@@ -67,7 +67,7 @@ export function Mixer({ state, frame, store }: Props) {
           <div className="flex items-center gap-1">
             <span className="mr-1 text-zinc-200">master</span>
             <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
-            <button type="button" className={toggle(clip)} aria-label="Master CLIP" aria-pressed={clip} title={clip ? 'soft clip' : 'limiter'}
+            <button type="button" className={toggle(clip)} aria-label="Master CLIP" aria-pressed={clip}
               onClick={() => store.setParam(MASTER_ROW, MASTER_MODE, clip ? 0 : 1)}>clip</button>
             <span className="ml-auto tabular-nums text-zinc-300">{master.lufs.toFixed(1)} lufs</span>
           </div>

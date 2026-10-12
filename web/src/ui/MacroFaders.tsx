@@ -54,11 +54,6 @@ export function MacroFaders({ state, store }: Props) {
           )
         })}
       </div>
-      {state.learn && (
-        <p className="truncate text-[10px] text-red-400">
-          {state.macros[state.learn.macro].name} {state.learn.side} élesítve: amit most tekersz, az lesz az {state.learn.side} állapot
-        </p>
-      )}
       {sel.targets.length > 0 && (
         <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
           {sel.targets.map((t, i) => {

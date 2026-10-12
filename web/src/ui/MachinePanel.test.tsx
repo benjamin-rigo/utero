@@ -61,7 +61,7 @@ test('while learning, knobs edit the macro endpoint', () => {
 test('tracks without a machine say so', () => {
   const store = setup()
   act(() => { store.select(4) })
-  expect(screen.getByText(/nincs még machine/)).toBeTruthy()
+  expect(screen.getByText(/no machine/)).toBeTruthy()
 })
 
 

@@ -159,7 +159,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   }}
                   onPointerCancel={() => { drag.current = null }}
                   className={[
-                    'relative overflow-hidden text-[9px] leading-none outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100',
+                    'relative overflow-hidden text-xs font-bold leading-none outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100',
                     st.trig ? 'bg-zinc-200 text-black' : selected ? 'bg-zinc-800' : 'bg-zinc-900',
                     beyond ? 'opacity-30 [background-image:repeating-linear-gradient(45deg,transparent_0_3px,#27272a_3px_6px)]' : '',
                     melodic ? 'touch-none' : '',
@@ -184,7 +184,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
             })}
             <div className="flex items-center gap-1.5 pl-1.5 text-[10px] text-zinc-400">
               <span role="slider" tabIndex={0} aria-label={`${tr.name} length`} aria-valuemin={1} aria-valuemax={MAX_LENGTH}
-                aria-valuenow={tr.length} title="húzd a sáv végét, ⌥+klikk, vagy ←→"
+                aria-valuenow={tr.length}
                 onKeyDown={(e) => {
                   const d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : 0
                   if (!d) return
