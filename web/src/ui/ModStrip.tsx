@@ -1,7 +1,7 @@
-import { useEffect, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { modOutputOf } from '@/audio/snapshot'
 import {
-  DEFAULT_ENV, DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
+  DEFAULT_ENV, DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, SYNC_LABELS, TRIG_MODES,
 } from '@/state/modulation'
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
@@ -21,7 +21,6 @@ const HZ_MAX = 40
 const hzOf = (v: number) => HZ_MIN * (HZ_MAX / HZ_MIN) ** v
 const normOfHz = (hz: number) => Math.log(hz / HZ_MIN) / Math.log(HZ_MAX / HZ_MIN)
 const formatHz = (hz: number) => `${hz < 10 ? hz.toFixed(2) : hz.toFixed(1)} Hz`
-const select = 'bg-zinc-900 px-1 py-0.5 text-zinc-200 outline-none focus-visible:ring-1 focus-visible:ring-zinc-100'
 
 interface Props {
   state: AppState
@@ -135,18 +134,43 @@ function Group({ children }: { children: ReactNode }) {
   return <div className="flex flex-col items-center gap-1">{children}</div>
 }
 
+/** Modulator types offered in the UI (STEP stays in the engine but is not offered). */
+const KIND_CODES: ModKind[] = [0, 1, 2, 4]
+
 const Divider = () => <div aria-hidden="true" className="w-px self-stretch bg-zinc-800" />
 
 function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
   const update = (patch: Parameters<Store['updateModulator']>[1]) => store.updateModulator(slot, patch)
-  const timed = m.kind === 1 || m.kind === 3
-  const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
+  const timed = m.kind === 1
   const pct = (v: number) => `${Math.round(v * 100)}%`
   return (
     <div className="flex w-fit min-h-0 min-w-0 flex-col gap-2 overflow-hidden p-1 text-[10px]">
-      <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind}
-        onIndex={(i) => update(i === 4 ? { kind: 4, bipolar: false } : { kind: i as ModKind })} />
+      <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
+        onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
+      {m.kind === 1 && (
+        <div role="radiogroup" aria-label="Shape" className="flex w-fit gap-px">
+          {SHAPES.map((sh) => (
+            <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
+              tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
+              onKeyDown={(e) => {
+                const i = SHAPES.findIndex((x) => x.code === m.shape)
+                const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+                if (!d) return
+                e.preventDefault()
+                const next = SHAPES[(i + d + SHAPES.length) % SHAPES.length]
+                update({ shape: next.code })
+                ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
+              }}
+              className={`h-6 w-9 px-1 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${m.shape === sh.code ? 'bg-zinc-100' : 'bg-zinc-900 hover:bg-zinc-800'}`}>
+              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
+                <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                  className={m.shape === sh.code ? 'stroke-black' : 'stroke-zinc-300'} />
+              </svg>
+            </button>
+          ))}
+        </div>
+      )}
       {m.kind !== 0 && (
         <div className="flex min-h-0 items-start gap-3">
           {m.kind === 4 && (
@@ -171,7 +195,6 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
               <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />
             </Group>
           )}
-          {m.kind === 1 && <ChoiceKnob label="SHAPE" options={SHAPES.map((x) => x.label)} index={shapeIndex} onIndex={(i) => update({ shape: SHAPES[i].code })} />}
           {m.kind === 2 && (
             <Group>
               <div className="h-14" />
@@ -214,39 +237,6 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
           )}
         </div>
       )}
-      {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
-    </div>
-  )
-}
-
-function StepBars({ m, onStep, onLen }: { m: ModulatorState; onStep(i: number, v: number): void; onLen(len: number): void }) {
-  const fromPointer = (e: PointerEvent<HTMLDivElement>, i: number) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    onStep(i, Math.max(-1, Math.min(1, 1 - ((e.clientY - r.top) / r.height) * 2)))
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <div role="group" aria-label="Step values" className="flex h-10 flex-1 gap-px">
-        {m.steps.map((v, i) => (
-          <div key={i} role="slider" tabIndex={0} aria-label={`Step ${i + 1}`} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={Math.round(v * 100)}
-            onPointerDown={(e) => fromPointer(e, i)}
-            onPointerMove={(e) => { if (e.buttons) fromPointer(e, i) }}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowUp') { e.preventDefault(); onStep(i, Math.min(1, v + 0.1)) }
-              if (e.key === 'ArrowDown') { e.preventDefault(); onStep(i, Math.max(-1, v - 0.1)) }
-            }}
-            className={`relative flex-1 rounded-sm bg-zinc-900 outline-none focus-visible:ring-1 focus-visible:ring-acc ${i >= m.stepLen ? 'opacity-30' : ''}`}>
-            <div className="absolute right-0 left-0 bg-mod/70"
-              style={v >= 0 ? { bottom: '50%', height: `${v * 50}%` } : { top: '50%', height: `${-v * 50}%` }} />
-          </div>
-        ))}
-      </div>
-      <label className="flex items-center gap-1 text-zinc-400">
-        LEN
-        <select value={m.stepLen} className={select} onChange={(e) => onLen(Number(e.target.value))}>
-          {Array.from({ length: STEP_COUNT }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}
-        </select>
-      </label>
     </div>
   )
 }

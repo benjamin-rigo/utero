@@ -33,14 +33,18 @@ test('clicking an empty tile creates an LFO and selects it', () => {
   expect(store.getState().modulators[4].kind).toBe(1)
 })
 
-test('the SHAPE knob steps through the shapes', () => {
+test('shapes are icon choices; arrows walk them', () => {
   const store = setup()
-  const shape = screen.getByRole('slider', { name: 'SHAPE' })
-  fireEvent.keyDown(shape, { key: 'ArrowRight' })
+  fireEvent.click(screen.getByRole('radio', { name: 'GLIDE' }))
   expect(store.getState().modulators[0].shape).toBe(1)
-  expect(shape.getAttribute('aria-valuetext')).toBe('GLIDE')
-  fireEvent.keyDown(shape, { key: 'End' })
-  expect(store.getState().modulators[0].shape).toBe(8)
+  fireEvent.keyDown(screen.getByRole('radio', { name: 'GLIDE' }), { key: 'ArrowRight' })
+  expect(store.getState().modulators[0].shape).toBe(2)
+  expect(document.activeElement?.getAttribute('aria-label')).toBe('S&H')
+})
+
+test('the type choice has no STEP', () => {
+  setup()
+  expect(screen.getByRole('radiogroup', { name: 'Modulator type' }).textContent).toBe('OFFLFONOISEENV')
 })
 
 test('a click selects a tile, a second click toggles map mode, Escape or OFF leaves it', () => {
