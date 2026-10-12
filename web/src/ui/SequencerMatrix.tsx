@@ -82,7 +82,6 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
       onPointerUp={() => { lengthDrag.current = null }}
       onPointerCancel={() => { lengthDrag.current = null }}
       className="flex min-h-0 flex-1 flex-col gap-[3px] border-r border-zinc-800 p-2">
-      <p className="pb-1 text-[10px] text-zinc-400">klikk = sor kijelölése, a kijelölt sorban klikk = trig · ↑↓ / görgő / húzás a trigen = hang (⇧ oktáv) · ←→ léptet · ⌥+klikk = sávhossz</p>
       {state.tracks.map((tr, t) => {
         const newBus = t > 0 && state.tracks[t - 1].bus !== tr.bus
         const selected = state.selected === t
