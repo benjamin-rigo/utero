@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { parseBpmDraft } from './bpmDraft'
+import { Logo } from './Logo'
 
 interface Props {
   bpm: number
@@ -39,7 +40,7 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
 
   return (
     <header className="flex items-center gap-3 border-b border-zinc-800 px-3 py-1.5">
-      <b>utero</b>
+      <Logo className="size-5 shrink-0 text-zinc-100" />
       <Button size="sm" variant={playing ? 'default' : 'outline'} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
         {playing ? '■ STOP' : '▶ PLAY'}
       </Button>

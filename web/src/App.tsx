@@ -1,4 +1,4 @@
-import { useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { startEngine, type EngineHost } from '@/audio/host'
 import { kickPitchOf, playheadOf, SNAP_KICK_TRACKS, SNAP_TRACKS } from '@/audio/snapshot'
 import { hzToNote } from '@/state/machines'
@@ -21,6 +21,28 @@ export default function App() {
   const startingRef = useRef(false)
   const frame = useEngineFrame(host?.snapshot ?? null)
   const playheads = state.playing && frame ? Array.from({ length: SNAP_TRACKS }, (_, t) => playheadOf(frame, t)) : IDLE
+
+  // Space is always start/stop (except while typing): captured before buttons and steps can use it
+  const toggleRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    const typing = (t: EventTarget | null) =>
+      t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || typing(e.target)) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (!e.repeat) toggleRef.current()
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !typing(e.target)) e.preventDefault()
+    }
+    window.addEventListener('keydown', down, true)
+    window.addEventListener('keyup', up, true)
+    return () => {
+      window.removeEventListener('keydown', down, true)
+      window.removeEventListener('keyup', up, true)
+    }
+  }, [])
 
   const togglePlay = async () => {
     if (state.playing) {
@@ -45,6 +67,8 @@ export default function App() {
       setStarting(false)
     }
   }
+
+  useEffect(() => { toggleRef.current = () => { void togglePlay() } })
 
   return (
     <div className="grid h-dvh grid-rows-[auto_1fr_200px] bg-background font-mono text-xs text-foreground">

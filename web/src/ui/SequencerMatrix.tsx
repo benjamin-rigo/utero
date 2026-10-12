@@ -33,7 +33,7 @@ const DRAG_START_PX = 4
 
 /**
  * First click selects the row; in the selected row click = trig, ⌥+click = track ends here. On melodic trigs ↑↓ / wheel / vertical drag = semitone,
- * ⇧ = octave; a horizontal drag paints trigs (or erases, when it starts on a trig). Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Space/Enter writes a trig.
+ * ⇧ = octave; a horizontal drag paints trigs (or erases, when it starts on a trig). Keyboard: ←→ move along the row, ↑↓ between rows (off melodic trigs), Enter writes a trig (Space is start/stop).
  */
 export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSetSpeed, onSelect, onSetNote, tuner = [] }: Props) {
   // 'note' = vertical drag on a melodic step, 'paint' = horizontal drag writes (or erases) trigs along the row
