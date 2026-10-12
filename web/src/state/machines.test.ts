@@ -20,7 +20,7 @@ test('machines sit on KICK, KCK2 and BASS with one 8-knob page each', () => {
   expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'TONE', 'NOISE', 'LEVEL'])
   expect(order(7)).toEqual(['SUB', 'CHAR', 'FM', 'DECAY', 'PLUCK', 'BRIGHT', 'GRIT', 'LEVEL'])
   expect(MACHINES[7]?.pages[0].params).toHaveLength(8)
-  expect(MACHINES[7]?.switches).toEqual([{ param: 8, label: 'SUB OCT' }])
+  expect(MACHINES[7]?.switches).toBeUndefined()
   expect(MACHINES[7]?.melodic).toBe(true)
 })
 

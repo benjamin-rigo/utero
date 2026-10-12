@@ -54,7 +54,7 @@ test('a click selects a tile, a second click toggles map mode, Escape or OFF lea
   expect(store.getState().mapping).toBe(false)
   fireEvent.click(screen.getByRole('button', { name: 'MAP' }))
   expect(store.getState().mapping).toBe(true)
-  fireEvent.click(screen.getByRole('button', { name: 'OFF' }))
+  fireEvent.click(screen.getByRole('radio', { name: 'OFF' }))
   expect(store.getState().mapping).toBe(false)
 })
 
@@ -71,7 +71,7 @@ test('the RATE knob steps through the sync list, or sweeps Hz', () => {
   fireEvent.keyDown(rate(), { key: 'End' })
   expect(store.getState().modulators[0].rateIndex).toBe(19)
   expect(rate().getAttribute('aria-valuetext')).toBe('32 BAR')
-  fireEvent.click(screen.getByRole('button', { name: 'SYNC' }))
+  fireEvent.click(screen.getByRole('radio', { name: 'HZ' }))
   expect(rate().getAttribute('aria-valuetext')).toBe('1.00 Hz')
   fireEvent.keyDown(rate(), { key: 'End' })
   expect(store.getState().modulators[0].hz).toBeCloseTo(40)
@@ -90,4 +90,19 @@ test('target count badge follows routes', () => {
   act(() => { store.addRoute(0, 0, 3) })
   act(() => { store.addRoute(0, 0, 4) })
   expect(screen.getByRole('button', { name: 'LFO1, 2 targets' })).toBeTruthy()
+})
+
+test('the selected modulator lists its targets, each removable', () => {
+  const store = setup()
+  act(() => { store.addRoute(0, 0, 3, 0.4) })
+  expect(screen.getByLabelText('LFO1 targets').textContent).toContain('+40')
+  fireEvent.click(screen.getByRole('button', { name: 'Remove kick.decay route' }))
+  expect(store.getState().routes.every((r) => r === null)).toBe(true)
+})
+
+test('rate mode and polarity are explicit choices', () => {
+  const store = setup()
+  expect(screen.getByRole('radiogroup', { name: 'Rate mode' }).querySelector('[aria-checked="true"]')?.textContent).toBe('SYNC')
+  fireEvent.click(screen.getByRole('radio', { name: 'UNI' }))
+  expect(store.getState().modulators[0].bipolar).toBe(false)
 })

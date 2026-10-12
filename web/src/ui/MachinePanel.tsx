@@ -1,9 +1,9 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState } from 'react'
 import { MACHINES, type MachineDef } from '@/state/machines'
-import { modLabel } from '@/state/modulation'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
 import { FxGrid } from './FxGrid'
+import { Segmented } from './Segmented'
 import { ParamKnob } from './ParamKnob'
 
 interface Props {
@@ -36,8 +36,6 @@ interface BodyProps extends Props {
 function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
   const [page, setPage] = useState(0)
   const [selParam, setSelParam] = useState(machine.pages[0].params[0])
-  const routes = state.routes.flatMap((r, i) => (r && r.track === t && r.param === selParam ? [{ r, i }] : []))
-  const label = (slot: number) => (state.modulators[slot].kind === 0 ? `MOD${slot + 1} (off)` : modLabel(slot, state.modulators[slot]))
 
   return (
     <>
@@ -61,46 +59,12 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
         const opts = meta.display?.kind === 'choice' ? meta.display.options : []
         const last = opts.length - 1
         const idx = Math.round((rowParams(state, t)[sw.param] ?? meta.default) * last)
-        const pick = (i: number) => store.setParam(t, sw.param, Math.min(last, Math.max(0, i)) / last)
-        const move = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
-          e.preventDefault()
-          const n = Math.min(last, Math.max(0, i))
-          pick(n)
-          ;(e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[n])?.focus()
-        }
         return (
-          <div key={sw.param} role="radiogroup" aria-label={sw.label} className="flex items-center gap-1 px-2 pb-2 text-[10px]">
-            <span className="mr-1 text-zinc-400">{sw.label}</span>
-            {opts.map((o, i) => (
-              <button key={o} type="button" role="radio" aria-checked={i === idx} tabIndex={i === idx ? 0 : -1}
-                onClick={() => pick(i)}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(e, idx + 1)
-                  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(e, idx - 1)
-                  else if (e.key === 'Home') move(e, 0)
-                  else if (e.key === 'End') move(e, last)
-                }}
-                className={`min-w-8 rounded border px-2 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-acc ${i === idx ? 'border-zinc-100 bg-zinc-100 text-black' : 'border-zinc-700 text-zinc-300'}`}>
-                {o}
-              </button>
-            ))}
-          </div>
+          <Segmented key={sw.param} label={sw.label} caption={sw.label} options={opts} index={idx} className="px-2 pb-2"
+            onIndex={(i) => store.setParam(t, sw.param, i / last)} />
         )
       })}
       <FxGrid state={state} frame={frame} store={store} track={t} machine={machine} />
-      {routes.length > 0 && (
-        <div className="flex min-h-7 flex-wrap items-center gap-px border-t border-zinc-800 px-2 py-1">
-          <span className="mr-1 lowercase text-zinc-400">{machine.params[selParam].name}</span>
-          {routes.map(({ r, i }) => (
-            <span key={i} className="flex items-center gap-1 bg-zinc-900 py-0.5 pl-1.5 lowercase">
-              <span className="text-zinc-300">{label(r.src)}</span>
-              <span className="tabular-nums text-zinc-100">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
-              <button type="button" aria-label={`Remove ${label(r.src)} route`} onClick={() => store.removeRoute(i)}
-                className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
-            </span>
-          ))}
-        </div>
-      )}
     </>
   )
 }

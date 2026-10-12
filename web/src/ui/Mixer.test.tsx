@@ -45,14 +45,13 @@ test('dropping a modulator on a bus filter routes to that bus row', () => {
   expect(store.getState().routes[0]).toMatchObject({ src: 0, track: 15, param: 0 })
 })
 
-test('master MODE switches between limiter and clip', () => {
+test('master mode is a limit | clip choice', () => {
   const store = setup()
-  const clip = screen.getByRole('button', { name: 'Master CLIP' })
-  expect(clip.getAttribute('aria-pressed')).toBe('false')
-  fireEvent.click(clip)
+  const group = screen.getByRole('radiogroup', { name: 'Master mode' })
+  expect(group.querySelector('[aria-checked="true"]')?.textContent).toBe('limit')
+  fireEvent.click(screen.getByRole('radio', { name: 'clip' }))
   expect(store.getState().master.params[9]).toBe(1)
-  expect(clip.getAttribute('aria-pressed')).toBe('true')
-  fireEvent.click(clip)
+  fireEvent.click(screen.getByRole('radio', { name: 'limit' }))
   expect(store.getState().master.params[9]).toBe(0)
 })
 

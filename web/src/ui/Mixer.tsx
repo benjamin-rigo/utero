@@ -6,6 +6,7 @@ import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
 import { ParamKnob } from './ParamKnob'
 import { Fader } from './Fader'
+import { Segmented } from './Segmented'
 
 interface Props {
   state: AppState
@@ -67,8 +68,8 @@ export function Mixer({ state, frame, store }: Props) {
           <div className="flex items-center gap-1">
             <span className="mr-1 text-zinc-200">master</span>
             <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
-            <button type="button" className={toggle(clip)} aria-label="Master CLIP" aria-pressed={clip}
-              onClick={() => store.setParam(MASTER_ROW, MASTER_MODE, clip ? 0 : 1)}>clip</button>
+            <Segmented label="Master mode" options={['limit', 'clip']} index={clip ? 1 : 0}
+              onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
             <span className="ml-auto tabular-nums text-zinc-300">{master.lufs.toFixed(1)} lufs</span>
           </div>
           <div className="grid flex-1 grid-cols-4 place-items-center">

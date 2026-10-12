@@ -89,7 +89,6 @@ const BASS: MachineDef = {
   name: 'BASS', melodic: true, params: withFx(BASS_PARAMS),
   // SUB CHAR FM DECAY / PLUCK BRIGHT GRIT LEVEL (template in kickParams.ts)
   pages: [{ name: 'BASS', params: [0, 1, 6, 5, 3, 2, 4, 7] }],
-  switches: [{ param: 8, label: 'SUB OCT' }],
 }
 
 export const TRACK_COUNT = 12

@@ -7,6 +7,8 @@ import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
 import { Knob } from './Knob'
 import { MacroFaders } from './MacroFaders'
+import { Segmented } from './Segmented'
+import { paramLabel } from '@/state/machines'
 
 const W = 100
 const H = 24
@@ -19,8 +21,6 @@ const hzOf = (v: number) => HZ_MIN * (HZ_MAX / HZ_MIN) ** v
 const normOfHz = (hz: number) => Math.log(hz / HZ_MIN) / Math.log(HZ_MAX / HZ_MIN)
 const formatHz = (hz: number) => `${hz < 10 ? hz.toFixed(2) : hz.toFixed(1)} Hz`
 const select = 'bg-zinc-900 px-1 py-0.5 text-zinc-200 outline-none focus-visible:ring-1 focus-visible:ring-zinc-100'
-const segment = (on: boolean) =>
-  `flex-1 px-1 py-0.5 lowercase outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${on ? 'bg-zinc-100 text-black' : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`
 
 interface Props {
   state: AppState
@@ -51,7 +51,7 @@ export function ModStrip({ state, frame, store }: Props) {
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
       <section aria-label="Modulators" className="grid min-h-0 grid-cols-2 gap-2 p-2">
-        <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping}
+        <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
         <div className="grid min-h-0 grid-cols-8 grid-rows-2 gap-px bg-zinc-800">
           {state.modulators.map((m, i) => {
@@ -105,6 +105,7 @@ export function ModStrip({ state, frame, store }: Props) {
 interface PageProps {
   slot: number
   m: ModulatorState
+  routes: AppState['routes']
   mapping: boolean
   tracks: string[]
   store: Store
@@ -128,7 +129,8 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
   )
 }
 
-function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
+function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
+  const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
   const update = (patch: Parameters<Store['updateModulator']>[1]) => store.updateModulator(slot, patch)
   const timed = m.kind === 1 || m.kind === 3
   const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
@@ -136,14 +138,10 @@ function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
   return (
     <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] gap-px bg-zinc-800 text-[10px]">
       <div className="flex min-h-0 flex-col gap-px bg-background p-1">
-        <div className="flex gap-px">
-          <div role="group" aria-label="Modulator type" className="flex flex-1 gap-px">
-            {MOD_KINDS.map((k, i) => (
-              <button key={k} type="button" aria-pressed={m.kind === i} className={segment(m.kind === i)} onClick={() => update({ kind: i as ModKind })}>{k}</button>
-            ))}
-          </div>
-          {timed && <button type="button" className={segment(m.sync)} aria-pressed={m.sync} onClick={() => update({ sync: !m.sync })}>{m.sync ? 'SYNC' : 'HZ'}</button>}
-          {m.kind !== 0 && <button type="button" className={segment(m.bipolar)} aria-pressed={m.bipolar} onClick={() => update({ bipolar: !m.bipolar })}>{m.bipolar ? 'BI' : 'UNI'}</button>}
+        <div className="flex gap-1.5">
+          <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind} onIndex={(i) => update({ kind: i as ModKind })} className="flex-[2]" />
+          {timed && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} className="flex-1" />}
+          {m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} className="flex-1" />}
         </div>
         {m.kind !== 0 && (
           <div className="grid grid-cols-2 gap-px">
@@ -169,6 +167,21 @@ function ModPage({ slot, m, mapping, tracks, store }: PageProps) {
           </div>
         )}
         {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
+        {targets.length > 0 && (
+          <div aria-label={`${modLabel(slot, m)} targets`} className="flex flex-wrap gap-px pt-0.5">
+            {targets.map(({ r, i }) => {
+              const name = paramLabel(tracks, r.track, r.param).toLowerCase()
+              return (
+                <span key={i} className="flex items-center gap-1 bg-zinc-900 pl-1.5 lowercase">
+                  <span className="text-zinc-300">{name}</span>
+                  <span className="tabular-nums text-zinc-100">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+                  <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
+                    className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
+                </span>
+              )
+            })}
+          </div>
+        )}
       </div>
       <button type="button" aria-label="MAP" aria-pressed={mapping} disabled={m.kind === 0} onClick={() => store.setMapping(!mapping)}
         className={`flex flex-col items-start justify-between p-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 disabled:opacity-40 ${mapping ? 'bg-zinc-100 text-black' : 'bg-background text-zinc-100 hover:bg-zinc-900'}`}>
