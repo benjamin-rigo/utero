@@ -154,35 +154,37 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   )
   return (
     <div className="flex w-fit min-h-0 min-w-0 flex-col gap-1.5 overflow-hidden p-1 text-[10px]">
-      <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
-        onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
-      {/* fixed top row: shape icons (lfo), colour (noise) or the curve (env); the same height for every type */}
-      <div className="flex h-[22px] w-[300px] items-center">
-        {m.kind === 1 && (
-          <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-px">
-            {SHAPES.map((sh) => (
-              <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
-                tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
-                onKeyDown={(e) => {
-                  const i = SHAPES.findIndex((x) => x.code === m.shape)
-                  const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
-                  if (!d) return
-                  e.preventDefault()
-                  const next = SHAPES[(i + d + SHAPES.length) % SHAPES.length]
-                  update({ shape: next.code })
-                  ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
-                }}
-                className={`h-full flex-1 px-1 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${m.shape === sh.code ? 'bg-zinc-100' : 'bg-zinc-900 hover:bg-zinc-800'}`}>
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
-                  <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
-                    className={m.shape === sh.code ? 'stroke-black' : 'stroke-zinc-300'} />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
-        {m.kind === 2 && <Segmented label="Noise colour" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />}
-        {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
+      {/* first row: type on the left, the fixed waveform / colour / curve slot on the right (same size for every type) */}
+      <div className="flex items-center justify-between gap-3">
+        <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
+          onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
+        <div className="flex h-[22px] w-[300px] items-center">
+          {m.kind === 1 && (
+            <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-px">
+              {SHAPES.map((sh) => (
+                <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
+                  tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
+                  onKeyDown={(e) => {
+                    const i = SHAPES.findIndex((x) => x.code === m.shape)
+                    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+                    if (!d) return
+                    e.preventDefault()
+                    const next = SHAPES[(i + d + SHAPES.length) % SHAPES.length]
+                    update({ shape: next.code })
+                    ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
+                  }}
+                  className={`h-full flex-1 px-1 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${m.shape === sh.code ? 'bg-zinc-100' : 'bg-zinc-900 hover:bg-zinc-800'}`}>
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
+                    <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                      className={m.shape === sh.code ? 'stroke-black' : 'stroke-zinc-300'} />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
+          {m.kind === 2 && <Segmented label="Noise colour" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />}
+          {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
+        </div>
       </div>
       {/* fixed knob slots: [rate|atk] [phase|hold] [—|dec] │ [depth + bi/uni] [smooth] │ [trig + mode]; unused slots stay empty */}
       <div className="flex min-h-0 items-start gap-3">
