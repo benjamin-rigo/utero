@@ -1,4 +1,4 @@
-import { useEffect, type PointerEvent } from 'react'
+import { useEffect, type PointerEvent, type ReactNode } from 'react'
 import { modOutputOf } from '@/audio/snapshot'
 import {
   DEFAULT_ENV, DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, STEP_COUNT, SYNC_LABELS, TRIG_MODES,
@@ -54,7 +54,7 @@ export function ModStrip({ state, frame, store }: Props) {
       <section aria-label="Modulators" className="grid min-h-0 grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2 p-2">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
-        <div className="grid min-h-0 grid-cols-4 grid-rows-4 gap-px bg-zinc-800">
+        <div className="grid min-h-0 grid-cols-4 grid-rows-4 gap-px bg-zinc-800 2xl:grid-cols-8 2xl:grid-rows-2">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
@@ -87,7 +87,7 @@ export function ModStrip({ state, frame, store }: Props) {
                       <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
                         className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                     </svg>
-                    <span className="relative self-start truncate px-1 text-[9px] lowercase text-zinc-100">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
+                    <span className="relative self-start truncate bg-zinc-950/80 px-1 text-[9px] lowercase text-zinc-100">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
                     {targets > 0 && (
                       <span className="absolute top-0.5 right-1 text-[9px] tabular-nums text-zinc-400">{targets}</span>
                     )}
@@ -125,77 +125,96 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
   const last = options.length - 1
   const at = (v: number) => Math.round(v * last)
   return (
-    <Knob size="sm" label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
+    <Knob label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
       format={(v) => options[at(v)]} onChange={(v) => { if (at(v) !== index) onIndex(at(v)) }} />
   )
 }
 
-function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
+/** A knob with its own either/or choice directly under it (rate + sync|hz, depth + bi|uni, trig + mode). */
+function Group({ children }: { children: ReactNode }) {
+  return <div className="flex flex-col items-center gap-1">{children}</div>
+}
+
+const Divider = () => <div aria-hidden="true" className="w-px self-stretch bg-zinc-800" />
+
+function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
   const update = (patch: Parameters<Store['updateModulator']>[1]) => store.updateModulator(slot, patch)
   const timed = m.kind === 1 || m.kind === 3
   const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
   const pct = (v: number) => `${Math.round(v * 100)}%`
   return (
-    <div className="flex min-h-0 min-w-0 text-[10px]">
-      <div className="flex min-h-0 flex-1 flex-col gap-px bg-background p-1">
-        <div className="flex gap-1.5">
-          <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind} className="flex-[2]"
-            onIndex={(i) => update(i === 4 ? { kind: 4, bipolar: false } : { kind: i as ModKind })} />
-          {timed && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} className="flex-1" />}
-          {m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} className="flex-1" />}
+    <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden p-1 text-[10px]">
+      <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind}
+        onIndex={(i) => update(i === 4 ? { kind: 4, bipolar: false } : { kind: i as ModKind })} />
+      {m.kind !== 0 && (
+        <div className="flex min-h-0 items-start gap-3">
+          {m.kind === 4 && (
+            <>
+              <div className="h-[72px] w-40 shrink-0">
+                <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />
+              </div>
+              {ENV_NAMES.slice(0, ENV_SHOWN).map((n, i) => (
+                <Knob key={n} label={n} ariaLabel={`${modLabel(slot, m)} ${n}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
+                  format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
+              ))}
+              <Divider />
+            </>
+          )}
+          {timed && (
+            <Group>
+              {m.sync ? (
+                <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
+              ) : (
+                <Knob label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
+              )}
+              <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />
+            </Group>
+          )}
+          {m.kind === 1 && <ChoiceKnob label="SHAPE" options={SHAPES.map((x) => x.label)} index={shapeIndex} onIndex={(i) => update({ shape: SHAPES[i].code })} />}
+          {m.kind === 2 && (
+            <Group>
+              <div className="h-14" />
+              <Segmented label="Noise colour" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />
+            </Group>
+          )}
+          {timed && <Knob label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
+          <Divider />
+          <Group>
+            <Knob label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />
+            <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />
+          </Group>
+          <Knob label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />
+          {(timed || m.kind === 4) && (
+            <>
+              <Divider />
+              <Group>
+                <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
+                {timed && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />}
+              </Group>
+            </>
+          )}
+          {targets.length > 0 && (
+            <>
+              <Divider />
+              <div aria-label={`${modLabel(slot, m)} targets`} className="flex min-w-0 flex-1 flex-wrap content-start gap-px">
+                {targets.map(({ r, i }) => {
+                  const name = paramLabel(tracks, r.track, r.param).toLowerCase()
+                  return (
+                    <span key={i} className="flex items-center gap-1 bg-zinc-900 pl-1.5 lowercase">
+                      <span className="text-zinc-300">{name}</span>
+                      <span className="tabular-nums text-zinc-100">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+                      <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
+                        className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
+                    </span>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </div>
-        {m.kind === 4 && (
-          <div className="h-12">
-            <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />
-          </div>
-        )}
-        {m.kind !== 0 && (
-          <div className="flex flex-wrap items-start gap-x-0.5">
-            {m.kind === 4 && ENV_NAMES.slice(0, ENV_SHOWN).map((n, i) => (
-              <Knob key={n} size="sm" label={n} ariaLabel={`${modLabel(slot, m)} ${n}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
-                format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
-            ))}
-            {timed && (m.sync ? (
-              <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
-            ) : (
-              <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
-                format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
-            ))}
-            {m.kind === 1 && (
-              <ChoiceKnob label="SHAPE" options={SHAPES.map((x) => x.label)} index={shapeIndex} onIndex={(i) => update({ shape: SHAPES[i].code })} />
-            )}
-            {timed && <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
-            <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />
-            <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />
-            {(timed || m.kind === 4) && (
-              <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
-            )}
-          </div>
-        )}
-        {timed && (
-          <Segmented label="Trigger mode" caption="mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />
-        )}
-        {m.kind === 2 && (
-          <Segmented label="Noise colour" caption="color" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />
-        )}
-        {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
-        {targets.length > 0 && (
-          <div aria-label={`${modLabel(slot, m)} targets`} className="flex flex-wrap gap-px pt-0.5">
-            {targets.map(({ r, i }) => {
-              const name = paramLabel(tracks, r.track, r.param).toLowerCase()
-              return (
-                <span key={i} className="flex items-center gap-1 bg-zinc-900 pl-1.5 lowercase">
-                  <span className="text-zinc-300">{name}</span>
-                  <span className="tabular-nums text-zinc-100">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
-                  <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
-                    className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
-                </span>
-              )
-            })}
-          </div>
-        )}
-      </div>
+      )}
+      {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
     </div>
   )
 }

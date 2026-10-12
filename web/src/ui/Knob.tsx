@@ -220,7 +220,7 @@ export function Knob({
         <>
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
         draggable={onLabelDragStart !== undefined} onDragStart={onLabelDragStart}
-        className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
+        className={`rounded text-[10px] lowercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
         {label}
       </button>
       {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
