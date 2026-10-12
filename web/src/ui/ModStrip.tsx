@@ -51,7 +51,7 @@ export function ModStrip({ state, frame, store }: Props) {
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
-      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2 p-2">
+      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[auto_minmax(0,1fr)] gap-2 p-2">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
         <div className="grid min-h-0 grid-cols-4 grid-rows-4 gap-px bg-zinc-800 2xl:grid-cols-8 2xl:grid-rows-2">
@@ -144,7 +144,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const shapeIndex = Math.max(0, SHAPES.findIndex((s) => s.code === m.shape))
   const pct = (v: number) => `${Math.round(v * 100)}%`
   return (
-    <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden p-1 text-[10px]">
+    <div className="flex w-fit min-h-0 min-w-0 flex-col gap-2 overflow-hidden p-1 text-[10px]">
       <Segmented label="Modulator type" options={MOD_KINDS} index={m.kind}
         onIndex={(i) => update(i === 4 ? { kind: 4, bipolar: false } : { kind: i as ModKind })} />
       {m.kind !== 0 && (
@@ -197,7 +197,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
           {targets.length > 0 && (
             <>
               <Divider />
-              <div aria-label={`${modLabel(slot, m)} targets`} className="flex min-w-0 flex-1 flex-wrap content-start gap-px">
+              <div aria-label={`${modLabel(slot, m)} targets`} className="flex max-w-64 min-w-0 flex-wrap content-start gap-px">
                 {targets.map(({ r, i }) => {
                   const name = paramLabel(tracks, r.track, r.param).toLowerCase()
                   return (
