@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   DRIVE_MODES, FILTER_MODES, FX_BASE, FX_DELAY, FX_DRIVE, FX_DRIVE_MODE, FX_FILTER, FX_FILTER_MODE, FX_NAMES, FX_REVERB, MASTER_DELAY, MASTER_PARAMS, MASTER_REVERB, MASTER_ROW,
   type MachineDef,
 } from '@/state/machines'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
+import { Modal } from './Modal'
 import { ParamKnob } from './ParamKnob'
 
 const FX_DRAG_TYPE = 'application/x-utero-fx'
@@ -27,25 +28,23 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
   const mode = Math.round((rowParams(state, t)[FX_FILTER_MODE] ?? 0) * (FILTER_MODES.length - 1))
   const drive = Math.round(rowParams(state, t)[FX_DRIVE_MODE] ?? 0)
 
-  if (page) {
-    const params = page === 'delay' ? MASTER_DELAY : MASTER_REVERB
-    return (
-      <section aria-label={`${page} settings`} className="border-t border-zinc-800">
-        <button type="button" onClick={() => setPage(null)}
-          className="w-full px-2 py-1 text-left text-[10px] lowercase text-zinc-300 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100">
-          ‹ {page}
-        </button>
-        <div className="grid grid-cols-4 gap-y-2 p-2">
+
+
+  const close = useCallback(() => setPage(null), [])
+  const params = page === 'delay' ? MASTER_DELAY : MASTER_REVERB
+
+  return (
+    <>
+    {page && (
+      <Modal title={`${page} settings`} onClose={close}>
+        <div className="grid grid-cols-4 gap-x-3 gap-y-2 p-3">
           {params.map((p) => (
             <ParamKnob key={p} state={state} frame={frame} store={store} row={MASTER_ROW} param={p} meta={MASTER_PARAMS[p]}
               label={MASTER_PARAMS[p].name.split(' ')[1].toLowerCase()} ariaLabel={MASTER_PARAMS[p].name} />
           ))}
         </div>
-      </section>
-    )
-  }
-
-  return (
+      </Modal>
+    )}
     <section aria-label="Insert FX" className="grid grid-cols-4 gap-y-2 border-t border-zinc-800 p-2">
       {order.map((id, pos) => {
         const param = FX_BASE + id
@@ -74,5 +73,6 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
         )
       })}
     </section>
+    </>
   )
 }

@@ -84,10 +84,14 @@ test('the insert FX grid: filter click cycles its mode, delay double-click opens
   expect(store.getState().tracks[0].params[24]).toBe(1)
   expect(screen.getByRole('button', { name: 'drive' }).textContent).toBe('fold')
   fireEvent.doubleClick(screen.getByRole('slider', { name: 'delay' }))
-  expect(screen.getByRole('region', { name: 'delay settings' })).toBeTruthy()
-  expect(screen.getByRole('slider', { name: 'DLY TIME' }).getAttribute('aria-valuetext')).toBe('1/8D')
-  fireEvent.click(screen.getByRole('button', { name: '‹ delay' }))
+  expect(screen.getByRole('dialog', { name: 'delay settings' })).toBeTruthy()
   expect(screen.getByRole('region', { name: 'Insert FX' })).toBeTruthy()
+  expect(screen.getByRole('slider', { name: 'DLY TIME' }).getAttribute('aria-valuetext')).toBe('1/8D')
+  fireEvent.keyDown(window, { key: 'Escape' })
+  expect(screen.queryByRole('dialog')).toBeNull()
+  fireEvent.doubleClick(screen.getByRole('slider', { name: 'reverb' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Close reverb settings' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
 })
 
 test('dropping an FX label onto another knob reorders the chain', () => {
