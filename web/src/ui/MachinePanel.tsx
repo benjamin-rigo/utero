@@ -17,7 +17,7 @@ export function MachinePanel({ state, frame, store }: Props) {
   const t = state.selected
   const machine = MACHINES[t]
   return (
-    <aside aria-label={`${state.tracks[t].name} machine`} className="flex min-h-0 flex-col">
+    <aside aria-label={`${state.tracks[t].name} machine`} className="flex min-h-0 flex-col overflow-y-auto">
       {machine ? (
         // keyed by track so page and selected param reset when switching tracks
         <MachineBody key={t} state={state} frame={frame} store={store} track={t} machine={machine} />
