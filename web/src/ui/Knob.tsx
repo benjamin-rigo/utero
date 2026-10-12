@@ -137,6 +137,11 @@ export function Knob({
         ArrowDown: () => nudge(-step), ArrowLeft: () => nudge(-step),
         Home: () => { if (!map) onChange(0) }, End: () => { if (!map) onChange(1) },
       }
+      if (onTap && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault()
+        onTap()
+        return
+      }
       const action = keys[e.key]
       if (action) {
         e.preventDefault()

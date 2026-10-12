@@ -65,7 +65,8 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
                 e.dataTransfer.effectAllowed = 'move'
               }}
               onTap={id === FX_FILTER ? () => store.setParam(t, FX_FILTER_MODE, ((mode + 1) % FILTER_MODES.length) / (FILTER_MODES.length - 1)) : undefined}
-              onOpen={id === FX_DELAY ? () => setPage('delay') : id === FX_REVERB ? () => setPage('reverb') : undefined} />
+              // filter: double-click is just two taps (two mode steps), never a reset to 0 = bypass
+              onOpen={id === FX_DELAY ? () => setPage('delay') : id === FX_REVERB ? () => setPage('reverb') : id === FX_FILTER ? () => {} : undefined} />
           </div>
         )
       })}

@@ -37,11 +37,11 @@ pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
     ParamDesc { name: "LOW CUT", min: 10.0, max: 150.0, default_norm: 0.0, curve: Curve::Exp },
     ParamDesc { name: "CEIL", min: -12.0, max: 0.0, default_norm: 0.975, curve: Curve::Lin },
     // < 0.5 limiter, ≥ 0.5 soft clip
-    ParamDesc { name: "MODE", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
+    ParamDesc { name: "MODE", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Step },
     // −6 dB on the fader law (bus::fader_norm_for_db(-6.0)): headroom into the limiter by default
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.640_2, curve: Curve::Lin },
     // index into fx::DELAY_BEATS (1/16 1/8 1/8D 1/4 1/4D 1/2); default 1/8D
-    ParamDesc { name: "DLY TIME", min: 0.0, max: 5.0, default_norm: 0.4, curve: Curve::Lin },
+    ParamDesc { name: "DLY TIME", min: 0.0, max: 5.0, default_norm: 0.4, curve: Curve::Step },
     ParamDesc { name: "DLY FB", min: 0.0, max: 0.95, default_norm: 0.45, curve: Curve::Lin },
     ParamDesc { name: "DLY TONE", min: 500.0, max: 12_000.0, default_norm: 0.5, curve: Curve::Exp },
     ParamDesc { name: "REV SIZE", min: 0.0, max: 1.0, default_norm: 0.6, curve: Curve::Lin },

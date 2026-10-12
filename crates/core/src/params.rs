@@ -4,6 +4,9 @@ use crate::dsp::Smoother;
 pub enum Curve {
     Lin,
     Exp,
+    /// Discrete choice (modes, divisions): snaps to whole steps between min and max and is never smoothed,
+    /// so switching never sweeps through the values in between.
+    Step,
 }
 
 /// UI sends normalised 0..1 values; the engine maps them to real units here.
@@ -22,13 +25,14 @@ impl ParamDesc {
         match self.curve {
             Curve::Lin => self.min + (self.max - self.min) * n,
             Curve::Exp => self.min * (self.max / self.min).powf(n),
+            Curve::Step => (self.min + (self.max - self.min) * n).round(),
         }
     }
 
     /// Inverse of `map`, clamped to 0..1.
     pub fn norm_of(&self, value: f32) -> f32 {
         let n = match self.curve {
-            Curve::Lin => (value - self.min) / (self.max - self.min),
+            Curve::Lin | Curve::Step => (value - self.min) / (self.max - self.min),
             Curve::Exp => (value / self.min).ln() / (self.max / self.min).ln(),
         };
         if n.is_finite() { n.clamp(0.0, 1.0) } else { 0.0 }
@@ -50,7 +54,11 @@ impl ParamBank {
         assert!(descs.len() <= MAX_PARAMS, "too many params");
         ParamBank {
             descs,
-            smooth: core::array::from_fn(|i| Smoother::new(descs.get(i).map_or(0.0, |d| d.default_norm), 10.0, sample_rate)),
+            smooth: core::array::from_fn(|i| Smoother::new(
+                descs.get(i).map_or(0.0, |d| d.default_norm),
+                if descs.get(i).is_some_and(|d| d.curve == Curve::Step) { 0.0 } else { 10.0 },
+                sample_rate,
+            )),
             values: core::array::from_fn(|i| descs.get(i).map_or(0.0, |d| d.map(d.default_norm))),
             default_norms: core::array::from_fn(|i| descs.get(i).map_or(0.0, |d| d.default_norm)),
         }
@@ -106,6 +114,18 @@ impl ParamBank {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn step_params_snap_and_skip_smoothing() {
+        static D: [ParamDesc; 1] = [ParamDesc { name: "M", min: 0.0, max: 5.0, default_norm: 0.0, curve: Curve::Step }];
+        let mut b = ParamBank::new(&D, 48_000.0);
+        b.set_norm(0, 0.95);
+        b.advance();
+        assert_eq!(b.get(0), 5.0);
+        b.set_norm(0, 0.29);
+        b.advance();
+        assert_eq!(b.get(0), 1.0);
+    }
 
     #[test]
     fn linear_maps_ends_and_middle() {

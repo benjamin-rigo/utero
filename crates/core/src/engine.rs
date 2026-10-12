@@ -183,7 +183,6 @@ impl Engine {
         }
     }
 
-    /// A quantized change while playing waits for the next bar; stopped, it applies at once.
     /// Insert FX order of a machine track (a permutation of the 8 effect ids; anything else is ignored).
     pub fn set_fx_order(&mut self, track: usize, order: [u8; FX_COUNT]) {
         if let Some(Machine { fx: Some(chain), .. }) = self.machines.get_mut(track) {
@@ -205,6 +204,7 @@ impl Engine {
         }
     }
 
+    /// A quantized change while playing waits for the next bar; stopped, it applies at once.
     pub fn set_bus_mute(&mut self, bus: usize, muted: bool, quantized: bool) {
         if bus >= BUSES {
             return;

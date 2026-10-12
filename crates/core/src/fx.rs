@@ -33,7 +33,7 @@ pub const fn with_fx<const N: usize>(machine: [ParamDesc; N]) -> [ParamDesc; MAX
         i += 1;
     }
     // 0 = lp, 1 = hp, 2 = comb
-    out[FX_FILTER_MODE] = ParamDesc { name: "FLT MODE", min: 0.0, max: 2.0, default_norm: 0.0, curve: Curve::Lin };
+    out[FX_FILTER_MODE] = ParamDesc { name: "FLT MODE", min: 0.0, max: 2.0, default_norm: 0.0, curve: Curve::Step };
     let names = ["DRIVE", "FOLD", "FILTER", "NOISE", "CHORUS", "DISPERSE", "DELAY", "REVERB"];
     let mut k = 0;
     while k < FX_COUNT {
@@ -61,13 +61,15 @@ pub struct FxGlobals {
 
 const CHORUS_MS: f32 = 30.0;
 const DISPERSE_STAGES: usize = 16;
-const DELAY_MAX_S: f32 = 2.5;
+/// Longest synced time: a 1/2 note at the 20 bpm floor = 6 s.
+const DELAY_MAX_S: f32 = 6.1;
 const PRE_MAX_S: f32 = 0.11;
 /// FDN line lengths at 48 kHz for size 1 (mutually prime-ish).
 const REV_LINES: [f32; 4] = [2_389.0, 2_713.0, 3_163.0, 3_571.0];
 
-/// Gain staging: follows input and output RMS (~50 ms) and pulls the output back to the input level.
-/// Never boosts, so an effect that naturally gets quieter (a closing low-pass) stays quieter.
+/// Gain staging: follows input and output power (1 ms attack, 50 ms release) and pulls the output back
+/// to the input level — instantly when it gets louder, slowly when it recovers — so even the first
+/// transient after silence is level-matched. Never boosts: an effect that gets quieter stays quieter.
 #[derive(Clone, Copy, Default)]
 struct Leveler {
     env_in: f32,
@@ -76,13 +78,19 @@ struct Leveler {
 }
 
 impl Leveler {
-    fn apply(&mut self, input: f32, output: f32, coef: f32) -> f32 {
-        self.env_in += (input * input - self.env_in) * coef;
-        self.env_out += (output * output - self.env_out) * coef;
-        let want = if self.env_out > 1.0e-9 { (self.env_in / self.env_out).sqrt().min(1.0) } else { 1.0 };
-        self.gain += (want - self.gain) * coef;
+    fn apply(&mut self, input: f32, output: f32, attack: f32, release: f32) -> f32 {
+        let follow = |env: &mut f32, x: f32| *env += (x * x - *env) * if x * x > *env { attack } else { release };
+        follow(&mut self.env_in, input);
+        follow(&mut self.env_out, output);
+        let want = if self.env_out > 1.0e-12 { (self.env_in / self.env_out).sqrt().min(1.0) } else { 1.0 };
+        self.gain = if want < self.gain { want } else { self.gain + (want - self.gain) * release };
         output * self.gain
     }
+}
+
+/// Flushes values that would decay into denormals in feedback paths.
+fn flush(x: f32) -> f32 {
+    if x.abs() < 1.0e-20 { 0.0 } else { x }
 }
 
 struct Line {
@@ -130,7 +138,11 @@ pub struct FxChain {
     rev: [Line; 4],
     rev_lp: [f32; 4],
     level: [Leveler; FX_COUNT],
-    level_coef: f32,
+    level_attack: f32,
+    level_release: f32,
+    /// Samples each effect has sat at amount 0; after `hold` it is reset and skipped (tails ring out first).
+    idle: [u32; FX_COUNT],
+    hold: u32,
 }
 
 impl FxChain {
@@ -154,7 +166,10 @@ impl FxChain {
             rev: REV_LINES.map(|l| Line::new((l * scale * 1.05) as usize + 4)),
             rev_lp: [0.0; 4],
             level: [Leveler { gain: 1.0, ..Leveler::default() }; FX_COUNT],
-            level_coef: 1.0 - (-1.0 / (0.05 * sr)).exp(),
+            level_attack: 1.0 - (-1.0 / (0.001 * sr)).exp(),
+            level_release: 1.0 - (-1.0 / (0.05 * sr)).exp(),
+            idle: [u32::MAX; FX_COUNT],
+            hold: (2.0 * sr) as u32,
         }
     }
 
@@ -179,9 +194,21 @@ impl FxChain {
         let mut y = x;
         for k in 0..FX_COUNT {
             let id = self.order[k];
-            let a = amounts[id as usize];
+            let i = id as usize;
+            let a = amounts[i];
             if a <= 1.0e-4 {
-                continue;
+                // keep the state running for `hold` (a quick re-enable continues the live tail instead of
+                // replaying a frozen one), then reset and skip
+                if self.idle[i] >= self.hold {
+                    continue;
+                }
+                self.idle[i] += 1;
+                if self.idle[i] >= self.hold {
+                    self.reset(id);
+                    continue;
+                }
+            } else {
+                self.idle[i] = 0;
             }
             let out = match id {
                 DRIVE => self.drive.process(y, a),
@@ -193,11 +220,39 @@ impl FxChain {
                 DELAY => self.delay_fx(y, a, g),
                 _ => self.reverb_fx(y, a, g),
             };
-            // Saturators are level-matched dynamically. The filter compensates statically (a dynamic leveler
-            // would choke the comb's ringing tail), and the time effects mix wet/dry instead.
-            y = if matches!(id, DRIVE | FOLD | NOISE | CHORUS | DISPERSE) { self.level[id as usize].apply(y, out, self.level_coef) } else { out };
+            // Saturators are level-matched dynamically. Noise and the comb compensate statically (a fast
+            // leveler would flatten the noise AM and choke the comb's ringing); chorus, disperse and the
+            // time effects never add level, they mix wet/dry.
+            y = if matches!(id, DRIVE | FOLD) {
+                self.level[i].apply(y, out, self.level_attack, self.level_release)
+            } else {
+                out
+            };
         }
         if y.is_finite() { y.clamp(-4.0, 4.0) } else { 0.0 }
+    }
+
+    /// Clears one effect's state so a later re-enable starts clean (no stale echoes).
+    fn reset(&mut self, id: u8) {
+        match id {
+            FILTER => {
+                self.filter.reset();
+                self.comb.buf.fill(0.0);
+            }
+            CHORUS => self.chorus.buf.fill(0.0),
+            DISPERSE => self.allpass = [0.0; DISPERSE_STAGES],
+            DELAY => {
+                self.delay.buf.fill(0.0);
+                self.delay_lp = 0.0;
+            }
+            REVERB => {
+                self.pre.buf.fill(0.0);
+                self.rev.iter_mut().for_each(|l| l.buf.fill(0.0));
+                self.rev_lp = [0.0; 4];
+            }
+            _ => {}
+        }
+        self.level[id as usize] = Leveler { gain: 1.0, ..Leveler::default() };
     }
 
     fn filter_fx(&mut self, x: f32, a: f32, mode: f32, pitch_hz: f32) -> f32 {
@@ -218,7 +273,8 @@ impl FxChain {
     fn noise_fx(&mut self, x: f32, a: f32) -> f32 {
         let n = self.rng.bipolar();
         self.noise_lp += (n - self.noise_lp) * 0.03;
-        x * (1.0 + a * 8.0 * self.noise_lp)
+        // the low-passed noise has σ² ≈ 0.0051, so the AM adds 0.325·a² of power on average: take it back
+        x * (1.0 + a * 8.0 * self.noise_lp) / (1.0 + 0.325 * a * a).sqrt()
     }
 
     fn chorus_fx(&mut self, x: f32, a: f32) -> f32 {
@@ -238,7 +294,7 @@ impl FxChain {
         let mut y = x;
         for s in &mut self.allpass {
             let out = -c * y + *s;
-            *s = y + c * out;
+            *s = flush(y + c * out);
             y = out;
         }
         y
@@ -248,7 +304,7 @@ impl FxChain {
         let sr = self.sample_rate;
         let samples = g.delay_beats * 60.0 / g.bpm.max(20.0) * sr;
         let tap = self.delay.read(samples);
-        self.delay_lp += (tap - self.delay_lp) * crate::dsp::one_pole_coef(g.delay_tone, sr);
+        self.delay_lp = flush(self.delay_lp + (tap - self.delay_lp) * crate::dsp::one_pole_coef(g.delay_tone, sr));
         self.delay.push(x + self.delay_lp * g.delay_fb);
         x * (1.0 - 0.5 * a) + self.delay_lp * a
     }
@@ -263,7 +319,7 @@ impl FxChain {
         for (i, line) in self.rev.iter().enumerate() {
             let len = REV_LINES[i] * scale;
             let v = line.read(len);
-            self.rev_lp[i] += (v - self.rev_lp[i]) * damp;
+            self.rev_lp[i] = flush(self.rev_lp[i] + (v - self.rev_lp[i]) * damp);
             s[i] = self.rev_lp[i];
         }
         // Householder feedback keeps the four lines decorrelated and energy-preserving.
@@ -329,6 +385,32 @@ mod tests {
             let db = 20.0 * (rms(&out[n / 2..]) / rms(&input)).log10();
             assert!(db.abs() < 1.0, "fx {id}: {db} dB");
         }
+    }
+
+    #[test]
+    fn gain_staging_catches_the_first_transient_after_silence() {
+        let mut c = FxChain::new(SR, 9);
+        let mut a = [0.0; FX_COUNT];
+        a[DRIVE as usize] = 1.0;
+        for _ in 0..24_000 {
+            c.process(0.0, &a, 0.0, 0.0, &G);
+        }
+        let burst: Vec<f32> = (0..960).map(|i| sine(i, 110.0) * 0.2).collect();
+        let out: Vec<f32> = burst.iter().map(|&x| c.process(x, &a, 0.0, 0.0, &G)).collect();
+        let rms = |v: &[f32]| (v.iter().map(|x| x * x).sum::<f32>() / v.len() as f32).sqrt();
+        let db = 20.0 * (rms(&out) / rms(&burst)).log10();
+        assert!(db < 2.0, "first 20 ms {db} dB hotter");
+    }
+
+    #[test]
+    fn a_disabled_delay_does_not_replay_stale_echoes() {
+        let mut c = FxChain::new(SR, 10);
+        c.process(1.0, &only(DELAY, 1.0), 0.0, 0.0, &G);
+        for _ in 0..(3 * 48_000) {
+            c.process(0.0, &[0.0; FX_COUNT], 0.0, 0.0, &G);
+        }
+        let back: f32 = (0..20_000).map(|_| c.process(0.0, &only(DELAY, 1.0), 0.0, 0.0, &G).abs()).fold(0.0, f32::max);
+        assert_eq!(back, 0.0);
     }
 
     #[test]

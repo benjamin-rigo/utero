@@ -27,7 +27,7 @@ pub const BASS_PARAMS: [ParamDesc; BASS_PARAM_COUNT] = [
     ParamDesc { name: "DECAY", min: 30.0, max: 4000.0, default_norm: 0.176, curve: Curve::Exp },
     ParamDesc { name: "FM", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
-    ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 1.0, curve: Curve::Lin },
+    ParamDesc { name: "SUB OCT", min: -1.0, max: 1.0, default_norm: 1.0, curve: Curve::Step },
 ];
 
 /// The upper layer is high-passed at this multiple of the sub frequency (24 dB/oct), so the sub owns its
