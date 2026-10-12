@@ -34,7 +34,8 @@ export function EnvGraph({ values, onChange }: Props) {
   }).join(' ')
   const path = `M0,${H - 1} L${xa.toFixed(2)},1 L${xh.toFixed(2)},1 ${decay} ${release}`
   const handles = [[xa, 1], [xh, 1], [xd, ys], [xr, H - 1]]
-  const drag = useRef<{ handle: number; x: number; y: number; start: number[]; sx: number; sy: number } | null>(null)
+  // `ties` = handles sitting on the same spot (e.g. ATK and HOLD when HOLD is 0): the first drag direction picks one
+  const drag = useRef<{ handle: number; ties: number[]; x: number; y: number; start: number[]; sx: number; sy: number } | null>(null)
 
   const toView = (e: PointerEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect()
@@ -49,18 +50,22 @@ export function EnvGraph({ values, onChange }: Props) {
         const v = toView(e)
         const px = v.x * v.sx
         const py = v.y * v.sy
-        let best = 0
-        handles.forEach(([hx, hy], i) => {
-          if (Math.hypot(hx - px, (hy - py) / 2) < Math.hypot(handles[best][0] - px, (handles[best][1] - py) / 2)) best = i
-        })
+        const dist = handles.map(([hx, hy]) => Math.hypot(hx - px, (hy - py) / 2))
+        const best = Math.min(...dist)
+        const ties = dist.flatMap((d, i) => (d - best < 0.75 ? [i] : []))
         e.currentTarget.setPointerCapture?.(e.pointerId)
-        drag.current = { handle: best, x: e.clientX, y: e.clientY, start: [...values], sx: v.sx, sy: v.sy }
+        drag.current = { handle: ties[0], ties, x: e.clientX, y: e.clientY, start: [...values], sx: v.sx, sy: v.sy }
       }}
       onPointerMove={(e) => {
         const g = drag.current
         if (!g) return
         const dx = ((e.clientX - g.x) * g.sx) / SEG
         const dy = ((e.clientY - g.y) * g.sy) / (H - 2)
+        if (g.ties.length > 1 && dx !== 0) {
+          // stacked points: dragging right grows the later stage, dragging left the earlier one
+          g.handle = dx > 0 ? g.ties[g.ties.length - 1] : g.ties[0]
+          g.ties = [g.handle]
+        }
         // the dragged point's own segment: A (0), H (1), D (2, plus SUS vertically), R (4)
         const seg = [0, 1, 2, 4][g.handle]
         const next = clamp01(g.start[seg] + dx)

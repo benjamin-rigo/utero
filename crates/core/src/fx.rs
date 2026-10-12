@@ -243,7 +243,7 @@ impl Lane {
                     // the knob tunes the comb (30 Hz … 3 kHz); resonance is fixed, the wet fades in over the first 5 %
                     let hz = 30.0 * 100f32.powf(a);
                     let y = x + self.comb.read(c.sr / hz) * COMB_FB;
-                    self.comb.push(y);
+                    self.comb.push(flush(y));
                     x + (y * (1.0 - 0.7 * COMB_FB) - x) * 0.7 * (a * 20.0).min(1.0)
                 }
             },
@@ -273,6 +273,10 @@ impl Lane {
                     st.y2 = st.y1;
                     st.y1 = flush(out);
                     y = if i == full { y + (out - y) * (stages - full as f32) } else { out };
+                }
+                // stages that are switched out restart from silence when the knob comes back up
+                for st in self.disperse.iter_mut().skip(full + 1) {
+                    *st = Allpass2::default();
                 }
                 y
             }
@@ -358,8 +362,9 @@ impl Delay {
             self.lp[ch] = flush(self.lp[ch] + (x - self.lp[ch]) * lp_c);
             self.hp[ch] = flush(self.hp[ch] + (self.lp[ch] - self.hp[ch]) * hp_c);
             let y = self.lp[ch] - self.hp[ch];
+            // unity gain for small signals, only the loud repeats get squashed: the loop can never exceed FB
             let g = 1.0 + 3.0 * d.sat;
-            tap[ch] = y + ((y * g).tanh() / g.tanh().max(1.0e-3) - y) * d.sat;
+            tap[ch] = y + ((y * g).tanh() / g - y) * d.sat;
         }
         // ping-pong: the input enters on the left only and every repeat crosses sides
         let mono = 0.5 * (l + r);
@@ -405,7 +410,7 @@ impl Reverb {
         for (i, d) in self.diffusers.iter_mut().enumerate() {
             let delayed = d.read(DIFFUSERS[i] * scale);
             let out = -0.6 * y + delayed;
-            d.push(y + 0.6 * out);
+            d.push(flush(y + 0.6 * out));
             y = out;
         }
 
@@ -470,7 +475,8 @@ impl FxChain {
         let scale = sr / 48_000.0;
         FxChain {
             order: DEFAULT_ORDER,
-            lanes: [Lane::new(sr, seed), Lane::new(sr, seed.wrapping_add(7))],
+            // same seed: in the mono part both lanes run on the same input and stay identical
+            lanes: [Lane::new(sr, seed), Lane::new(sr, seed)],
             chorus: Chorus { lines: [Line::new((CHORUS_MS * 0.001 * sr) as usize + 4), Line::new((CHORUS_MS * 0.001 * sr) as usize + 4)], phase: [0.0, 0.37] },
             delay: Delay {
                 lines: [Line::new((DELAY_MAX_S * sr) as usize), Line::new((DELAY_MAX_S * sr) as usize)],
@@ -527,7 +533,6 @@ impl FxChain {
     /// `amounts[id]` in 0..1; returns the stereo output.
     pub fn process(&mut self, x: f32, amounts: &[f32; FX_COUNT], modes: &Modes, g: &FxGlobals) -> (f32, f32) {
         let (mut l, mut r) = (x, x);
-        let mut stereo = false;
         for k in 0..FX_COUNT {
             let id = self.order[k];
             let i = id as usize;
@@ -552,12 +557,13 @@ impl FxChain {
                 DELAY => (l, r) = self.delay.process(l, r, a, &g.delay, g.bpm, sr),
                 REVERB => (l, r) = self.reverb.process(l, r, a, &g.reverb, sr),
                 _ => {
+                    // both lanes always run (in the mono part on the same input), so the right side's state is
+                    // live when the chain turns stereo: no stale rings or level jumps on reorder or re-enable
                     l = self.lanes[0].process(id, l, a, modes, &self.c);
-                    r = if stereo { self.lanes[1].process(id, r, a, modes, &self.c) } else { l };
+                    r = self.lanes[1].process(id, r, a, modes, &self.c);
                     continue;
                 }
             }
-            stereo = true;
         }
         let safe = |v: f32| if v.is_finite() { v.clamp(-4.0, 4.0) } else { 0.0 };
         (safe(l), safe(r))
@@ -651,6 +657,16 @@ mod tests {
         assert!(late > 1.0e-4, "{late}");
         let corr: f32 = out[2_400..4_800].iter().zip(&out[2_160..4_560]).map(|(a, b)| a * b).sum();
         assert!(corr > 0.0, "{corr}");
+    }
+
+    #[test]
+    fn saturated_delay_feedback_always_dies_away() {
+        let g = FxGlobals { delay: DelaySettings { feedback: 0.95, sat: 1.0, ping: 0.5, ..G.delay }, ..G };
+        let mut c = FxChain::new(SR, 15);
+        let out: Vec<f32> = (0..(8 * 48_000)).map(|i| c.process(if i < 48 { 1.0 } else { 0.0 }, &only(DELAY, 1.0), &md(0.0), &g).0).collect();
+        let early = rms(&out[12_000..24_000]);
+        let late = rms(&out[7 * 48_000..]);
+        assert!(late < early * 0.5, "{early} → {late}");
     }
 
     #[test]

@@ -127,10 +127,15 @@ impl Ahdsr {
                 }
             }
             Stage::Decay => {
-                let aim = s - undershoot(self.from - s);
-                self.level = (aim + (self.level - aim) * (-K / len(e.decay_ms)).exp()).max(s);
-                if self.level <= s {
+                if s >= self.level {
+                    // SUS raised above where the decay already is: never jump up, just carry on releasing
                     self.enter(Stage::Release);
+                } else {
+                    let aim = s - undershoot(self.from - s);
+                    self.level = (aim + (self.level - aim) * (-K / len(e.decay_ms)).exp()).max(s);
+                    if self.level <= s {
+                        self.enter(Stage::Release);
+                    }
                 }
             }
             Stage::Release => {
@@ -192,6 +197,22 @@ mod tests {
             let v = env.next(&e, SR);
             if i > 1_440 {
                 assert!(v <= prev + 1e-7, "rose at {i}: {prev} -> {v}");
+            }
+            prev = v;
+        }
+    }
+
+    #[test]
+    fn raising_sus_mid_decay_never_jumps_up() {
+        let mut env = Ahdsr::default();
+        env.trigger();
+        let low = EnvTimes { sustain: 0.1, ..E };
+        let mut prev = 1.0;
+        for i in 0..20_000 {
+            let e = if i < 3_000 { low } else { EnvTimes { sustain: 0.9, ..E } };
+            let v = env.next(&e, SR);
+            if i > 1_440 {
+                assert!(v <= prev + 1e-6, "rose at {i}: {prev} -> {v}");
             }
             prev = v;
         }
