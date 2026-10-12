@@ -50,7 +50,7 @@ export function ModStrip({ state, frame, store }: Props) {
   }
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_18rem] border-t border-zinc-800">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
       <section aria-label="Modulators" className="grid min-h-0 grid-cols-2 gap-2 p-2">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />

@@ -75,10 +75,10 @@ function ArmButton({ label, side, armed, onClick }: { label: string; side: 'a' |
   return (
     <button type="button" aria-label={`Learn ${label}`} aria-pressed={armed} onClick={onClick}
       className={[
-        'w-full text-[10px] lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc',
+        'w-full text-[10px] outline-none focus-visible:ring-1 focus-visible:ring-acc',
         armed ? 'bg-red-600 text-white ring-1 ring-red-300' : 'bg-zinc-900 text-zinc-300 hover:text-zinc-100',
       ].join(' ')}>
-      {side}
+      {side.toUpperCase()}
     </button>
   )
 }
