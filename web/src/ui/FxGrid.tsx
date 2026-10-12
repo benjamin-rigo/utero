@@ -58,7 +58,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
               e.preventDefault()
               store.moveFx(t, Number(raw), pos)
             }}>
-            <ParamKnob state={state} frame={frame} store={store} row={t} param={param} meta={machine.params[param]}
+            <ParamKnob state={state} frame={frame} store={store} row={t} param={param} meta={machine.params[param]} size="sm"
               label={label} ariaLabel={FX_NAMES[id]}
               onLabelDragStart={(e) => {
                 e.dataTransfer.setData(FX_DRAG_TYPE, String(pos))

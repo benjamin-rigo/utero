@@ -124,7 +124,7 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
   const last = options.length - 1
   const at = (v: number) => Math.round(v * last)
   return (
-    <Knob label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
+    <Knob size="sm" label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
       format={(v) => options[at(v)]} onChange={(v) => { if (at(v) !== index) onIndex(at(v)) }} />
   )
 }
@@ -133,8 +133,12 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
 const KIND_CODES: ModKind[] = [0, 1, 2, 4]
 
 /** One fixed knob slot (and the choice under it); the same size whether it holds a control or not. */
-function Cell({ children, wide = false }: { children?: ReactNode; wide?: boolean }) {
-  return <div className={`flex h-[108px] flex-col items-center gap-1 ${wide ? 'w-40' : 'w-20'}`}>{children}</div>
+/** Fixed slot widths (fit their content, never change between types): knob 48 px, knob + 2-way choice 64 px, trig + mode 144 px. */
+const CELL = { knob: 'w-12', pair: 'w-16', trig: 'w-36' } as const
+
+function Cell({ children, w = 'knob' }: { children?: ReactNode; w?: keyof typeof CELL }) {
+  // 72 px small knob (dial, label, value) + 4 px gap + 20 px choice = 96 px; the whole page stays under the 174 px strip
+  return <div className={`flex h-24 flex-col items-center gap-1 ${CELL[w]}`}>{children}</div>
 }
 
 const Divider = () => <div aria-hidden="true" className="w-px self-stretch bg-zinc-800" />
@@ -145,15 +149,15 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const timed = m.kind === 1
   const pct = (v: number) => `${Math.round(v * 100)}%`
   const envKnob = (i: number) => (
-    <Knob label={ENV_NAMES[i]} ariaLabel={`${modLabel(slot, m)} ${ENV_NAMES[i]}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
+    <Knob size="sm" label={ENV_NAMES[i]} ariaLabel={`${modLabel(slot, m)} ${ENV_NAMES[i]}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
       format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
   )
   return (
-    <div className="flex w-fit min-h-0 min-w-0 flex-col gap-2 overflow-hidden p-1 text-[10px]">
+    <div className="flex w-fit min-h-0 min-w-0 flex-col gap-1.5 overflow-hidden p-1 text-[10px]">
       <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
         onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
       {/* fixed top row: shape icons (lfo), colour (noise) or the curve (env); the same height for every type */}
-      <div className="flex h-8 w-[332px] items-center">
+      <div className="flex h-[22px] w-[300px] items-center">
         {m.kind === 1 && (
           <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-px">
             {SHAPES.map((sh) => (
@@ -182,28 +186,28 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
       </div>
       {/* fixed knob slots: [rate|atk] [phase|hold] [—|dec] │ [depth + bi/uni] [smooth] │ [trig + mode]; unused slots stay empty */}
       <div className="flex min-h-0 items-start gap-3">
-        <Cell>
+        <Cell w="pair">
           {m.kind === 1 && (m.sync ? (
             <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
           ) : (
-            <Knob label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
+            <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
           ))}
           {m.kind === 4 && envKnob(0)}
           {m.kind === 1 && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />}
         </Cell>
         <Cell>
-          {m.kind === 1 && <Knob label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
+          {m.kind === 1 && <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
           {m.kind === 4 && envKnob(1)}
         </Cell>
         <Cell>{m.kind === 4 && envKnob(2)}</Cell>
         <Divider />
-        <Cell>
-          {m.kind !== 0 && <Knob label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
+        <Cell w="pair">
+          {m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
           {m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />}
         </Cell>
-        <Cell>{m.kind !== 0 && <Knob label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />}</Cell>
+        <Cell>{m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />}</Cell>
         <Divider />
-        <Cell wide>
+        <Cell w="trig">
           {(m.kind === 1 || m.kind === 4) && (
             <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
           )}
