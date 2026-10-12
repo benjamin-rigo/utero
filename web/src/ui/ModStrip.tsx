@@ -51,10 +51,10 @@ export function ModStrip({ state, frame, store }: Props) {
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
-      <section aria-label="Modulators" className="grid min-h-0 grid-cols-2 gap-2 p-2">
+      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2 p-2">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
-        <div className="grid min-h-0 grid-cols-8 grid-rows-2 gap-px bg-zinc-800">
+        <div className="grid min-h-0 grid-cols-4 grid-rows-4 gap-px bg-zinc-800">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
@@ -125,7 +125,7 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
   const last = options.length - 1
   const at = (v: number) => Math.round(v * last)
   return (
-    <Knob size="slot" label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
+    <Knob size="sm" label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
       format={(v) => options[at(v)]} onChange={(v) => { if (at(v) !== index) onIndex(at(v)) }} />
   )
 }
@@ -146,45 +146,38 @@ function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
           {m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} className="flex-1" />}
         </div>
         {m.kind === 4 && (
-          <div className="flex min-h-0 flex-col gap-px">
-            <div className="h-12">
-              <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />
-            </div>
-            <div className="grid grid-cols-3 gap-px">
-              {ENV_NAMES.slice(0, ENV_SHOWN).map((n, i) => (
-                <Knob key={n} size="slot" label={n} ariaLabel={`${modLabel(slot, m)} ${n}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
-                  format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
-              ))}
-            </div>
-            <div className="grid grid-cols-3 gap-px">
-              <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
-              <Knob size="slot" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />
-              <Knob size="slot" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />
-            </div>
+          <div className="h-12">
+            <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />
           </div>
         )}
-        {m.kind !== 0 && m.kind !== 4 && (
-          <div className="grid grid-cols-2 gap-px">
+        {m.kind !== 0 && (
+          <div className="flex flex-wrap items-start gap-x-0.5">
+            {m.kind === 4 && ENV_NAMES.slice(0, ENV_SHOWN).map((n, i) => (
+              <Knob key={n} size="sm" label={n} ariaLabel={`${modLabel(slot, m)} ${n}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
+                format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
+            ))}
             {timed && (m.sync ? (
               <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
             ) : (
-              <Knob size="slot" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
+              <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)}
                 format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
             ))}
             {m.kind === 1 && (
               <ChoiceKnob label="SHAPE" options={SHAPES.map((x) => x.label)} index={shapeIndex} onIndex={(i) => update({ shape: SHAPES[i].code })} />
             )}
-            {m.kind === 2 && <ChoiceKnob label="COLOR" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />}
-            {timed && <Knob size="slot" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
-            <Knob size="slot" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />
-            <Knob size="slot" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />
-            {timed && (
-              <>
-                <ChoiceKnob label="MODE" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />
-                <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
-              </>
+            {timed && <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />}
+            <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />
+            <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />
+            {(timed || m.kind === 4) && (
+              <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
             )}
           </div>
+        )}
+        {timed && (
+          <Segmented label="Trigger mode" caption="mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />
+        )}
+        {m.kind === 2 && (
+          <Segmented label="Noise colour" caption="color" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />
         )}
         {m.kind === 3 && <StepBars m={m} onStep={(i, v) => store.setModStep(slot, i, v)} onLen={(len) => update({ stepLen: len })} />}
         {targets.length > 0 && (
