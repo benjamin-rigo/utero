@@ -91,6 +91,11 @@ impl Master {
         self.gr_db
     }
 
+    /// Limiter gain reduction in dB (positive); 0 in soft-clip mode.
+    pub fn limiter_gr_db(&self) -> f32 {
+        -gain_to_db(self.lim_gain.max(1.0e-6))
+    }
+
     pub fn peak(&self, channel: usize) -> f32 {
         self.peak.get(channel).copied().unwrap_or(0.0)
     }
@@ -169,6 +174,7 @@ impl Master {
 
         // 5) limiter or soft clip to the ceiling
         if clip {
+            self.lim_gain = 1.0;
             for v in &mut x {
                 *v = ceiling * (*v / ceiling).tanh();
             }
@@ -237,6 +243,16 @@ mod tests {
         }
         let ratio = (sum_out / sum_in as f32).sqrt();
         assert!((0.98..1.02).contains(&ratio), "{ratio}");
+    }
+
+    #[test]
+    fn limiter_reports_its_gain_reduction() {
+        let mut m = master(&[(COMP, 0.0), (SAT, 0.0), (LEVEL, 1.0), (CEILING, 0.5), (MODE, 0.0)]);
+        for i in 0..4_800 {
+            let x = (i as f32 * 0.05).sin();
+            m.process(x, x);
+        }
+        assert!(m.limiter_gr_db() > 3.0, "{}", m.limiter_gr_db());
     }
 
     #[test]

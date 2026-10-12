@@ -25,9 +25,9 @@ pub const SNAP_TICK: usize = 0;
 pub const SNAP_PLAYHEADS: usize = 1;
 pub const SNAP_MODS: usize = SNAP_PLAYHEADS + TRACKS;
 pub const SNAP_EFFECTIVE: usize = SNAP_MODS + MOD_SLOTS;
-/// Per bus: peak, rms; then master: peak L, peak R, short-term LUFS, gain reduction dB.
+/// Per bus: peak, rms; then master: peak L, peak R, short-term LUFS, comp GR dB, limiter GR dB.
 pub const SNAP_METERS: usize = SNAP_EFFECTIVE + ROWS * MOD_PARAMS;
-pub const SNAP_MUTED: usize = SNAP_METERS + BUSES * 2 + 4;
+pub const SNAP_MUTED: usize = SNAP_METERS + BUSES * 2 + 5;
 /// Per kick track: settled body frequency in Hz (tuner), 0 before the first hit.
 pub const SNAP_TUNER: usize = SNAP_MUTED + BUSES;
 pub const KICK_TRACKS: usize = 2;
@@ -327,6 +327,7 @@ impl Engine {
         self.snapshot[m + 1] = self.master.peak(1);
         self.snapshot[m + 2] = self.master.lufs();
         self.snapshot[m + 3] = self.master.gr_db();
+        self.snapshot[m + 4] = self.master.limiter_gr_db();
     }
 
     fn on_tick(&mut self, tick: u64) {
@@ -520,7 +521,7 @@ mod tests {
         assert_eq!(e.snapshot[SNAP_PLAYHEADS], e.playhead(0) as f32);
         assert_eq!(e.snapshot[SNAP_MODS + 2], e.mod_output(2));
         assert_eq!(e.snapshot[SNAP_EFFECTIVE + DECAY], e.effective_norm(0, DECAY));
-        assert_eq!(SNAP_LEN, 563);
+        assert_eq!(SNAP_LEN, 564);
     }
 
     #[test]

@@ -5,7 +5,8 @@ pub const BUSES: usize = 8;
 pub const FILTER: usize = 0;
 pub const DRIVE: usize = 1;
 pub const LEVEL: usize = 2;
-pub const BUS_PARAM_COUNT: usize = 3;
+pub const PAN: usize = 3;
+pub const BUS_PARAM_COUNT: usize = 4;
 
 /// Order and default_norm are mirrored in web/src/state/machines.ts.
 pub const BUS_PARAMS: [ParamDesc; BUS_PARAM_COUNT] = [
@@ -13,6 +14,7 @@ pub const BUS_PARAMS: [ParamDesc; BUS_PARAM_COUNT] = [
     ParamDesc { name: "FLT", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
     ParamDesc { name: "DRV", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
+    ParamDesc { name: "PAN", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
 ];
 
 const DEAD_ZONE: f32 = 0.02;
@@ -28,6 +30,16 @@ pub fn fader_gain(norm: f32) -> f32 {
 }
 
 /// Inverse of `fader_gain` for a level in dB.
+/// Equal-power pan law normalised to unity at the centre (hard left/right = +3 dB on that side).
+pub fn pan_gains(pan: f32) -> (f32, f32) {
+    // exact at the centre so a default bus stays bit-transparent
+    if pan == 0.5 {
+        return (1.0, 1.0);
+    }
+    let theta = pan.clamp(0.0, 1.0) * core::f32::consts::FRAC_PI_2;
+    (theta.cos() * core::f32::consts::SQRT_2, theta.sin() * core::f32::consts::SQRT_2)
+}
+
 pub fn fader_norm_for_db(db: f32) -> f32 {
     0.8 * 10f32.powf(db / 62.0)
 }
@@ -121,6 +133,9 @@ impl Bus {
             let filtered = x + (lo - x) * self.w_lp + (hi - x) * self.w_hp;
             out[c] = (self.drive[c].process(filtered, drv) + post[c]) * gain * self.mute;
         }
+        let (pl, pr) = pan_gains(self.params.get(PAN));
+        out[0] *= pl;
+        out[1] *= pr;
         let p = out[0].abs().max(out[1].abs());
         self.peak = if p > self.peak { p } else { self.peak * self.peak_decay };
         self.ms += (0.5 * (out[0] * out[0] + out[1] * out[1]) - self.ms) * self.ms_coef;
@@ -131,6 +146,21 @@ impl Bus {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pan_is_unity_at_centre_and_moves_power_sideways() {
+        let (l, r) = pan_gains(0.5);
+        assert!((l - 1.0).abs() < 1e-5 && (r - 1.0).abs() < 1e-5);
+        let (l, r) = pan_gains(0.0);
+        assert!(r.abs() < 1e-5 && (l - core::f32::consts::SQRT_2).abs() < 1e-5);
+        let mut b = Bus::new(SR);
+        b.params.set_norm(PAN, 1.0);
+        for _ in 0..48_000 {
+            b.params.advance();
+        }
+        let (l, r) = b.process(0.5, 0.5, 0.0, 0.0);
+        assert!(l.abs() < 1e-4 && r > 0.5, "{l} {r}");
+    }
     use core::f32::consts::TAU;
 
     const SR: f32 = 48_000.0;
