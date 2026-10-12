@@ -50,6 +50,12 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
           </button>
         ))}
       </div>}
+      <div className="grid grid-cols-4 gap-y-2 p-2">
+        {machine.pages[page].params.map((p) => (
+          <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}
+            selected={selParam === p} onSelect={() => setSelParam(p)} />
+        ))}
+      </div>
       {machine.switches?.map((sw) => {
         const meta = machine.params[sw.param]
         const opts = meta.display?.kind === 'choice' ? meta.display.options : []
@@ -63,7 +69,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
           ;(e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[n])?.focus()
         }
         return (
-          <div key={sw.param} role="radiogroup" aria-label={sw.label} className="flex items-center gap-1 px-2 pt-2 text-[10px]">
+          <div key={sw.param} role="radiogroup" aria-label={sw.label} className="flex items-center gap-1 px-2 pb-2 text-[10px]">
             <span className="mr-1 text-zinc-400">{sw.label}</span>
             {opts.map((o, i) => (
               <button key={o} type="button" role="radio" aria-checked={i === idx} tabIndex={i === idx ? 0 : -1}
@@ -81,12 +87,6 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
           </div>
         )
       })}
-      <div className="grid grid-cols-4 gap-y-2 p-2">
-        {machine.pages[page].params.map((p) => (
-          <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}
-            selected={selParam === p} onSelect={() => setSelParam(p)} />
-        ))}
-      </div>
       {(state.mapping || routes.length > 0) && (
         <div className="flex min-h-7 flex-wrap items-center gap-1 border-t border-zinc-800 px-2 py-1">
           {state.mapping ? (
