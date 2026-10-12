@@ -23,7 +23,7 @@ export function MacroFaders({ state, store }: Props) {
           const armed = state.learn?.macro === m ? state.learn.side : null
           const selected = state.selectedMacro === m
           return (
-            <div key={m} className="grid min-h-0 grid-rows-[auto_1fr_auto] gap-1">
+            <div key={m} className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] gap-1">
               <div className="flex items-baseline justify-between gap-1 text-[10px]">
                 {editing === m ? (
                   <input aria-label={`Rename ${mac.name}`} autoFocus defaultValue={mac.name}
@@ -46,12 +46,10 @@ export function MacroFaders({ state, store }: Props) {
                 )}
                 <span className="tabular-nums text-zinc-400" aria-label={`${mac.targets.length} targets`}>{mac.targets.length}</span>
               </div>
-              <Fader label={`${mac.name} macro`} pos={mac.pos} defaultPos={0} empty={mac.targets.length === 0} tone="mod"
+              <ArmButton label={`${mac.name} A`} side="a" armed={armed === 'a'} onClick={() => store.armLearn(m, 'a')} />
+              <Fader label={`${mac.name} macro`} pos={mac.pos} defaultPos={0} empty={mac.targets.length === 0} tone="mod" invert
                 valueText={`${Math.round(mac.pos * 100)}`} onPos={(p) => store.setMacroPos(m, p)} />
-              <div className="grid grid-cols-2 gap-1">
-                <ArmButton label={`${mac.name} A`} side="a" armed={armed === 'a'} onClick={() => store.armLearn(m, 'a')} />
-                <ArmButton label={`${mac.name} B`} side="b" armed={armed === 'b'} onClick={() => store.armLearn(m, 'b')} />
-              </div>
+              <ArmButton label={`${mac.name} B`} side="b" armed={armed === 'b'} onClick={() => store.armLearn(m, 'b')} />
             </div>
           )
         })}

@@ -10,6 +10,8 @@ interface Props {
   meter?: number
   empty?: boolean
   tone?: 'mix' | 'mod'
+  /** Top = 0 (macros: A above, B below). */
+  invert?: boolean
   onPos(pos: number): void
 }
 
@@ -18,21 +20,27 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 export const meterHeight = (peak: number) => (peak > 0 ? Math.min(100, faderNormForDb(20 * Math.log10(peak)) * 100) : 0)
 
 /** Fill fader: relative drag (⇧ = fine), double-click = default, arrows ±0.01 (⇧ ±0.1), Home/End. */
-export function Fader({ label, pos, defaultPos, valueText, meter, empty = false, tone = 'mix', onPos }: Props) {
+export function Fader({ label, pos: value, defaultPos, valueText, meter, empty = false, tone = 'mix', invert = false, onPos: setValue }: Props) {
+  // work in screen space (0 = bottom); invert maps it back to the value
+  const pos = invert ? 1 - value : value
+  const onPos = (p: number) => setValue(invert ? 1 - p : p)
   const drag = useRef<{ y: number; pos: number; h: number } | null>(null)
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.shiftKey ? 0.1 : 0.01
     const keys: Record<string, number> = {
-      ArrowUp: pos + step, ArrowRight: pos + step, ArrowDown: pos - step, ArrowLeft: pos - step, Home: 0, End: 1,
+      ArrowUp: pos + step, ArrowRight: pos + step, ArrowDown: pos - step, ArrowLeft: pos - step,
     }
-    if (e.key in keys) {
+    if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault()
+      setValue(e.key === 'Home' ? 0 : 1)
+    } else if (e.key in keys) {
       e.preventDefault()
       onPos(clamp01(keys[e.key]))
     }
   }
   return (
     <div role="slider" tabIndex={0} aria-label={label} aria-orientation="vertical" aria-valuemin={0} aria-valuemax={100}
-      aria-valuenow={Math.round(pos * 100)} aria-valuetext={valueText}
+      aria-valuenow={Math.round(value * 100)} aria-valuetext={valueText}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId)
         drag.current = { y: e.clientY, pos, h: e.currentTarget.getBoundingClientRect().height || 100 }
@@ -45,7 +53,7 @@ export function Fader({ label, pos, defaultPos, valueText, meter, empty = false,
       }}
       onPointerUp={() => { drag.current = null }}
       onPointerCancel={() => { drag.current = null }}
-      onDoubleClick={() => onPos(defaultPos)}
+      onDoubleClick={() => setValue(defaultPos)}
       onKeyDown={onKey}
       className="relative h-full min-h-8 w-full cursor-ns-resize touch-none overflow-hidden bg-zinc-900 outline-none focus-visible:ring-1 focus-visible:ring-acc">
       <div className={`absolute inset-x-0 bottom-0 ${empty ? 'bg-zinc-800' : tone === 'mod' ? 'bg-mod/35' : 'bg-zinc-700'}`}

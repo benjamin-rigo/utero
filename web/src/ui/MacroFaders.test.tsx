@@ -35,7 +35,7 @@ test('A and B buttons arm and disarm learn', () => {
 test('keyboard moves a fader', () => {
   const store = setup()
   const fader = screen.getByRole('slider', { name: 'M1 macro' })
-  fireEvent.keyDown(fader, { key: 'ArrowUp', shiftKey: true })
+  fireEvent.keyDown(fader, { key: 'ArrowDown', shiftKey: true })
   expect(store.getState().macros[0].pos).toBeCloseTo(0.1)
   fireEvent.keyDown(fader, { key: 'End' })
   expect(store.getState().macros[0].pos).toBe(1)
