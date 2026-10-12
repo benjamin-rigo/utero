@@ -13,15 +13,24 @@ pub const LOW_CUT: usize = 7;
 pub const CEILING: usize = 8;
 pub const MODE: usize = 9;
 pub const LEVEL: usize = 10;
-/// Global insert-FX settings (used by every machine's delay/reverb), not part of the master chain itself.
+/// Global insert-FX settings (every machine's delay and reverb), not part of the master chain itself.
 pub const DLY_TIME: usize = 11;
 pub const DLY_FB: usize = 12;
-pub const DLY_TONE: usize = 13;
-pub const REV_SIZE: usize = 14;
-pub const REV_DECAY: usize = 15;
-pub const REV_DAMP: usize = 16;
-pub const REV_PRE: usize = 17;
-pub const MASTER_PARAM_COUNT: usize = 18;
+pub const DLY_PING: usize = 13;
+pub const DLY_WIDTH: usize = 14;
+pub const DLY_HPF: usize = 15;
+pub const DLY_LPF: usize = 16;
+pub const DLY_SAT: usize = 17;
+pub const DLY_WOW: usize = 18;
+pub const REV_SIZE: usize = 19;
+pub const REV_DECAY: usize = 20;
+pub const REV_ABSORB: usize = 21;
+pub const REV_PRE: usize = 22;
+pub const REV_HPF: usize = 23;
+pub const REV_TILT: usize = 24;
+pub const REV_SPEED: usize = 25;
+pub const REV_DEPTH: usize = 26;
+pub const MASTER_PARAM_COUNT: usize = 27;
 
 /// Order and default_norm are mirrored in web/src/state/machines.ts.
 pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
@@ -43,11 +52,21 @@ pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
     // index into fx::DELAY_BEATS (1/16 1/8 1/8D 1/4 1/4D 1/2); default 1/8D
     ParamDesc { name: "DLY TIME", min: 0.0, max: 5.0, default_norm: 0.4, curve: Curve::Step },
     ParamDesc { name: "DLY FB", min: 0.0, max: 0.95, default_norm: 0.45, curve: Curve::Lin },
-    ParamDesc { name: "DLY TONE", min: 500.0, max: 12_000.0, default_norm: 0.5, curve: Curve::Exp },
+    ParamDesc { name: "DLY PING", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
+    ParamDesc { name: "DLY WIDTH", min: 0.0, max: 1.0, default_norm: 1.0, curve: Curve::Lin },
+    ParamDesc { name: "DLY HPF", min: 20.0, max: 2_000.0, default_norm: 0.2, curve: Curve::Exp },
+    ParamDesc { name: "DLY LPF", min: 500.0, max: 16_000.0, default_norm: 0.6, curve: Curve::Exp },
+    ParamDesc { name: "DLY SAT", min: 0.0, max: 1.0, default_norm: 0.2, curve: Curve::Lin },
+    ParamDesc { name: "DLY WOW", min: 0.0, max: 1.0, default_norm: 0.15, curve: Curve::Lin },
     ParamDesc { name: "REV SIZE", min: 0.0, max: 1.0, default_norm: 0.6, curve: Curve::Lin },
     ParamDesc { name: "REV DECAY", min: 0.3, max: 12.0, default_norm: 0.5, curve: Curve::Exp },
-    ParamDesc { name: "REV DAMP", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
-    ParamDesc { name: "REV PRE", min: 0.0, max: 100.0, default_norm: 0.1, curve: Curve::Lin },
+    ParamDesc { name: "REV ABSORB", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
+    ParamDesc { name: "REV PRE", min: 0.0, max: 250.0, default_norm: 0.08, curve: Curve::Lin },
+    ParamDesc { name: "REV HPF", min: 20.0, max: 1_000.0, default_norm: 0.35, curve: Curve::Exp },
+    // 0 dark … 0.5 flat … 1 bright
+    ParamDesc { name: "REV TILT", min: 0.0, max: 1.0, default_norm: 0.5, curve: Curve::Lin },
+    ParamDesc { name: "REV SPEED", min: 0.05, max: 5.0, default_norm: 0.4, curve: Curve::Exp },
+    ParamDesc { name: "REV DEPTH", min: 0.0, max: 1.0, default_norm: 0.3, curve: Curve::Lin },
 ];
 
 const TILT_HZ: f32 = 800.0;

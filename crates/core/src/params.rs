@@ -39,7 +39,7 @@ impl ParamDesc {
     }
 }
 
-pub const MAX_PARAMS: usize = 24;
+pub const MAX_PARAMS: usize = 32;
 
 /// Smoothed normalised base values of one machine, bus or master, mapped through its `ParamDesc` table.
 pub struct ParamBank {

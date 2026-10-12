@@ -1,7 +1,7 @@
 use crate::bass::{bass_params, BassVoice};
 use crate::bus::{self, Bus, BUSES};
 use crate::dsp::midi_to_hz;
-use crate::fx::{FxChain, FxGlobals, DELAY_BEATS, FX_BASE, FX_COUNT, FX_FILTER_MODE};
+use crate::fx::{DelaySettings, FxChain, FxGlobals, Modes, ReverbSettings, DELAY_BEATS, FX_BASE, FX_COUNT, FX_DRIVE_MODE, FX_FILTER_MODE};
 use crate::kick::{kick_params, KickVoice};
 use crate::macros::{MacroTarget, Macros};
 use crate::master::{self, Master};
@@ -193,13 +193,26 @@ impl Engine {
     fn fx_globals(&self, bpm: f32) -> FxGlobals {
         let p = &self.master.params;
         FxGlobals {
-            delay_beats: DELAY_BEATS[(p.get(master::DLY_TIME).round() as usize).min(DELAY_BEATS.len() - 1)],
-            delay_fb: p.get(master::DLY_FB),
-            delay_tone: p.get(master::DLY_TONE),
-            rev_size: p.get(master::REV_SIZE),
-            rev_decay: p.get(master::REV_DECAY),
-            rev_damp: p.get(master::REV_DAMP),
-            rev_pre_ms: p.get(master::REV_PRE),
+            delay: DelaySettings {
+                beats: DELAY_BEATS[(p.get(master::DLY_TIME) as usize).min(DELAY_BEATS.len() - 1)],
+                feedback: p.get(master::DLY_FB),
+                ping: p.get(master::DLY_PING),
+                width: p.get(master::DLY_WIDTH),
+                hpf: p.get(master::DLY_HPF),
+                lpf: p.get(master::DLY_LPF),
+                sat: p.get(master::DLY_SAT),
+                wow: p.get(master::DLY_WOW),
+            },
+            reverb: ReverbSettings {
+                size: p.get(master::REV_SIZE),
+                decay_s: p.get(master::REV_DECAY),
+                absorb: p.get(master::REV_ABSORB),
+                pre_ms: p.get(master::REV_PRE),
+                hpf: p.get(master::REV_HPF),
+                tilt: p.get(master::REV_TILT),
+                speed_hz: p.get(master::REV_SPEED),
+                depth: p.get(master::REV_DEPTH),
+            },
             bpm,
         }
     }
@@ -303,7 +316,8 @@ impl Engine {
             self.macros.advance();
 
             let globals = self.fx_globals(bpm);
-            let mut bus_in = [0.0_f32; BUSES];
+            let mut bus_l = [0.0_f32; BUSES];
+            let mut bus_r = [0.0_f32; BUSES];
             for t in 0..TRACKS {
                 if matches!(self.machines[t].voice, Voice::None) {
                     continue;
@@ -319,21 +333,23 @@ impl Engine {
                     Voice::Bass(v) => (v.render(params), midi_to_hz(v.pitch())),
                     Voice::None => (0.0, 0.0),
                 };
-                let y = match fx {
+                let (l, r) = match fx {
                     Some(chain) => {
                         let amounts: [f32; FX_COUNT] = core::array::from_fn(|k| params.get(FX_BASE + k));
-                        chain.process(dry, &amounts, params.get(FX_FILTER_MODE), pitch_hz, &globals)
+                        let modes = Modes { filter: params.get(FX_FILTER_MODE), drive: params.get(FX_DRIVE_MODE), pitch_hz };
+                        chain.process(dry, &amounts, &modes, &globals)
                     }
-                    None => dry,
+                    None => (dry, dry),
                 };
-                bus_in[TRACK_BUS[t]] += y;
+                bus_l[TRACK_BUS[t]] += l;
+                bus_r[TRACK_BUS[t]] += r;
             }
 
             let (mut mix_l, mut mix_r) = (0.0, 0.0);
             for b in 0..BUSES {
                 let norms = self.resolve(TRACKS + b);
                 self.buses[b].params.apply_norms(&norms);
-                let (l, r) = self.buses[b].process(bus_in[b], bus_in[b], 0.0, 0.0);
+                let (l, r) = self.buses[b].process(bus_l[b], bus_r[b], 0.0, 0.0);
                 mix_l += l;
                 mix_r += r;
             }
@@ -568,7 +584,7 @@ mod tests {
         assert_eq!(e.snapshot[SNAP_PLAYHEADS], e.playhead(0) as f32);
         assert_eq!(e.snapshot[SNAP_MODS + 2], e.mod_output(2));
         assert_eq!(e.snapshot[SNAP_EFFECTIVE + DECAY], e.effective_norm(0, DECAY));
-        assert_eq!(SNAP_LEN, 564);
+        assert_eq!(SNAP_LEN, 732);
     }
 
     #[test]

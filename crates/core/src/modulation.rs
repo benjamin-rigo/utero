@@ -352,7 +352,7 @@ pub const MAX_ROUTES: usize = 64;
 pub const MOD_ROWS: usize = 21;
 /// Default ENV modulator: 5 ms attack, no hold, 400 ms decay to 0, 200 ms release (mirrored in web).
 pub const DEFAULT_ENV: [f32; ENV_COUNT] = [0.25, 0.0, 0.667, 0.0, 0.59];
-pub const MOD_PARAMS: usize = 24;
+pub const MOD_PARAMS: usize = 32;
 
 /// Per-sample fade of route amounts (~10 ms at 48 kHz): adding or removing a route never clicks.
 const ROUTE_FADE: f32 = 0.002;
