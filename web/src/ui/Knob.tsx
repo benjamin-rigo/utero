@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, type DragEvent, type KeyboardEvent, type PointerEvent } from 'react'
 import { MOD_DRAG_TYPE } from '@/state/modulation'
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
@@ -32,8 +32,10 @@ export interface KnobProps {
   onModAmount?(delta: number): void
   onDropModulator?(slot: number): void
   onSelect?(): void
-  /** 'sm' renders 40 px (mixer), 'xs' a bare 24 px dial (no label/value; the caller shows them), default 56 px. */
-  size?: 'md' | 'sm' | 'xs'
+  /** 'sm' renders 40 px, 'xs' a bare 24 px dial (no label/value), 'slot' a full-width value bar (mixer/master/mod), default 56 px. */
+  size?: 'md' | 'sm' | 'xs' | 'slot'
+  /** Slot fill grows from the centre (filters, pan, tilt). */
+  bipolar?: boolean
   /** Accessible name when the visible label is not unique (e.g. 'KICK filter'). */
   ariaLabel?: string
   /** Shows the value in real units (dB, Hz, ms…); defaults to 0–100. */
@@ -52,9 +54,9 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc',
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false,
 }: KnobProps) {
-  const drag = useRef<{ y: number; mode: 'value' | 'mod' } | null>(null)
+  const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
   // while dragging keep the unquantised position, so discrete knobs can travel between positions
   if (!drag.current) current.current = value
@@ -76,66 +78,97 @@ export function Knob({
   const dot = pointAt(display, R)
   const pct = (v: number) => Math.round(v * 100)
 
+  const slider = {
+    role: 'slider' as const,
+    tabIndex: 0,
+    'aria-label': ariaLabel ?? label,
+    'aria-valuemin': 0,
+    'aria-valuemax': 100,
+    'aria-valuenow': pct(value),
+    'aria-valuetext': map
+      ? `${map.label} amount ${signed(map.amount)}`
+      : `${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`,
+    onPointerEnter: () => onHover?.(true),
+    onPointerLeave: () => onHover?.(false),
+    onPointerDown: (e: PointerEvent<Element>) => {
+      const box = e.currentTarget.getBoundingClientRect()
+      const scale = box.width / SIZE || 1
+      const dist = Math.hypot(e.clientX - (box.left + box.width / 2), e.clientY - (box.top + box.height / 2)) / scale
+      const mode = size !== 'slot' && !map && onModAmount && modAmount !== 0 && dist > MOD_RING_RADIUS ? 'mod' : 'value'
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+      drag.current = { x: e.clientX, y: e.clientY, mode }
+      current.current = value
+    },
+    onPointerMove: (e: PointerEvent<Element>) => {
+      if (!drag.current) return
+      // slots also follow horizontal drags (left/right reads naturally on a bar)
+      const moved = (drag.current.y - e.clientY) + (size === 'slot' ? e.clientX - drag.current.x : 0)
+      const delta = moved / (e.shiftKey ? 1000 : 200)
+      drag.current.x = e.clientX
+      drag.current.y = e.clientY
+      if (drag.current.mode === 'mod') onModAmount?.(delta)
+      else nudge(delta)
+    },
+    onPointerUp: () => { drag.current = null },
+    onPointerCancel: () => { drag.current = null },
+    onLostPointerCapture: () => { drag.current = null },
+    onDoubleClick: () => (map ? onMapClear?.() : onChange(defaultValue)),
+    onKeyDown: (e: KeyboardEvent<Element>) => {
+      const step = steps && !map ? 1 / (steps - 1) : e.shiftKey ? 0.001 : 0.01
+      const keys: Record<string, () => void> = {
+        ArrowUp: () => nudge(step), ArrowRight: () => nudge(step),
+        ArrowDown: () => nudge(-step), ArrowLeft: () => nudge(-step),
+        Home: () => { if (!map) onChange(0) }, End: () => { if (!map) onChange(1) },
+      }
+      const action = keys[e.key]
+      if (action) {
+        e.preventDefault()
+        action()
+      }
+    },
+    onDragOver: (e: DragEvent<Element>) => {
+      if (onDropModulator && Array.from(e.dataTransfer.types).includes(MOD_DRAG_TYPE)) e.preventDefault()
+    },
+    onDrop: (e: DragEvent<Element>) => {
+      const raw = e.dataTransfer.getData(MOD_DRAG_TYPE)
+      if (!onDropModulator || raw === '') return
+      e.preventDefault()
+      onDropModulator(Number(raw))
+    },
+  }
+  const shown = map ? signed(map.amount) : format ? format(display) : pct(display)
+
+  if (size === 'slot') {
+    const span = (from: number, to: number) => ({ left: `${Math.min(from, to) * 100}%`, width: `${Math.abs(to - from) * 100}%` })
+    return (
+      <div {...slider}
+        className={`relative h-5 w-full cursor-ns-resize touch-none overflow-hidden bg-zinc-900 text-[10px] outline-none select-none focus-visible:ring-1 focus-visible:ring-zinc-100 ${learning ? 'ring-1 ring-red-500' : ''}`}>
+        <div className="absolute inset-y-0 bg-zinc-700" style={span(bipolar ? 0.5 : 0, display)} />
+        <div className="absolute inset-y-0 w-px bg-zinc-300" style={{ left: `${value * 100}%` }} />
+        {ring !== 0 && <div className="absolute bottom-0 h-0.5 bg-mod" style={span(value, clamp01(value + ring))} />}
+        {map && <div className="absolute inset-0 border border-dashed border-mod/50" />}
+        {markers && (
+          <>
+            <div className="absolute top-0 h-1 w-px bg-zinc-400" style={{ left: `${markers.a * 100}%` }} />
+            <div className="absolute top-0 h-1 w-px bg-mod" style={{ left: `${markers.b * 100}%` }} />
+          </>
+        )}
+        <div className="relative flex h-full items-center justify-between gap-1 px-1 leading-none">
+          <span className="truncate lowercase text-zinc-400">{label}</span>
+          <span className={`tabular-nums ${map ? 'text-mod' : 'text-zinc-200'}`}>{shown}</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col items-center gap-0.5 select-none">
       <svg
-        role="slider"
-        tabIndex={0}
-        aria-label={ariaLabel ?? label}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct(value)}
-        aria-valuetext={map
-          ? `${map.label} amount ${signed(map.amount)}`
-          : `${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`}
+        {...slider}
         width={size === 'xs' ? 24 : size === 'sm' ? 40 : SIZE}
         height={size === 'xs' ? 24 : size === 'sm' ? 40 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
-        onPointerEnter={() => onHover?.(true)}
-        onPointerLeave={() => onHover?.(false)}
-        onPointerDown={(e) => {
-          const box = e.currentTarget.getBoundingClientRect()
-          const scale = box.width / SIZE || 1
-          const dist = Math.hypot(e.clientX - (box.left + box.width / 2), e.clientY - (box.top + box.height / 2)) / scale
-          const mode = !map && onModAmount && modAmount !== 0 && dist > MOD_RING_RADIUS ? 'mod' : 'value'
-          e.currentTarget.setPointerCapture?.(e.pointerId)
-          drag.current = { y: e.clientY, mode }
-          current.current = value
-        }}
-        onPointerMove={(e) => {
-          if (!drag.current) return
-          const delta = (drag.current.y - e.clientY) / (e.shiftKey ? 1000 : 200)
-          drag.current.y = e.clientY
-          if (drag.current.mode === 'mod') onModAmount?.(delta)
-          else nudge(delta)
-        }}
-        onPointerUp={() => { drag.current = null }}
-        onPointerCancel={() => { drag.current = null }}
-        onLostPointerCapture={() => { drag.current = null }}
-        onDoubleClick={() => (map ? onMapClear?.() : onChange(defaultValue))}
-        onKeyDown={(e) => {
-          const step = steps && !map ? 1 / (steps - 1) : e.shiftKey ? 0.001 : 0.01
-          const keys: Record<string, () => void> = {
-            ArrowUp: () => nudge(step), ArrowRight: () => nudge(step),
-            ArrowDown: () => nudge(-step), ArrowLeft: () => nudge(-step),
-            Home: () => { if (!map) onChange(0) }, End: () => { if (!map) onChange(1) },
-          }
-          const action = keys[e.key]
-          if (action) {
-            e.preventDefault()
-            action()
-          }
-        }}
-        onDragOver={(e) => {
-          if (onDropModulator && Array.from(e.dataTransfer.types).includes(MOD_DRAG_TYPE)) e.preventDefault()
-        }}
-        onDrop={(e) => {
-          const raw = e.dataTransfer.getData(MOD_DRAG_TYPE)
-          if (!onDropModulator || raw === '') return
-          e.preventDefault()
-          onDropModulator(Number(raw))
-        }}
       >
         <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-zinc-800"
           strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
@@ -165,7 +198,7 @@ export function Knob({
       </button>
       {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
       <span className={`${size === 'sm' ? 'text-[10px]' : 'text-sm'} tabular-nums ${map ? 'text-mod' : ''}`}>
-        {map ? signed(map.amount) : format ? format(display) : pct(display)}
+        {shown}
       </span>
         </>
       )}

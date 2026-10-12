@@ -13,14 +13,15 @@ interface Props {
   row: number
   param: number
   meta: ParamMeta
-  size?: 'md' | 'sm' | 'xs'
+  size?: 'md' | 'sm' | 'xs' | 'slot'
+  bipolar?: boolean
   ariaLabel?: string
   selected?: boolean
   onSelect?(): void
 }
 
 /** A knob bound to (row, param): edits the base or the armed macro endpoint, shows live value, takes modulators. */
-export function ParamKnob({ state, frame, store, row, param: p, meta, size, ariaLabel, selected, onSelect }: Props) {
+export function ParamKnob({ state, frame, store, row, param: p, meta, size, bipolar, ariaLabel, selected, onSelect }: Props) {
   const learn = state.learn
   const marker = state.macros[state.selectedMacro].targets.find((x) => x.track === row && x.param === p)
   const learnTarget = learn ? state.macros[learn.macro].targets.find((x) => x.track === row && x.param === p) : undefined
@@ -30,7 +31,7 @@ export function ParamKnob({ state, frame, store, row, param: p, meta, size, aria
   const mapAmount = mapRoute ? mapRoute.amount : 0
   const display = learn ? value : frame ? effectiveOf(frame, row, p) : effectiveValue(state, row, p)
   return (
-    <Knob label={meta.name} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} size={size} value={value} display={display} defaultValue={meta.default}
+    <Knob label={meta.name} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} size={size} bipolar={bipolar} value={value} display={display} defaultValue={meta.default}
       modAmount={modAmountFor(state, row, p)} markers={marker ? { a: marker.a, b: marker.b } : null}
       learning={learn !== null} selected={selected}
       onChange={(v) => store.setParam(row, p, v)}
