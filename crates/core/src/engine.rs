@@ -237,6 +237,10 @@ impl Engine {
         self.mods.set_step_len(slot, len);
     }
 
+    pub fn set_mod_env(&mut self, slot: usize, norms: [f32; crate::env::ENV_COUNT]) {
+        self.mods.set_env(slot, norms);
+    }
+
     pub fn set_route(&mut self, index: usize, route: Route) {
         self.mods.set_route(index, route);
     }

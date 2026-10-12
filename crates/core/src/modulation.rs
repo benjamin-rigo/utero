@@ -1,5 +1,6 @@
 use core::f32::consts::{PI, TAU};
 
+use crate::env::{Ahdsr, EnvTimes, ENV_COUNT};
 use crate::rng::Rng;
 
 pub const STEP_COUNT: usize = 16;
@@ -19,6 +20,8 @@ pub enum ModKind {
     Lfo,
     Noise,
     Step,
+    /// AHDSR fired by its trigger-source track (unipolar 0..1 before depth).
+    Env,
 }
 
 impl ModKind {
@@ -27,6 +30,7 @@ impl ModKind {
             1 => ModKind::Lfo,
             2 => ModKind::Noise,
             3 => ModKind::Step,
+            4 => ModKind::Env,
             _ => ModKind::Off,
         }
     }
@@ -160,6 +164,8 @@ pub struct Modulator {
     done: bool,
     out: f32,
     rng: Rng,
+    env: Ahdsr,
+    env_times: EnvTimes,
 }
 
 impl Modulator {
@@ -179,6 +185,8 @@ impl Modulator {
             done: false,
             out: 0.0,
             rng,
+            env: Ahdsr::default(),
+            env_times: EnvTimes::from_norms(DEFAULT_ENV),
         }
     }
 
@@ -203,6 +211,13 @@ impl Modulator {
         self.step_len = len.clamp(1, STEP_COUNT as u8);
     }
 
+    /// ATK HOLD DEC SUS REL as normalised values (same ranges as the machines' amp envelope).
+    pub fn set_env(&mut self, norms: [f32; ENV_COUNT]) {
+        if norms.iter().all(|v| v.is_finite()) {
+            self.env_times = EnvTimes::from_norms(norms.map(|v| v.clamp(0.0, 1.0)));
+        }
+    }
+
     pub fn restart(&mut self) {
         self.phase = self.settings.phase;
         self.done = false;
@@ -211,6 +226,10 @@ impl Modulator {
 
     /// Called when the track named in `trig_src` fires.
     pub fn on_trigger(&mut self) {
+        if self.settings.kind == ModKind::Env {
+            self.env.trigger();
+            return;
+        }
         match self.settings.trig_mode {
             TrigMode::Retrig | TrigMode::OneShot => self.restart(),
             TrigMode::Free => {
@@ -226,7 +245,7 @@ impl Modulator {
     }
 
     /// Advances by `inc` cycles and returns the output (bipolar −1..1 or unipolar 0..1, times depth).
-    pub fn next(&mut self, inc: f32) -> f32 {
+    pub fn next(&mut self, inc: f32, sample_rate: f32) -> f32 {
         let s = self.settings;
         let raw = match s.kind {
             ModKind::Off => {
@@ -235,6 +254,7 @@ impl Modulator {
             }
             ModKind::Lfo => self.lfo(s, inc),
             ModKind::Noise => self.noise(s.color),
+            ModKind::Env => self.env.next(&self.env_times, sample_rate) * 2.0 - 1.0,
             ModKind::Step => {
                 self.advance_phase(inc);
                 let len = self.step_len as usize;
@@ -330,6 +350,8 @@ impl Modulator {
 pub const MOD_SLOTS: usize = 16;
 pub const MAX_ROUTES: usize = 64;
 pub const MOD_ROWS: usize = 21;
+/// Default ENV modulator: 5 ms attack, no hold, 400 ms decay to 0, 200 ms release (mirrored in web).
+pub const DEFAULT_ENV: [f32; ENV_COUNT] = [0.25, 0.0, 0.667, 0.0, 0.59];
 pub const MOD_PARAMS: usize = 24;
 
 /// Per-sample fade of route amounts (~10 ms at 48 kHz): adding or removing a route never clicks.
@@ -394,6 +416,12 @@ impl ModMatrix {
         }
     }
 
+    pub fn set_env(&mut self, slot: usize, norms: [f32; ENV_COUNT]) {
+        if let Some(m) = self.mods.get_mut(slot) {
+            m.set_env(norms);
+        }
+    }
+
     pub fn set_route(&mut self, index: usize, route: Route) {
         let valid = (route.src as usize) < MOD_SLOTS
             && (route.target.track as usize) < MOD_ROWS
@@ -440,7 +468,7 @@ impl ModMatrix {
         for m in &mut self.mods {
             let s = m.settings();
             let inc = if s.sync { 1.0 / (SYNC_BARS[s.rate_index as usize] * samples_per_bar) } else { s.hz / sample_rate };
-            m.next(inc);
+            m.next(inc, sample_rate);
         }
         self.sums = [[0.0; MOD_PARAMS]; MOD_ROWS];
         for slot in &mut self.routes {
@@ -469,6 +497,20 @@ impl ModMatrix {
 mod tests {
     use super::*;
 
+    #[test]
+    fn env_modulator_fires_on_its_track_and_decays() {
+        let mut m = ModMatrix::new();
+        m.set_modulator(0, ModSettings { kind: ModKind::Env, bipolar: false, trig_src: 7, ..ModSettings::default() });
+        advance(&mut m, 100);
+        assert_eq!(m.output(0), 0.0);
+        m.on_track_trigger(7);
+        // ~4.7 ms attack (226 samples), then the peak
+        advance(&mut m, 240);
+        assert!(m.output(0) > 0.99, "{}", m.output(0));
+        advance(&mut m, 48_000);
+        assert!(m.output(0) < 1e-3, "{}", m.output(0));
+    }
+
     fn lfo(shape: Shape) -> Modulator {
         let mut m = Modulator::new(7);
         m.set_settings(ModSettings { kind: ModKind::Lfo, shape, ..ModSettings::default() });
@@ -476,7 +518,7 @@ mod tests {
     }
 
     fn run(m: &mut Modulator, n: usize, inc: f32) -> Vec<f32> {
-        (0..n).map(|_| m.next(inc)).collect()
+        (0..n).map(|_| m.next(inc, 48_000.0)).collect()
     }
 
     #[test]
@@ -528,7 +570,7 @@ mod tests {
         assert!(held.windows(2).all(|w| w[0] == w[1]));
         let before = m.output();
         m.on_trigger();
-        assert_ne!(m.next(0.05), before);
+        assert_ne!(m.next(0.05, 48_000.0), before);
     }
 
     #[test]
@@ -537,7 +579,7 @@ mod tests {
         m.set_settings(ModSettings { kind: ModKind::Lfo, shape: Shape::Ramp, trig_mode: TrigMode::Retrig, ..ModSettings::default() });
         run(&mut m, 50, 0.01);
         m.on_trigger();
-        assert!((m.next(0.01) - (-0.98)).abs() < 1e-3);
+        assert!((m.next(0.01, 48_000.0) - (-0.98)).abs() < 1e-3);
     }
 
     #[test]

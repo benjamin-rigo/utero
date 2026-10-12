@@ -128,6 +128,11 @@ pub extern "C" fn utero_set_mod_step(slot: u32, index: u32, value: f32) {
 }
 
 #[no_mangle]
+pub extern "C" fn utero_set_mod_env(slot: u32, a: f32, h: f32, d: f32, s: f32, r: f32) {
+    eng().set_mod_env(slot as usize, [a, h, d, s, r]);
+}
+
+#[no_mangle]
 pub extern "C" fn utero_set_mod_step_len(slot: u32, len: u32) {
     eng().set_mod_step_len(slot as usize, byte(len));
 }
