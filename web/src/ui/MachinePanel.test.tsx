@@ -90,3 +90,27 @@ test('BASS shows 8 knobs and a SUB OCT switch', () => {
   fireEvent.keyDown(screen.getByRole('radio', { name: '0' }), { key: 'End' })
   expect(store.getState().tracks[7].params[8]).toBe(1)
 })
+
+test('the insert FX grid: filter click cycles its mode, delay double-click opens its settings', () => {
+  const store = setup()
+  const filter = screen.getByRole('slider', { name: 'filter' })
+  fireEvent.pointerDown(filter, { clientX: 0, clientY: 0, pointerId: 1 })
+  fireEvent.pointerUp(filter, { pointerId: 1 })
+  expect(store.getState().tracks[0].params[15]).toBe(0.5)
+  expect(screen.getByRole('button', { name: 'filter' }).textContent).toBe('hp')
+  fireEvent.doubleClick(screen.getByRole('slider', { name: 'delay' }))
+  expect(screen.getByRole('region', { name: 'delay settings' })).toBeTruthy()
+  expect(screen.getByRole('slider', { name: 'DLY TIME' }).getAttribute('aria-valuetext')).toBe('1/8D')
+  fireEvent.click(screen.getByRole('button', { name: '‹ delay' }))
+  expect(screen.getByRole('region', { name: 'Insert FX' })).toBeTruthy()
+})
+
+test('dropping an FX label onto another knob reorders the chain', () => {
+  const store = setup()
+  const data: Record<string, string> = {}
+  const dataTransfer = { setData: (k: string, v: string) => { data[k] = v }, getData: (k: string) => data[k] ?? '', types: ['application/x-utero-fx'], effectAllowed: '' }
+  fireEvent.dragStart(screen.getByRole('button', { name: 'reverb' }), { dataTransfer })
+  // svg → Knob wrapper → FX cell (the drop target)
+  fireEvent.drop(screen.getByRole('slider', { name: 'drive' }).parentElement!.parentElement!, { dataTransfer })
+  expect(store.getState().tracks[0].fxOrder[0]).toBe(7)
+})

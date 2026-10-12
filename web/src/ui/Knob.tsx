@@ -41,6 +41,12 @@ export interface KnobProps {
   bipolar?: boolean
   /** Live gain reduction in dB (comp/limiter), drawn as an inner arc over 0–12 dB. */
   reduction?: number
+  /** A press without drag (e.g. cycle the filter mode). */
+  onTap?(): void
+  /** Replaces double-click = default (e.g. open the delay/reverb settings). */
+  onOpen?(): void
+  /** Makes the label a drag handle (reordering the FX chain). */
+  onLabelDragStart?(e: DragEvent<HTMLButtonElement>): void
   /** Accessible name when the visible label is not unique (e.g. 'KICK filter'). */
   ariaLabel?: string
   /** Shows the value in real units (dB, Hz, ms…); defaults to 0–100. */
@@ -59,9 +65,9 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart,
 }: KnobProps) {
-  const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod' } | null>(null)
+  const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod'; travel: number } | null>(null)
   const current = useRef(value)
   // while dragging keep the unquantised position, so discrete knobs can travel between positions
   if (!drag.current) current.current = value
@@ -101,7 +107,7 @@ export function Knob({
       const dist = Math.hypot(e.clientX - (box.left + box.width / 2), e.clientY - (box.top + box.height / 2)) / scale
       const mode = size !== 'slot' && !map && onModAmount && modAmount !== 0 && dist > MOD_RING_RADIUS ? 'mod' : 'value'
       e.currentTarget.setPointerCapture?.(e.pointerId)
-      drag.current = { x: e.clientX, y: e.clientY, mode }
+      drag.current = { x: e.clientX, y: e.clientY, mode, travel: 0 }
       current.current = value
     },
     onPointerMove: (e: PointerEvent<Element>) => {
@@ -110,16 +116,20 @@ export function Knob({
       const dy = drag.current.y - e.clientY
       const dx = size === 'slot' ? e.clientX - drag.current.x : 0
       const moved = Math.abs(dx) > Math.abs(dy) ? dx : dy
+      drag.current.travel += Math.abs(dx) + Math.abs(dy)
       const delta = moved / (e.shiftKey ? 1000 : 200)
       drag.current.x = e.clientX
       drag.current.y = e.clientY
       if (drag.current.mode === 'mod') onModAmount?.(delta)
       else nudge(delta)
     },
-    onPointerUp: () => { drag.current = null },
+    onPointerUp: () => {
+      if (drag.current && drag.current.travel < 3) onTap?.()
+      drag.current = null
+    },
     onPointerCancel: () => { drag.current = null },
     onLostPointerCapture: () => { drag.current = null },
-    onDoubleClick: () => (map ? onMapClear?.() : onChange(defaultValue)),
+    onDoubleClick: () => (map ? onMapClear?.() : onOpen ? onOpen() : onChange(defaultValue)),
     onKeyDown: (e: KeyboardEvent<Element>) => {
       const step = steps && !map ? 1 / (steps - 1) : e.shiftKey ? 0.001 : 0.01
       const keys: Record<string, () => void> = {
@@ -204,6 +214,7 @@ export function Knob({
 {size !== 'xs' && (
         <>
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
+        draggable={onLabelDragStart !== undefined} onDragStart={onLabelDragStart}
         className={`rounded text-[10px] uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
         {label}
       </button>

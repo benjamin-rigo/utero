@@ -3,6 +3,7 @@ import { MACHINES, type MachineDef } from '@/state/machines'
 import { modLabel } from '@/state/modulation'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
+import { FxGrid } from './FxGrid'
 import { ParamKnob } from './ParamKnob'
 
 interface Props {
@@ -86,6 +87,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
           </div>
         )
       })}
+      <FxGrid state={state} frame={frame} store={store} track={t} machine={machine} />
       {routes.length > 0 && (
         <div className="flex min-h-7 flex-wrap items-center gap-px border-t border-zinc-800 px-2 py-1">
           <span className="mr-1 lowercase text-zinc-400">{machine.params[selParam].name}</span>
