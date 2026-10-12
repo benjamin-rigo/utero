@@ -8,7 +8,7 @@ import type { AppState, ModKind, ModulatorState } from '@/state/types'
 import { Knob } from './Knob'
 import { MacroFaders } from './MacroFaders'
 import { Segmented } from './Segmented'
-import { envMeta, ENV_NAMES, formatParam, paramLabel } from '@/state/machines'
+import { envMeta, ENV_NAMES, ENV_SHOWN, formatParam, paramLabel } from '@/state/machines'
 import { EnvGraph } from './EnvGraph'
 
 const W = 100
@@ -147,11 +147,11 @@ function ModPage({ slot, m, mapping, tracks, routes, store }: PageProps) {
         </div>
         {m.kind === 4 && (
           <div className="flex min-h-0 flex-col gap-px">
-            <div className="h-9">
+            <div className="h-12">
               <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />
             </div>
-            <div className="grid grid-cols-5 gap-px">
-              {ENV_NAMES.map((n, i) => (
+            <div className="grid grid-cols-3 gap-px">
+              {ENV_NAMES.slice(0, ENV_SHOWN).map((n, i) => (
                 <Knob key={n} size="slot" label={n} ariaLabel={`${modLabel(slot, m)} ${n}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
                   format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
               ))}

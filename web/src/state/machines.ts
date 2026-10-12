@@ -91,6 +91,8 @@ export const DEFAULT_FX_ORDER = [0, 1, 2, 3, 4, 5, 6, 7]
 /** Amp envelope at row 10..14 (mirrors crates/core/src/env.rs); also the ENV modulator's ranges. */
 export const ENV_BASE = 10
 export const ENV_NAMES = ['ATK', 'HOLD', 'DEC', 'SUS', 'REL']
+/** Shown stages: AHD (SUS stays 0, so REL has nothing to release; both are kept in the engine, hidden here). */
+export const ENV_SHOWN = 3
 export const ENV_DISPLAYS: Display[] = [ms(0.5, 4000), ms(0.5, 4000), ms(1, 8000), pct, ms(1, 8000)]
 export const envMeta = (i: number, def: number): ParamMeta => ({ name: ENV_NAMES[i], default: def, display: ENV_DISPLAYS[i] })
 

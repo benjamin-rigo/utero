@@ -49,13 +49,13 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
           </button>
         ))}
       </div>}
+      <AmpEnv state={state} frame={frame} store={store} track={t} machine={machine} />
       <div className="grid grid-cols-4 gap-y-2 p-2">
         {machine.pages[page].params.map((p, i) => (p < 0 ? <div key={`empty${i}`} aria-hidden="true" /> : (
           <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}
             selected={selParam === p} onSelect={() => setSelParam(p)} />
         )))}
       </div>
-      <AmpEnv state={state} frame={frame} store={store} track={t} machine={machine} />
       {machine.switches?.map((sw) => {
         const meta = machine.params[sw.param]
         const opts = meta.display?.kind === 'choice' ? meta.display.options : []
