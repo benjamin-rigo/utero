@@ -7,7 +7,9 @@ const names = ['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'BASS', 'LD1',
 test('param tables mirror the engine', () => {
   expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', 'DECAY', 'CLICK', 'NOISE', 'TONE', 'LEVEL'])
   expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.51, 0.2, 0.14, 0.2, 0.176, 0, 0.8, 1])
-  expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8])
+  expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8, 0.5])
+  expect(formatParam(BUS_PARAMS[3], 0.5)).toBe("C")
+  expect(formatParam(BUS_PARAMS[3], 0.25)).toBe("L50")
   expect(MASTER_PARAMS.map((p) => p.default)).toEqual([0.2, 0.6, 0.5, 1, 0.1, 0.5, 0.5, 0, 0.975, 0, 0.6402])
 })
 

@@ -5,6 +5,7 @@ export type Display =
   | { kind: 'range'; min: number; max: number; curve?: 'lin' | 'exp'; unit: string; digits?: number; signed?: boolean }
   | { kind: 'choice'; options: string[] }
   | { kind: 'djfilter' }
+  | { kind: 'pan' }
 
 export interface ParamMeta {
   name: string

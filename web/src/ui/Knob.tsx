@@ -7,6 +7,9 @@ const MID = SIZE / 2
 const R = 18
 const C = 2 * Math.PI * R
 const RM = 24
+/** Inner ring for gain reduction. */
+const RR = 12
+const CR = 2 * Math.PI * RR
 const CM = 2 * Math.PI * RM
 /** Drags beyond this radius (in knob units) edit the modulation amount. */
 const MOD_RING_RADIUS = 21
@@ -36,6 +39,8 @@ export interface KnobProps {
   size?: 'md' | 'sm' | 'xs' | 'slot'
   /** Slot fill grows from the centre (filters, pan, tilt). */
   bipolar?: boolean
+  /** Live gain reduction in dB (comp/limiter), drawn as an inner arc over 0–12 dB. */
+  reduction?: number
   /** Accessible name when the visible label is not unique (e.g. 'KICK filter'). */
   ariaLabel?: string
   /** Shows the value in real units (dB, Hz, ms…); defaults to 0–100. */
@@ -54,7 +59,7 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction,
 }: KnobProps) {
   const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod' } | null>(null)
   const current = useRef(value)
@@ -87,7 +92,7 @@ export function Knob({
     'aria-valuenow': pct(value),
     'aria-valuetext': map
       ? `${map.label} amount ${signed(map.amount)}`
-      : `${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${learning ? ', LEARN' : ''}`,
+      : `${format ? format(display) : pct(display)}${modAmount ? `, modulated ${pct(modAmount)}` : ''}${reduction ? `, reducing ${reduction.toFixed(1)} dB` : ''}${learning ? ', LEARN' : ''}`,
     onPointerEnter: () => onHover?.(true),
     onPointerLeave: () => onHover?.(false),
     onPointerDown: (e: PointerEvent<Element>) => {
@@ -187,6 +192,10 @@ export function Knob({
             <circle cx={pointAt(markers.a, RM).x} cy={pointAt(markers.a, RM).y} r={2.5} className="fill-zinc-400" />
             <circle cx={pointAt(markers.b, RM).x} cy={pointAt(markers.b, RM).y} r={2.5} className="fill-mod" />
           </>
+        )}
+        {reduction !== undefined && reduction > 0.05 && (
+          <circle cx={MID} cy={MID} r={RR} fill="none" strokeWidth={3} className="stroke-zinc-100"
+            strokeDasharray={`${Math.min(1, reduction / 12) * 0.75 * CR} ${CR}`} transform={`rotate(135 ${MID} ${MID})`} />
         )}
         <circle cx={dot.x} cy={dot.y} r={2} className="fill-zinc-100" />
       </svg>

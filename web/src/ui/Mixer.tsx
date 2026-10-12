@@ -1,6 +1,6 @@
 import { busMeterOf, busMutedOf, masterMeterOf } from '@/audio/snapshot'
 import {
-  BUS_DEFAULT_DB, BUS_DRIVE, BUS_FILTER, BUS_LEVEL, BUS_PARAMS, busRow, faderDb, faderNormForDb, MASTER_LEVEL, MASTER_MODE, MASTER_PARAMS, MASTER_ROW,
+  BUS_DEFAULT_DB, BUS_DRIVE, BUS_FILTER, BUS_LEVEL, BUS_PAN, BUS_PARAMS, busRow, faderDb, faderNormForDb, MASTER_LEVEL, MASTER_MODE, MASTER_PARAMS, MASTER_ROW,
 } from '@/state/machines'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
@@ -12,6 +12,13 @@ interface Props {
   frame: Float32Array | null
   store: Store
 }
+
+/** One knob per master stage; the rest (attack, release, curve, low cut…) keep their defaults. */
+const MASTER_COMP = 0
+const MASTER_CEIL = 8
+const MASTER_KNOBS = [
+  { param: MASTER_COMP, label: 'comp' }, { param: 6, label: 'eq' }, { param: 4, label: 'sat' }, { param: MASTER_CEIL, label: 'limit' },
+]
 
 const toggle = (on: boolean) =>
   `px-1 text-[10px] lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${on ? 'text-acc' : 'text-zinc-400 hover:text-zinc-200'}`
@@ -25,7 +32,7 @@ export function Mixer({ state, frame, store }: Props) {
     const t = state.macros[learn.macro].targets.find((x) => x.track === row && x.param === p)
     return t ? t[learn.side] : base
   }
-  const master = frame ? masterMeterOf(frame) : { peakL: 0, peakR: 0, lufs: -70, gr: 0 }
+  const master = frame ? masterMeterOf(frame) : { peakL: 0, peakR: 0, lufs: -70, gr: 0, limGr: 0 }
   const clip = state.master.params[MASTER_MODE] >= 0.5
 
   return (
@@ -45,13 +52,10 @@ export function Mixer({ state, frame, store }: Props) {
                 {pending ? 'q' : 'm'}
               </button>
             </div>
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="flex items-center gap-0.5">
-                <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_FILTER} meta={BUS_PARAMS[BUS_FILTER]} size="xs" ariaLabel={`${bus.name} FLT`} />flt
-              </span>
-              <span className="flex items-center gap-0.5">
-                <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_DRIVE} meta={BUS_PARAMS[BUS_DRIVE]} size="xs" ariaLabel={`${bus.name} DRV`} />drv
-              </span>
+            <div className="flex flex-col gap-px">
+              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_FILTER} meta={BUS_PARAMS[BUS_FILTER]} size="slot" bipolar label="flt" ariaLabel={`${bus.name} FLT`} />
+              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_DRIVE} meta={BUS_PARAMS[BUS_DRIVE]} size="slot" label="drv" ariaLabel={`${bus.name} DRV`} />
+              <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_PAN} meta={BUS_PARAMS[BUS_PAN]} size="slot" bipolar label="pan" ariaLabel={`${bus.name} PAN`} />
             </div>
             <Fader label={`${bus.name} level`} pos={level} defaultPos={faderNormForDb(BUS_DEFAULT_DB[b])} valueText={faderDb(level)}
               meter={meter.peak} onPos={(p) => store.setParam(row, BUS_LEVEL, p)} />
@@ -64,13 +68,15 @@ export function Mixer({ state, frame, store }: Props) {
             <span className="mr-1 text-zinc-200">master</span>
             <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
             <button type="button" className={toggle(clip)} aria-label="Master CLIP" aria-pressed={clip} title={clip ? 'soft clip' : 'limiter'}
-              onClick={() => store.setParam(MASTER_ROW, MASTER_MODE, clip ? 0 : 1)}>{clip ? 'clip' : 'limit'}</button>
-            <span className="ml-auto tabular-nums text-zinc-300">{master.lufs.toFixed(1)} lufs · gr {master.gr.toFixed(1)}</span>
+              onClick={() => store.setParam(MASTER_ROW, MASTER_MODE, clip ? 0 : 1)}>clip</button>
+            <span className="ml-auto tabular-nums text-zinc-300">{master.lufs.toFixed(1)} lufs</span>
           </div>
-          <div className="grid grid-cols-5 gap-x-1 gap-y-0.5">
-            {MASTER_PARAMS.map((meta, p) => (p === MASTER_MODE || p === MASTER_LEVEL ? null : (
-              <ParamKnob key={meta.name} state={state} frame={frame} store={store} row={MASTER_ROW} param={p} meta={meta} size="sm" ariaLabel={`MASTER ${meta.name}`} />
-            )))}
+          <div className="grid flex-1 grid-cols-4 place-items-center">
+            {MASTER_KNOBS.map(({ param, label }) => (
+              <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
+                label={label} ariaLabel={`MASTER ${label}`}
+                reduction={param === MASTER_COMP ? master.gr : param === MASTER_CEIL && !clip ? master.limGr : undefined} />
+            ))}
           </div>
         </div>
         <Fader label="MASTER level" pos={editValue(MASTER_ROW, MASTER_LEVEL)} defaultPos={MASTER_PARAMS[MASTER_LEVEL].default}

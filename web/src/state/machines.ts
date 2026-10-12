@@ -38,6 +38,7 @@ export const BUS_PARAMS: ParamMeta[] = [
   { name: 'FLT', default: 0.5, display: { kind: 'djfilter' } },
   { name: 'DRV', default: 0, display: pct },
   { name: 'LEVEL', default: 0.8, display: db },
+  { name: 'PAN', default: 0.5, display: { kind: 'pan' } },
 ]
 /** Mirrors MASTER_PARAMS in crates/core/src/master.rs. */
 export const MASTER_PARAMS: ParamMeta[] = [
@@ -74,6 +75,7 @@ export const ROW_COUNT = MASTER_ROW + 1
 export const BUS_FILTER = 0
 export const BUS_DRIVE = 1
 export const BUS_LEVEL = 2
+export const BUS_PAN = 3
 export const MASTER_MODE = 9
 export const MASTER_LEVEL = 10
 
@@ -131,6 +133,10 @@ export function formatParam(meta: ParamMeta, norm: number): string {
     if (norm < 0.48) return `LP ${formatHz(20 * 1000 ** (norm / 0.48))}`
     if (norm > 0.52) return `HP ${formatHz(20 * 1000 ** ((norm - 0.52) / 0.48))}`
     return 'OFF'
+  }
+  if (d.kind === 'pan') {
+    const side = Math.round((norm - 0.5) * 200)
+    return side === 0 ? 'C' : `${side < 0 ? 'L' : 'R'}${Math.abs(side)}`
   }
   const v = rangeValue(d, norm)
   if (d.unit === 'Hz') return formatHz(v)

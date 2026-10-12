@@ -26,7 +26,7 @@ describe('store', () => {
     expect(count(Op.SetLength)).toBe(12)
     expect(count(Op.SetSpeed)).toBe(12)
     expect(count(Op.SetStep)).toBe(4)
-    expect(count(Op.SetParam)).toBe(60)
+    expect(count(Op.SetParam)).toBe(68)
   })
 
   test('toggleStep flips the step and sends it', () => {
