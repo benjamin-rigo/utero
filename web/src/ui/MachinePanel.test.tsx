@@ -45,9 +45,9 @@ test('dropping a tile on a knob routes it to that parameter', () => {
 test('while learning, knobs edit the macro endpoint', () => {
   const store = setup()
   act(() => { store.armLearn(0, 'b') })
-  fireEvent.keyDown(screen.getByRole('slider', { name: 'NOISE' }), { key: 'End' })
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'FM' }), { key: 'End' })
   expect(store.getState().macros[0].targets[0]).toMatchObject({ track: 0, param: 5, b: 1 })
-  expect(store.getState().tracks[0].params[5]).toBe(0.05)
+  expect(store.getState().tracks[0].params[5]).toBe(0)
 })
 
 test('tracks without a machine say so', () => {

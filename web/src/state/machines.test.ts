@@ -5,7 +5,7 @@ import { faderNormForDb, BASS_PARAMS, BUS_PARAMS, faderDb, formatParam, MACHINES
 const names = ['KICK', 'KCK2', 'HH', 'OH', 'SNR', 'NOIS', 'SMPL', 'BASS', 'LD1', 'LD2', 'PAD', 'ORN']
 
 test('param tables mirror the engine', () => {
-  expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', '', 'CLICK', 'NOISE', 'TONE', 'LEVEL'])
+  expect(KICK_PARAMS.map((p) => p.name)).toEqual(['TUNE', 'SWEEP', 'S.TIME', '', 'CLICK', 'FM', 'TONE', 'LEVEL'])
   expect(BASS_PARAMS.map((p) => p.default)).toEqual([0.8, 0.51, 0.2, 0.14, 0.2, 0, 0, 0.8, 1])
   expect(BUS_PARAMS.map((p) => p.default)).toEqual([0.5, 0, 0.8, 0.5])
   expect(formatParam(BUS_PARAMS[3], 0.5)).toBe("C")
@@ -17,7 +17,7 @@ test('machines sit on KICK, KCK2 and BASS with one 8-knob page each', () => {
   expect(MACHINES.map((m) => m?.name ?? null)).toEqual(['ANALOG BD', 'ANALOG BD', null, null, null, null, null, 'BASS', null, null, null, null])
   expect(MACHINES[0]?.pages).toEqual([{ name: 'KICK', params: [0, 1, 2, -1, 4, 6, 5, 7] }])
   const order = (t: number) => MACHINES[t]?.pages[0].params.map((p) => (p < 0 ? undefined : MACHINES[t]?.params[p].name))
-  expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', undefined, 'CLICK', 'TONE', 'NOISE', 'LEVEL'])
+  expect(order(0)).toEqual(['TUNE', 'SWEEP', 'S.TIME', undefined, 'CLICK', 'TONE', 'FM', 'LEVEL'])
   expect(order(7)).toEqual(['SUB', 'CHAR', 'FM', 'SUB OCT', 'PLUCK', 'BRIGHT', 'GRIT', 'LEVEL'])
   expect(MACHINES[7]?.pages[0].params).toHaveLength(8)
   expect(MACHINES[7]?.switches).toBeUndefined()

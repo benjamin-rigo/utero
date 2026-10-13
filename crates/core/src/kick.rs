@@ -10,10 +10,13 @@ pub const TUNE: usize = 0;
 pub const SWEEP: usize = 1;
 pub const STIME: usize = 2;
 pub const CLICK: usize = 4;
-pub const NOISE: usize = 5;
+pub const FM: usize = 5;
 pub const TONE: usize = 6;
 pub const LEVEL: usize = 7;
 pub const KICK_PARAM_COUNT: usize = 8;
+/// FM index at full FM (radians) and how fast it decays (seconds).
+const FM_MAX_INDEX: f32 = 3.0;
+const FM_TIME: f32 = 0.05;
 
 /// Order and default_norm are mirrored in web/src/state/kickParams.ts.
 pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
@@ -23,7 +26,8 @@ pub const KICK_PARAMS: [ParamDesc; KICK_PARAM_COUNT] = [
     // 3: free (the amp decay moved to the envelope; the slot waits for the sub/mid redesign)
     ParamDesc { name: "", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "CLICK", min: 0.0, max: 1.0, default_norm: 0.3, curve: Curve::Lin },
-    ParamDesc { name: "NOISE", min: 0.0, max: 1.0, default_norm: 0.05, curve: Curve::Lin },
+    // body phase-modulated by itself (1:1), index decaying in FM_TIME: harmonics on the hit, a clean sine tail
+    ParamDesc { name: "FM", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Lin },
     ParamDesc { name: "TONE", min: 200.0, max: 12_000.0, default_norm: 0.8, curve: Curve::Exp },
     // fader law: 0.8 = 0 dB
     ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.8, curve: Curve::Lin },
@@ -50,6 +54,8 @@ pub struct KickVoice {
     pitch_env: f32,
     click_env: f32,
     click_coef: f32,
+    fm_env: f32,
+    fm_coef: f32,
     lp: f32,
     rng: Rng,
     seed: u32,
@@ -69,6 +75,8 @@ impl KickVoice {
             pitch_env: 0.0,
             click_env: 0.0,
             click_coef: (-1.0 / (0.002 * sample_rate)).exp(),
+            fm_env: 0.0,
+            fm_coef: (-1.0 / (FM_TIME * sample_rate)).exp(),
             lp: 0.0,
             rng: Rng::new(seed),
             seed,
@@ -76,7 +84,7 @@ impl KickVoice {
         }
     }
 
-    /// Every hit restarts at phase 0 with the same pitch and noise: kicks are identical and phase-locked to the grid.
+    /// Every hit restarts at phase 0 with the same pitch, FM and click: kicks are identical and phase-locked to the grid.
     pub fn trigger(&mut self, vel: f32) {
         self.t = 0;
         self.phase = 0.0;
@@ -84,6 +92,7 @@ impl KickVoice {
         self.env.restart();
         self.pitch_env = 1.0;
         self.click_env = 1.0;
+        self.fm_env = 1.0;
         self.lp = 0.0;
         self.rng = Rng::new(self.seed);
         self.vel = vel.clamp(0.0, 1.0);
@@ -109,9 +118,7 @@ impl KickVoice {
         let sr = self.sample_rate;
         self.amp = self.env.next(&EnvTimes::from_bank(p), sr);
         let noise = self.rng.bipolar();
-        let nz = p.get(NOISE);
 
-        // NOISE both adds a layer and micro-modulates pitch and amplitude.
         let semis = p.get(SWEEP) * self.pitch_env;
         let freq = p.get(TUNE) * (semis / 12.0).exp2();
         if self.pitch_env < 0.02 {
@@ -122,12 +129,12 @@ impl KickVoice {
             self.phase -= 1.0;
         }
 
-        let body = (self.phase * TAU).sin() * self.amp * (1.0 + noise * nz * 0.3);
+        let index = p.get(FM) * FM_MAX_INDEX * self.fm_env;
+        let body = (self.phase * TAU + index * (self.phase * TAU).sin()).sin() * self.amp;
         let impulse = if self.t == 0 { 1.0 } else { 0.0 };
         let click = (impulse + noise * 0.6) * self.click_env * p.get(CLICK);
-        let layer = noise * nz * 0.15 * self.amp;
 
-        let x = body + click + layer;
+        let x = body + click;
         self.lp += (x - self.lp) * one_pole_coef(p.get(TONE), sr);
         if !self.lp.is_finite() {
             self.lp = 0.0;
@@ -137,6 +144,7 @@ impl KickVoice {
         // Recursive pitch envelope: modulating S.TIME bends the curve, never jumps.
         self.pitch_env *= (-1.0 / (p.get(STIME) * 0.001 * sr)).exp();
         self.click_env *= self.click_coef;
+        self.fm_env *= self.fm_coef;
         self.t = self.t.saturating_add(1);
         if self.env.is_idle() {
             self.active = false;
@@ -215,9 +223,29 @@ mod tests {
     }
 
     #[test]
+    fn fm_colours_the_hit_and_leaves_the_tail_clean() {
+        let run = |fm: f32| {
+            let mut p = kick_params(SR);
+            p.set_norm(FM, fm);
+            p.set_norm(CLICK, 0.0);
+            for _ in 0..48_000 {
+                p.advance();
+            }
+            let mut v = KickVoice::new(SR, 1);
+            v.trigger(1.0);
+            (0..24_000).map(|_| v.render(&p)).collect::<Vec<f32>>()
+        };
+        let (dry, wet) = (run(0.0), run(1.0));
+        let diff = |a: usize, b: usize| (a..b).map(|i| (dry[i] - wet[i]).abs()).fold(0.0f32, f32::max);
+        let peak = |a: usize, b: usize| (a..b).map(|i| dry[i].abs()).fold(0.0f32, f32::max);
+        assert!(diff(0, 960) > 0.1 * peak(0, 960), "no FM on the hit");
+        assert!(diff(14_400, 24_000) < 0.01 * peak(0, 960), "FM left in the tail: {}", diff(14_400, 24_000));
+    }
+
+    #[test]
     fn every_hit_is_phase_locked_and_identical() {
         let mut p = kick_params(SR);
-        p.set_norm(NOISE, 0.0);
+        p.set_norm(FM, 0.0);
         for _ in 0..48_000 {
             p.advance();
         }
@@ -233,7 +261,7 @@ mod tests {
     #[test]
     fn retrigger_resets_filter_state() {
         let mut p = kick_params(SR);
-        p.set_norm(NOISE, 0.0);
+        p.set_norm(FM, 0.0);
         p.set_norm(CLICK, 0.0);
         let mut used = KickVoice::new(SR, 1);
         used.trigger(1.0);

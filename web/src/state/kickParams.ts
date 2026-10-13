@@ -26,7 +26,7 @@ export const KICK_PARAMS: ParamMeta[] = [
   // 3: free — the amp decay moved to the envelope; this slot waits for the sub/mid redesign
   { name: '', default: 0 },
   { name: 'CLICK', default: 0.3, display: { kind: 'pct' } },
-  { name: 'NOISE', default: 0.05, display: { kind: 'pct' } },
+  { name: 'FM', default: 0, display: { kind: 'pct' } },
   { name: 'TONE', default: 0.8, display: hz(200, 12000) },
   { name: 'LEVEL', default: 0.8, display: { kind: 'db' } },
 ]
