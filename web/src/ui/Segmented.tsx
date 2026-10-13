@@ -24,7 +24,8 @@ export function Segmented({ label, caption, options, index, onIndex, className =
     e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[n]?.focus()
   }
   return (
-    <div role="radiogroup" aria-label={label} className={`flex h-control w-fit items-stretch text-label ${className}`}>
+    // one outlined group, options split by hairlines, the active one filled
+    <div role="radiogroup" aria-label={label} className={`flex h-control w-fit items-stretch border border-strong text-label ${className}`}>
       {caption && <span className="mr-tight self-center text-ink-mute">{caption}</span>}
       {options.map((o, i) => (
         <button key={o} type="button" role="radio" aria-checked={i === index} tabIndex={i === index ? 0 : -1}
@@ -35,7 +36,7 @@ export function Segmented({ label, caption, options, index, onIndex, className =
             else if (e.key === 'Home') move(e, 0)
             else if (e.key === 'End') move(e, last)
           }}
-          className={`min-w-option px-tight focus-ring ${i === index ? 'bg-ink text-on-ink' : 'bg-well text-ink-mute hover:text-ink-soft'}`}>
+          className={`min-w-option px-tight focus-ring ${i > 0 ? 'border-l border-strong' : ''} ${i === index ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink-soft'}`}>
           {o}
         </button>
       ))}

@@ -168,7 +168,7 @@ function ModPage({ slot, m, tracks, routes, live, store }: PageProps) {
     <div className="mod-grid col-[1/12] h-full min-h-0 overflow-hidden border-r border-line p-inset">
       <div className="col-start-1 row-start-1 flex h-control items-center">
         {m.kind === 1 && (
-          <div role="radiogroup" aria-label="Shape" className="flex h-full w-full">
+          <div role="radiogroup" aria-label="Shape" className="flex h-full w-full border border-strong">
             {SHAPES.map((sh) => (
               <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
                 tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
@@ -181,7 +181,7 @@ function ModPage({ slot, m, tracks, routes, live, store }: PageProps) {
                   update({ shape: next.code })
                   ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
                 }}
-                className={`h-full flex-1 px-tight focus-ring ${m.shape === sh.code ? 'bg-ink' : 'bg-well hover:bg-raised'}`}>
+                className={`h-full flex-1 px-tight focus-ring ${sh.code === SHAPES[0].code ? '' : 'border-l border-strong'} ${m.shape === sh.code ? 'bg-ink' : 'hover:bg-raised'}`}>
                 <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
                   <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
                     className={m.shape === sh.code ? 'stroke-on-ink' : 'stroke-ink-soft'} />

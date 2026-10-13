@@ -22,7 +22,7 @@ const MASTER_KNOBS = [
 ]
 
 const toggle = (on: boolean) =>
-  `h-control px-tight text-label focus-ring ${on ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink-soft'}`
+  `h-control border border-strong px-tight text-label focus-ring ${on ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink-soft'}`
 
 /** The fader edits the base (or the armed macro endpoint), like every knob. */
 const editValueOf = (state: AppState) => (row: number, p: number) => {
