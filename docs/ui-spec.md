@@ -17,17 +17,17 @@ The decisions below were made with the owner. Read this before any UI change. If
 ## Layout: two responsive units on three shared rows
 - This is a fluid, responsive system. Do not fit things to exact screen pixels.
 - **Left unit** has three rows: sequencer, modulators, mixer.
-  - The sequencer sits on its column grid: track names | 4 beats × 4 steps | rate.
+  - The sequencer sits on its column grid: track names | 4 beats × 4 steps | rate. In the rate column the value sits right next to its dial.
   - The modulator row holds the modulator page, which is four knobs wide (like the right unit), and the tiles take the rest of the width.
-  - The mixer is 8 equal strips filling the width, with 1 px lines between them and the slider names (flt/drv/pan) inside the sliders. The narrow upright master output fader ("out") closes the row. Do not change this without asking.
+  - The mixer is 8 equal strips filling the width, with 1 px lines between them and the slider names (flt/drv/pan) inside the sliders. Do not change this without asking.
 - **Right unit** has three rows: machine, macros, master.
-  - The right unit is exactly four knobs wide: 4 × 60 px knobs, 24 px gaps, plus the pane inset. Machine, FX and master knobs share those columns, and each knob column holds two macro faders.
+  - The right unit is exactly four knobs wide: 4 × 60 px knobs, 24 px gaps, plus the pane inset. Machine, FX and master knobs share those columns. The 8 macro faders are equal and sit side by side across the width; they are not split into pairs.
 - **Machine page:**
   - Amp envelope at the top: AHD curve plus value slots. Below it the machine and FX knob sections, each with 12 px around its knobs. Any height left over goes to the envelope curve (at 1440×900 only a few pixels).
 - **Master:**
   - Header: master, mute q, limit|clip, lufs.
   - Four knobs: comp, eq, sat, **limit** (a knob, showing its gain-reduction ring), centred.
-  - The output fader lives at the right end of the mixer (see above).
+  - The output level is a horizontal "out" slider along the bottom of the master section, with the live meter on its top edge. The knobs are centred between the header and that slider.
   - Signal chain: sat → eq → comp → −6 dB trim → limiter → fader. Fader full travel is 0 dB.
 
 ## Controls keep their place

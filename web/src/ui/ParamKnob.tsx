@@ -25,10 +25,11 @@ interface Props {
   ariaLabel?: string
   selected?: boolean
   onSelect?(): void
+  meter?: number
 }
 
 /** A knob bound to (row, param): edits the base or the armed macro endpoint, shows live value, takes modulators. */
-export function ParamKnob({ state, frame, store, row, param: p, meta, size, bipolar, label, reduction, onTap, onOpen, onLabelDragStart, ariaLabel, selected, onSelect }: Props) {
+export function ParamKnob({ state, frame, store, row, param: p, meta, size, bipolar, label, reduction, onTap, onOpen, onLabelDragStart, ariaLabel, selected, onSelect, meter }: Props) {
   const learn = state.learn
   const marker = state.macros[state.selectedMacro].targets.find((x) => x.track === row && x.param === p)
   const learnTarget = learn ? state.macros[learn.macro].targets.find((x) => x.track === row && x.param === p) : undefined
@@ -38,7 +39,7 @@ export function ParamKnob({ state, frame, store, row, param: p, meta, size, bipo
   const mapAmount = mapRoute ? mapRoute.amount : 0
   const display = learn ? value : frame ? effectiveOf(frame, row, p) : effectiveValue(state, row, p)
   return (
-    <Knob label={label ?? meta.name} steps={meta.display?.kind === 'choice' ? meta.display.options.length : undefined} reduction={reduction} onTap={onTap} onOpen={onOpen} onLabelDragStart={onLabelDragStart} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} size={size} bipolar={bipolar} value={value} display={display} defaultValue={meta.default}
+    <Knob label={label ?? meta.name} steps={meta.display?.kind === 'choice' ? meta.display.options.length : undefined} reduction={reduction} onTap={onTap} onOpen={onOpen} onLabelDragStart={onLabelDragStart} format={(v) => formatParam(meta, v)} ariaLabel={ariaLabel} meter={meter} size={size} bipolar={bipolar} value={value} display={display} defaultValue={meta.default}
       modAmount={modAmountFor(state, row, p)} markers={marker ? { a: marker.a, b: marker.b } : null}
       learning={learn !== null} selected={selected}
       onChange={(v) => store.setParam(row, p, v)}

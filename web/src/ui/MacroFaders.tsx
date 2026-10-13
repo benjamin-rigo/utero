@@ -18,12 +18,12 @@ export function MacroFaders({ state, store }: Props) {
 
   return (
     <section aria-label="Macros" className="flex min-h-0 flex-col gap-tight border-t border-line p-group">
-      <div className="macro-row min-h-0 flex-1">
+      <div className="grid min-h-0 flex-1 grid-cols-8 gap-tight">
         {state.macros.map((mac, m) => {
           const armed = state.learn?.macro === m ? state.learn.side : null
           const selected = state.selectedMacro === m
           return (
-            <div key={m} style={{ gridColumn: 2 * m + 1 }} className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] gap-tight">
+            <div key={m} className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] gap-tight">
               <div className="flex h-control items-center justify-between gap-tight text-label">
                 {editing === m ? (
                   <input aria-label={`Rename ${mac.name}`} autoFocus defaultValue={mac.name}

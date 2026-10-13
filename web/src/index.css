@@ -178,8 +178,6 @@
   --spacing-knob-gap: 24px;
   /* the right unit is exactly four knobs wide (with their gaps and the pane inset) */
   --spacing-side: calc(2 * var(--spacing-group) + 4 * var(--spacing-knob) + 3 * var(--spacing-knob-gap));
-  /* a macro fader: two side by side under one knob */
-  --spacing-macro: calc((var(--spacing-knob) - var(--spacing-tight)) / 2);
   /* the modulator row: two knob rows with the knob pane's padding, plus the top hairline */
   --spacing-strip: calc(2 * var(--spacing-knob-cell) + var(--spacing-inset) + 2 * var(--spacing-group) + var(--spacing-hair));
   --spacing-mixer: 200px;
@@ -198,15 +196,6 @@
   row-gap: var(--spacing-inset);
 }
 
-/* eight macro faders, two under each knob column of the right unit (fader, tight, fader, knob gap, …) */
-@utility macro-row {
-  display: grid;
-  grid-template-columns:
-    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro) var(--spacing-knob-gap)
-    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro) var(--spacing-knob-gap)
-    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro) var(--spacing-knob-gap)
-    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro);
-}
 
 
 /* the left unit's shared columns (sequencer, modulators, mixer all sit on them through subgrid):

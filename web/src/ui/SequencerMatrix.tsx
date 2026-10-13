@@ -203,7 +203,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   const code = SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))]
                   if (code !== tr.speed) onSetSpeed(t, code)
                 }} />
-              <span className="w-readout text-right tabular-nums text-ink-mute">{speedLabel(tr.speed)}</span>
+              <span className="w-readout tabular-nums text-ink-mute">{speedLabel(tr.speed)}</span>
             </div>
           </div>
         )

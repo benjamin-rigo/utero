@@ -1,5 +1,6 @@
 import { useRef, type DragEvent, type KeyboardEvent, type PointerEvent } from 'react'
 import { MOD_DRAG_TYPE } from '@/state/modulation'
+import { meterHeight } from './Fader'
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const SIZE = 56
@@ -55,6 +56,8 @@ export interface KnobProps {
   format?(value: number): string
   /** Map mode: the selected modulator's amount on this knob (−1..1); drags and arrows edit it, double-click clears. */
   map?: { label: string; amount: number } | null
+  /** Slot only: live peak 0..1 drawn along the top edge on the fader's dB scale (master out). */
+  meter?: number
   onMap?(delta: number): void
   onMapClear?(): void
   onHover?(on: boolean): void
@@ -67,7 +70,7 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'sm', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'sm', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart, meter,
 }: KnobProps) {
   const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod'; travel: number } | null>(null)
   const current = useRef(value)
@@ -170,6 +173,7 @@ export function Knob({
         <div className="absolute inset-y-0 bg-strong" style={span(bipolar ? 0.5 : 0, display)} />
         <div className="absolute inset-y-0 w-hair bg-ink-soft" style={{ left: `${value * 100}%` }} />
         {ring !== 0 && <div className="absolute bottom-0 h-0.5 bg-mod" style={span(value, clamp01(value + ring))} />}
+        {meter !== undefined && <div className="absolute top-0 left-0 h-0.5 bg-gradient-to-r from-meter-low via-meter-mid to-meter-high" style={{ width: `${meterHeight(meter)}%` }} />}
         {map && <div className="absolute inset-0 border border-dashed border-mod/50" />}
         {markers && (
           <>

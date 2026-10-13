@@ -1,6 +1,6 @@
 import { busMeterOf, busMutedOf, masterMeterOf } from '@/audio/snapshot'
 import {
-  BUS_DEFAULT_DB, BUS_DRIVE, BUS_FILTER, BUS_LEVEL, BUS_PAN, BUS_PARAMS, busRow, faderDb, faderNormForDb, MASTER_LEVEL, outputDb, MASTER_MODE, MASTER_PARAMS, MASTER_ROW,
+  BUS_DEFAULT_DB, BUS_DRIVE, BUS_FILTER, BUS_LEVEL, BUS_PAN, BUS_PARAMS, busRow, faderDb, faderNormForDb, MASTER_LEVEL, MASTER_MODE, MASTER_PARAMS, MASTER_ROW,
 } from '@/state/machines'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
@@ -33,11 +33,11 @@ const editValueOf = (state: AppState) => (row: number, p: number) => {
   return t ? t[learn.side] : base
 }
 
-/** The eight buses as equal strips, the slider names inside the sliders; the master output fader closes the row. */
+/** The eight buses as equal strips, the slider names inside the sliders. */
 export function Mixer({ state, frame, store }: Props) {
   const editValue = editValueOf(state)
   return (
-    <section aria-label="Mixer" className="col-span-full grid min-h-0 grid-cols-[repeat(8,minmax(0,1fr))_auto] gap-hair border-t border-line bg-line">
+    <section aria-label="Mixer" className="col-span-full grid min-h-0 grid-cols-[repeat(8,minmax(0,1fr))] gap-hair border-t border-line bg-line">
       {state.buses.map((bus, b) => {
         const row = busRow(b)
         const meter = frame ? busMeterOf(frame, b) : { peak: 0, rms: 0 }
@@ -63,19 +63,11 @@ export function Mixer({ state, frame, store }: Props) {
           </div>
         )
       })}
-      <div className="grid min-h-0 grid-rows-[auto_1fr] gap-tight bg-background p-inset">
-        <span className="flex h-control items-center text-ink-soft">out</span>
-        <div className="flex min-h-0 w-fader">
-          <Fader label="MASTER level" pos={editValue(MASTER_ROW, MASTER_LEVEL)} defaultPos={MASTER_PARAMS[MASTER_LEVEL].default}
-            valueText={outputDb(editValue(MASTER_ROW, MASTER_LEVEL))} meter={frame ? Math.max(masterMeterOf(frame).peakL, masterMeterOf(frame).peakR) : 0}
-            onPos={(p) => store.setParam(MASTER_ROW, MASTER_LEVEL, p)} />
-        </div>
-      </div>
     </section>
   )
 }
 
-/** The master: header, then comp / eq / sat / limit on the right unit's knob row (the output fader closes the mixer row). */
+/** The master: header, comp / eq / sat / limit centred, the output level as a horizontal slider (with its meter) along the bottom. */
 export function Master({ state, frame, store }: Props) {
   const master = frame ? masterMeterOf(frame) : { peakL: 0, peakR: 0, lufs: -70, gr: 0, limGr: 0 }
   const clip = state.master.params[MASTER_MODE] >= 0.5
@@ -88,13 +80,15 @@ export function Master({ state, frame, store }: Props) {
           onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
         <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
       </div>
-      <div className="knob-row">
+      <div className="knob-row flex-1 content-center">
         {MASTER_KNOBS.map(({ param, label }) => (
           <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
             label={label} ariaLabel={`MASTER ${label}`}
             reduction={param === MASTER_COMP ? master.gr : param === MASTER_CEIL && !clip ? master.limGr : undefined} />
         ))}
       </div>
+      <ParamKnob state={state} frame={frame} store={store} row={MASTER_ROW} param={MASTER_LEVEL} meta={MASTER_PARAMS[MASTER_LEVEL]}
+        size="slot" label="out" ariaLabel="MASTER level" meter={Math.max(master.peakL, master.peakR)} />
     </section>
   )
 }
