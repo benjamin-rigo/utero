@@ -162,6 +162,8 @@
   --spacing-knob: 60px;
   /* knob height after cropping the empty bottom of the dial; whole pixels keep every hairline sharp */
   --spacing-knob-h: 52px;
+  /* a knob with its caption (dial + gap + label + gap + value) */
+  --spacing-knob-cell: 80px;
   --spacing-dial-h: 21px;
   --spacing-wave: 300px;
   --spacing-dial: 24px;
@@ -192,15 +194,6 @@
   row-gap: var(--spacing-group);
 }
 
-/* the modulator page (Ableton LFO layout): display column + three knob columns; rows: choices, display/knobs, sliders */
-@utility mod-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, var(--spacing-knob));
-  grid-template-rows: var(--spacing-control) minmax(0, 1fr) var(--spacing-control);
-  grid-auto-columns: auto;
-  column-gap: var(--spacing-group);
-  row-gap: var(--spacing-tight);
-}
 
 /* the left unit's shared columns (sequencer, modulators, mixer all sit on them through subgrid):
    track names | 4 beats of 4 steps, a hairline spacer between beats | rate. Column numbers: name 1, step s at 2 + s + floor(s / 4), rate 21. */

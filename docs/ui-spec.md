@@ -34,12 +34,13 @@ The decisions below were made with the owner. Read this before any UI change. If
 - Controls never move between modes, types or machines. A control a type doesn't have leaves its slot empty; nothing reflows.
 
 ## Modulator page
-- Do **not** show a big waveform display on the page. The tiles already show each modulator's shape; this display was removed once and must not come back.
-- Types are off / lfo / noise / env (STEP stays in the engine only).
-- Shape is picked with waveform icons. Noise has a colour choice. Env has a draggable AHD curve.
-- Controls are rate (sync|hz), phase, fade, jitter, depth (bi|uni), smooth, trig (free|retrig|oneshot); env uses atk, hold and dec instead of the LFO controls.
-- Clicking the selected tile toggles map mode.
-- The tiles fill their pane, with no inner frame.
+- **Eight knobs in two rows of four, nothing else** (owner's layout). The slots stay fixed for every type, and a slot a type doesn't use stays empty:
+  - Row 1: type (off/lfo/noise/env) · waveform (lfo) | colour (noise) | atk (env) · rate (lfo) | hold (env) · depth
+  - Row 2: trig mode (free/retrig/oneshot, lfo) · trig source (lfo, env) · jitter (lfo) | dec (env) · smooth
+- A click without dragging toggles a setting: on rate it switches sync / Hz, on depth bipolar / unipolar (the value shows "bi" or "uni").
+- No big waveform display: the tiles already show each modulator's shape. It was removed twice; do not bring it back.
+- No shape icons, segmented choices or sliders on this page. Phase and fade stay in the engine and are not shown.
+- Clicking the selected tile toggles map mode. The tiles fill their pane, with no inner frame.
 
 ## Process
 - Verify every layout change with headless Chrome at 1440×900 and 2050×1100, and measure with element rectangles rather than eyeballing.

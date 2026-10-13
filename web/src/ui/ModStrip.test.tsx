@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
-import { MOD_DRAG_TYPE } from '@/state/modulation'
+import { MOD_DRAG_TYPE, SHAPES } from '@/state/modulation'
 import { createStore, type Store } from '@/state/store'
 import { ModStrip } from './ModStrip'
 
@@ -33,18 +33,19 @@ test('clicking an empty tile creates an LFO and selects it', () => {
   expect(store.getState().modulators[4].kind).toBe(1)
 })
 
-test('shapes are icon choices; arrows walk them', () => {
+test('the waveform is a knob over the shapes', () => {
   const store = setup()
-  fireEvent.click(screen.getByRole('radio', { name: 'GLIDE' }))
-  expect(store.getState().modulators[0].shape).toBe(1)
-  fireEvent.keyDown(screen.getByRole('radio', { name: 'GLIDE' }), { key: 'ArrowRight' })
-  expect(store.getState().modulators[0].shape).toBe(2)
-  expect(document.activeElement?.getAttribute('aria-label')).toBe('S&H')
+  const wave = () => screen.getByRole('slider', { name: 'WAVE' })
+  fireEvent.keyDown(wave(), { key: 'ArrowRight' })
+  expect(store.getState().modulators[0].shape).toBe(SHAPES[1].code)
+  expect(wave().getAttribute('aria-valuetext')).toBe(SHAPES[1].label)
 })
 
-test('the type choice has no STEP', () => {
-  setup()
-  expect(screen.getByRole('radiogroup', { name: 'Modulator type' }).textContent).toBe('OFFLFONOISEENV')
+test('the type knob has no STEP', () => {
+  const store = setup()
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'Modulator type' }), { key: 'End' })
+  expect(store.getState().modulators[0].kind).toBe(4)
+  expect(screen.getByRole('slider', { name: 'Modulator type' }).getAttribute('aria-valuetext')).toBe('ENV')
 })
 
 test('a click selects a tile, a second click toggles map mode, Escape or OFF leaves it', () => {
@@ -60,7 +61,7 @@ test('a click selects a tile, a second click toggles map mode, Escape or OFF lea
   expect(store.getState().mapping).toBe(true)
   expect(tile().getAttribute('aria-label')).toMatch(/mapping$/)
   expect(screen.queryByRole('button', { name: 'MAP' })).toBeNull()
-  fireEvent.click(screen.getByRole('radio', { name: 'OFF' }))
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'Modulator type' }), { key: 'Home' })
   expect(store.getState().mapping).toBe(false)
 })
 
@@ -77,7 +78,7 @@ test('the RATE knob steps through the sync list, or sweeps Hz', () => {
   fireEvent.keyDown(rate(), { key: 'End' })
   expect(store.getState().modulators[0].rateIndex).toBe(19)
   expect(rate().getAttribute('aria-valuetext')).toBe('32 BAR')
-  fireEvent.click(screen.getByRole('radio', { name: 'HZ' }))
+  fireEvent.keyDown(rate(), { key: 'Enter' })
   expect(rate().getAttribute('aria-valuetext')).toBe('1.00 Hz')
   fireEvent.keyDown(rate(), { key: 'End' })
   expect(store.getState().modulators[0].hz).toBeCloseTo(40)
@@ -106,9 +107,13 @@ test('the selected modulator lists its targets, each removable', () => {
   expect(store.getState().routes.every((r) => r === null)).toBe(true)
 })
 
-test('rate mode and polarity are explicit choices', () => {
+test('a tap on rate toggles sync / Hz, on depth bipolar / unipolar', () => {
   const store = setup()
-  expect(screen.getByRole('radiogroup', { name: 'Rate mode' }).querySelector('[aria-checked="true"]')?.textContent).toBe('SYNC')
-  fireEvent.click(screen.getByRole('radio', { name: 'UNI' }))
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'RATE' }), { key: 'Enter' })
+  expect(store.getState().modulators[0].sync).toBe(false)
+  const depth = () => screen.getByRole('slider', { name: 'DEPTH' })
+  expect(depth().getAttribute('aria-valuetext')).toBe('100% bi')
+  fireEvent.keyDown(depth(), { key: 'Enter' })
   expect(store.getState().modulators[0].bipolar).toBe(false)
+  expect(depth().getAttribute('aria-valuetext')).toBe('100% uni')
 })
