@@ -7,6 +7,7 @@ These are next steps the owner asked for. The order is a suggestion. Before buil
 3. **A usable reverb.** The delay is roughly fine; the current reverb is close to unusable. The owner prefers Ableton's stock Reverb. Research the algorithms behind that kind of reverb (early reflections plus a diffused FDN or Dattorro-style tank, input diffusion, chorus/modulation, high/low damping) and rebuild the reverb on them.
 4. **Sidechain ducking.** Put it on the mixer: each bus gets a control for how much the kick ducks it.
 5. **The remaining machines.** Hats, perc, snare, noise, sample, lead, pad, ornament (KCK2 and BASS already exist).
-6. **Project management.** Save and load, slots (patterns or scenes), and similar.
+6. **Global settings for every insert FX.** Open each FX's global settings with a double-click, the way delay and reverb do now: filter, drive, feedback, chorus, disperse and noise.
+7. **Project management.** Save and load, slots (patterns or scenes), and similar.
 
 UI work on any of these follows `docs/ui-spec.md`.

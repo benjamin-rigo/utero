@@ -117,23 +117,25 @@ export function Knob({
     },
     onPointerMove: (e: PointerEvent<Element>) => {
       if (!drag.current) return
+      // movement deltas keep working under pointer lock, so a drag can run past the window edge
+      const dy = -e.movementY
+      const dx = size === 'slot' ? e.movementX : 0
       // slots also follow horizontal drags (left/right reads naturally on a bar)
-      const dy = drag.current.y - e.clientY
-      const dx = size === 'slot' ? e.clientX - drag.current.x : 0
       const moved = Math.abs(dx) > Math.abs(dy) ? dx : dy
-      drag.current.travel += Math.abs(dx) + Math.abs(dy)
+      drag.current.travel += Math.abs(e.movementX) + Math.abs(e.movementY)
+      if (drag.current.travel >= 3 && !document.pointerLockElement) e.currentTarget.requestPointerLock?.()
       const delta = moved / (e.shiftKey ? 1000 : 200)
-      drag.current.x = e.clientX
-      drag.current.y = e.clientY
       if (drag.current.mode === 'mod') onModAmount?.(delta)
       else nudge(delta)
     },
     onPointerUp: () => {
       if (drag.current && drag.current.travel < 3) onTap?.()
       drag.current = null
+      if (document.pointerLockElement) document.exitPointerLock?.()
     },
     onPointerCancel: () => { drag.current = null },
-    onLostPointerCapture: () => { drag.current = null },
+    // taking the pointer lock drops the capture; the drag goes on
+    onLostPointerCapture: () => { if (!document.pointerLockElement) drag.current = null },
     onDoubleClick: () => (map ? onMapClear?.() : onOpen ? onOpen() : onChange(defaultValue)),
     onKeyDown: (e: KeyboardEvent<Element>) => {
       const step = steps && !map ? 1 / (steps - 1) : e.shiftKey ? 0.001 : 0.01

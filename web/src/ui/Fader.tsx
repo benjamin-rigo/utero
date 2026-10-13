@@ -24,7 +24,7 @@ export function Fader({ label, pos: value, defaultPos, valueText, meter, empty =
   // work in screen space (0 = bottom); invert maps it back to the value
   const pos = invert ? 1 - value : value
   const onPos = (p: number) => setValue(invert ? 1 - p : p)
-  const drag = useRef<{ y: number; pos: number; h: number } | null>(null)
+  const drag = useRef<{ pos: number; h: number; travel: number } | null>(null)
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.shiftKey ? 0.1 : 0.01
     const keys: Record<string, number> = {
@@ -43,15 +43,21 @@ export function Fader({ label, pos: value, defaultPos, valueText, meter, empty =
       aria-valuenow={Math.round(pos * 100)} aria-valuetext={valueText}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId)
-        drag.current = { y: e.clientY, pos, h: e.currentTarget.getBoundingClientRect().height || 100 }
+        drag.current = { pos, h: e.currentTarget.getBoundingClientRect().height || 100, travel: 0 }
       }}
       onPointerMove={(e) => {
         const d = drag.current
         if (!d) return
-        const scale = e.shiftKey ? 4 : 1
-        onPos(clamp01(d.pos + (d.y - e.clientY) / (d.h * scale)))
+        // movement deltas keep working under pointer lock, so a drag can run past the window edge
+        d.travel += Math.abs(e.movementY)
+        if (d.travel >= 3 && !document.pointerLockElement) e.currentTarget.requestPointerLock?.()
+        d.pos = clamp01(d.pos - e.movementY / (d.h * (e.shiftKey ? 4 : 1)))
+        onPos(d.pos)
       }}
-      onPointerUp={() => { drag.current = null }}
+      onPointerUp={() => {
+        drag.current = null
+        if (document.pointerLockElement) document.exitPointerLock?.()
+      }}
       onPointerCancel={() => { drag.current = null }}
       onDoubleClick={() => setValue(defaultPos)}
       onKeyDown={onKey}
