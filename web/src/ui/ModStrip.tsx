@@ -168,7 +168,7 @@ function ModPage({ slot, m, tracks, routes, live, store }: PageProps) {
     <div className="mod-grid col-[1/12] h-full min-h-0 overflow-hidden border-r border-line p-inset">
       <div className="col-start-1 row-start-1 flex h-control items-center">
         {m.kind === 1 && (
-          <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-hair">
+          <div role="radiogroup" aria-label="Shape" className="flex h-full w-full">
             {SHAPES.map((sh) => (
               <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
                 tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}

@@ -195,7 +195,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                 </button>
               )
             })}
-            <div className="col-start-22 flex items-center gap-tight pl-inset text-ink-mute">
+            <div className="col-start-21 flex items-center gap-tight pl-[calc(var(--spacing-inset)-var(--spacing-hair))] text-ink-mute">
               <Knob size="xs" tone="mono" label="RATE" ariaLabel={`${tr.name} rate`} steps={SPEED_ORDER.length}
                 value={speedIndex(tr.speed) / (SPEED_ORDER.length - 1)} defaultValue={speedIndex(1) / (SPEED_ORDER.length - 1)}
                 format={(v) => speedLabel(SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))])}
@@ -203,7 +203,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   const code = SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))]
                   if (code !== tr.speed) onSetSpeed(t, code)
                 }} />
-              <span className="w-readout tabular-nums text-ink-mute">{speedLabel(tr.speed)}</span>
+              <span className="w-readout text-right tabular-nums text-ink-mute">{speedLabel(tr.speed)}</span>
             </div>
           </div>
         )

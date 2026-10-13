@@ -165,8 +165,11 @@
   --spacing-dial-h: 21px;
   --spacing-wave: 300px;
   --spacing-dial: 24px;
+  /* the master output fader: narrow, beside the master knobs */
+  --spacing-fader: 48px;
   --spacing-option: 28px;
-  --spacing-readout: 36px;
+  /* the longest sequencer rate label (1/16×) in the mono font */
+  --spacing-readout: 5ch;
   --spacing-graph: 40px;
   --spacing-track: 52px;
   /* the right unit (machine / macros / master) grows with the screen between these bounds */
@@ -200,12 +203,12 @@
 }
 
 /* the left unit's shared columns (sequencer, modulators, mixer all sit on them through subgrid):
-   track names | 4 beats of 4 steps, a hairline spacer after each beat | rate. Column numbers: name 1, step s at 2 + s + floor(s / 4), rate 22. */
+   track names | 4 beats of 4 steps, a hairline spacer between beats | rate. Column numbers: name 1, step s at 2 + s + floor(s / 4), rate 21. */
 @utility left-grid {
   display: grid;
   grid-template-columns: var(--spacing-track)
     repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) var(--spacing-hair)
-    repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) var(--spacing-hair) auto;
+    repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) auto;
   column-gap: var(--spacing-hair);
 }
 

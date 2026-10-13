@@ -55,8 +55,6 @@ export interface KnobProps {
   format?(value: number): string
   /** Map mode: the selected modulator's amount on this knob (−1..1); drags and arrows edit it, double-click clears. */
   map?: { label: string; amount: number } | null
-  /** Slot only: hide the inline label (a row caption next to it names the row). */
-  bare?: boolean
   onMap?(delta: number): void
   onMapClear?(): void
   onHover?(on: boolean): void
@@ -69,7 +67,7 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'sm', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart, bare = false,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'sm', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart,
 }: KnobProps) {
   const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod'; travel: number } | null>(null)
   const current = useRef(value)
@@ -180,8 +178,8 @@ export function Knob({
           </>
         )}
         <div className="relative flex h-full items-center justify-between gap-tight px-tight">
-          {!bare && <span className="truncate text-ink-soft">{label}</span>}
-          <span className={`ml-auto tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>{shown}</span>
+          <span className="truncate text-ink-soft">{label}</span>
+          <span className={`tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>{shown}</span>
         </div>
       </div>
     )
