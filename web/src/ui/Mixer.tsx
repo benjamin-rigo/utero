@@ -65,14 +65,14 @@ export function Mixer({ state, frame, store }: Props) {
       })}
       <div className="grid min-h-0 grid-cols-[1fr_var(--spacing-fader)] gap-group bg-background p-inset">
         <div className="flex min-h-0 flex-col gap-tight">
-          <div className="flex h-control items-center gap-tight">
-            <span className="mr-tight text-ink-soft">master</span>
+          <div className="flex h-control items-center gap-group">
+            <span className="text-ink-soft">master</span>
             <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
             <Segmented label="Master mode" options={['limit', 'clip']} index={clip ? 1 : 0}
               onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
             <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
           </div>
-          <div className="knob-row">
+          <div className="knob-row flex-1 content-center">
             {MASTER_KNOBS.map(({ param, label }) => (
               <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
                 label={label} ariaLabel={`MASTER ${label}`}
