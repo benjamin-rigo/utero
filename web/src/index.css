@@ -163,8 +163,10 @@
   /* knob height after cropping the empty bottom of the dial; whole pixels keep every hairline sharp */
   --spacing-knob-h: 52px;
   --spacing-dial-h: 21px;
-  /* modulator knobs: the smallest equal gap that keeps the widest choice (free|retrig|oneshot) a group gap from its neighbour's */
+  /* modulator knobs: one equal gap; the widest choice (free|retrig|oneshot) centred under trig still clears the next knob column */
   --spacing-mod-gap: 48px;
+  /* right edge of the modulator page: the trig choice (128) overhangs its knob column by 34, then the usual inset */
+  --spacing-mod-tail: calc(34px + var(--spacing-inset));
   --spacing-wave: 300px;
   --spacing-fader: var(--spacing-knob);
   --spacing-dial: 24px;

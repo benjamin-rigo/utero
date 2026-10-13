@@ -29,7 +29,7 @@ export const TRIG_MODES = ['FREE', 'RETRIG', 'ONESHOT']
 export function defaultModulator(): ModulatorState {
   return {
     kind: 0, shape: 0, color: 0, sync: true, rateIndex: DEFAULT_RATE, hz: 1, phase: 0, bipolar: true,
-    trigMode: 0, trigSrc: -1, smooth: 0, depth: 1, steps: Array(STEP_COUNT).fill(0), stepLen: STEP_COUNT, env: [...DEFAULT_ENV],
+    trigMode: 0, trigSrc: -1, smooth: 0, depth: 1, fade: 0, steps: Array(STEP_COUNT).fill(0), stepLen: STEP_COUNT, env: [...DEFAULT_ENV],
   }
 }
 

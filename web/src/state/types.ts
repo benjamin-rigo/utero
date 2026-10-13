@@ -45,6 +45,8 @@ export interface ModulatorState {
   trigSrc: number
   smooth: number
   depth: number
+  /** LFO fade from each restart: < 0 in, > 0 out, 0 off (mirrors ModSettings::fade). */
+  fade: number
   steps: number[]
   stepLen: number
   /** ENV kind: ATK HOLD DEC SUS REL, normalised (same ranges as the amp envelope). */

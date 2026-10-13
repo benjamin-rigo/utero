@@ -114,6 +114,8 @@ pub struct ModSettings {
     pub trig_src: i8,
     pub smooth: f32,
     pub depth: f32,
+    /// LFO fade from each restart: < 0 fades in, > 0 fades out, 0 off; |fade|² × FADE_MAX_CYCLES cycles long.
+    pub fade: f32,
 }
 
 impl Default for ModSettings {
@@ -131,6 +133,7 @@ impl Default for ModSettings {
             trig_src: -1,
             smooth: 0.0,
             depth: 1.0,
+            fade: 0.0,
         }
     }
 }
@@ -145,6 +148,7 @@ impl ModSettings {
             phase: finite_or(self.phase, 0.0).rem_euclid(1.0),
             smooth: finite_or(self.smooth, 0.0).clamp(0.0, 1.0),
             depth: finite_or(self.depth, 1.0).clamp(0.0, 1.0),
+            fade: finite_or(self.fade, 0.0).clamp(-1.0, 1.0),
             trig_src: self.trig_src.max(-1),
             ..self
         }
@@ -156,6 +160,8 @@ pub struct Modulator {
     steps: [f32; STEP_COUNT],
     step_len: u8,
     phase: f32,
+    /// LFO cycles since the last restart (drives the fade).
+    since_restart: f32,
     from: f32,
     to: f32,
     smoothed: f32,
@@ -177,6 +183,7 @@ impl Modulator {
             steps: [0.0; STEP_COUNT],
             step_len: STEP_COUNT as u8,
             phase: 0.0,
+            since_restart: 0.0,
             from: 0.0,
             to,
             smoothed: 0.0,
@@ -220,6 +227,7 @@ impl Modulator {
 
     pub fn restart(&mut self) {
         self.phase = self.settings.phase;
+        self.since_restart = 0.0;
         self.done = false;
         self.new_target();
     }
@@ -252,7 +260,7 @@ impl Modulator {
                 self.out = 0.0;
                 return 0.0;
             }
-            ModKind::Lfo => self.lfo(s, inc),
+            ModKind::Lfo => self.lfo(s, inc) * self.fade_gain(s.fade, inc),
             ModKind::Noise => self.noise(s.color),
             ModKind::Env => self.env.next(&self.env_times, sample_rate) * 2.0 - 1.0,
             ModKind::Step => {
@@ -266,6 +274,16 @@ impl Modulator {
         let v = if s.bipolar { self.smoothed } else { (self.smoothed + 1.0) * 0.5 };
         self.out = v * s.depth;
         self.out
+    }
+
+    fn fade_gain(&mut self, fade: f32, inc: f32) -> f32 {
+        self.since_restart += inc;
+        let len = FADE_MAX_CYCLES * fade * fade;
+        if len <= 0.0 {
+            return 1.0;
+        }
+        let x = (self.since_restart / len).min(1.0);
+        if fade < 0.0 { x } else { 1.0 - x }
     }
 
     fn new_target(&mut self) {
@@ -346,6 +364,9 @@ impl Modulator {
         }
     }
 }
+
+/// Longest LFO fade (|fade| = 1), in LFO cycles.
+pub const FADE_MAX_CYCLES: f32 = 16.0;
 
 pub const MOD_SLOTS: usize = 16;
 pub const MAX_ROUTES: usize = 64;
@@ -571,6 +592,27 @@ mod tests {
         let before = m.output();
         m.on_trigger();
         assert_ne!(m.next(0.05, 48_000.0), before);
+    }
+
+    #[test]
+    fn fade_in_and_out_follow_the_restart() {
+        // fade ±0.5 = 4 cycles; a square LFO makes the envelope readable directly
+        let env = |fade: f32| {
+            let mut m = Modulator::new(1);
+            m.set_settings(ModSettings { kind: ModKind::Lfo, shape: Shape::Sqr, fade, ..ModSettings::default() });
+            m.restart();
+            run(&mut m, 1_000, 0.01).iter().map(|v| v.abs()).collect::<Vec<f32>>()
+        };
+        let (fin, fout, off) = (env(-0.5), env(0.5), env(0.0));
+        assert!(fin[10] < 0.05 && (fin[199] - 0.5).abs() < 0.02 && fin[999] > 0.99, "{} {} {}", fin[10], fin[199], fin[999]);
+        assert!(fout[10] > 0.95 && (fout[199] - 0.5).abs() < 0.02 && fout[999] < 0.01, "{} {} {}", fout[10], fout[199], fout[999]);
+        assert!(off.iter().all(|v| (v - 1.0).abs() < 1e-6));
+        // a retrigger starts the fade again
+        let mut m = Modulator::new(1);
+        m.set_settings(ModSettings { kind: ModKind::Lfo, shape: Shape::Sqr, fade: -0.5, trig_mode: TrigMode::Retrig, ..ModSettings::default() });
+        run(&mut m, 1_000, 0.01);
+        m.on_trigger();
+        assert!(m.next(0.01, 48_000.0).abs() < 0.05);
     }
 
     #[test]

@@ -8,7 +8,7 @@ export interface EngineExports {
   utero_set_bpm(bpm: number): void
   utero_set_fill(on: number): void
   utero_set_modulator(slot: number, kind: number, shape: number, color: number, sync: number, rateIndex: number, hz: number,
-    phase: number, bipolar: number, trigMode: number, trigSrc: number, smooth: number, depth: number): void
+    phase: number, bipolar: number, trigMode: number, trigSrc: number, smooth: number, depth: number, fade: number): void
   utero_set_mod_step(slot: number, index: number, value: number): void
   utero_set_mod_step_len(slot: number, len: number): void
   utero_set_route(index: number, src: number, track: number, param: number, amount: number): void

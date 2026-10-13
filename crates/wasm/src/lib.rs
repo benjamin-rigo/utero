@@ -103,7 +103,7 @@ pub extern "C" fn utero_playhead(track: u32) -> i32 {
 #[allow(clippy::too_many_arguments)]
 pub extern "C" fn utero_set_modulator(
     slot: u32, kind: u32, shape: u32, color: u32, sync: u32, rate_index: u32, hz: f32, phase: f32,
-    bipolar: u32, trig_mode: u32, trig_src: i32, smooth: f32, depth: f32,
+    bipolar: u32, trig_mode: u32, trig_src: i32, smooth: f32, depth: f32, fade: f32,
 ) {
     let s = ModSettings {
         kind: ModKind::from_code(byte(kind)),
@@ -118,6 +118,7 @@ pub extern "C" fn utero_set_modulator(
         trig_src: trig_src.clamp(-1, 127) as i8,
         smooth,
         depth,
+        fade,
     };
     eng().set_modulator(slot as usize, s);
 }
