@@ -17,7 +17,7 @@ export function MacroFaders({ state, store }: Props) {
   const startRename = (m: number) => { cancelRename.current = false; setEditing(m) }
 
   return (
-    <section aria-label="Macros" className="flex min-h-0 flex-col gap-tight border-l border-line p-inset">
+    <section aria-label="Macros" className="flex min-h-0 flex-col gap-tight p-inset">
       <div className="grid min-h-0 flex-1 grid-cols-8 gap-tight">
         {state.macros.map((mac, m) => {
           const armed = state.learn?.macro === m ? state.learn.side : null

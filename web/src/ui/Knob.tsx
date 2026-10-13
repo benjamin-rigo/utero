@@ -4,6 +4,8 @@ import { MOD_DRAG_TYPE } from '@/state/modulation'
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const SIZE = 56
 const MID = SIZE / 2
+/** The 270° arc leaves the bottom of the circle empty: crop it (lowest point: a marker dot on the mod ring at 45°). */
+const VIEW_H = 48
 const R = 18
 const C = 2 * Math.PI * R
 const RM = 24
@@ -187,8 +189,8 @@ export function Knob({
     <div className="flex flex-col items-center gap-tight select-none">
       <svg
         {...slider}
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className={`${size === 'xs' ? 'size-dial' : 'size-knob'} cursor-ns-resize touch-none rounded-full focus-ring ${learning ? 'ring-1 ring-alert' : ''}`}
+        viewBox={`0 0 ${SIZE} ${VIEW_H}`} overflow="visible"
+        className={`${size === 'xs' ? 'h-dial-h w-dial' : 'h-knob-h w-knob'} cursor-ns-resize touch-none focus-ring ${learning ? 'ring-1 ring-alert' : ''}`}
       >
         <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-raised"
           strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />

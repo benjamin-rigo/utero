@@ -12,13 +12,13 @@ interface Props {
   machine: MachineDef
 }
 
-/** The machine's amp envelope: the curve to drag, plus a value slot per stage for precise/keyboard edits. */
+/** The machine's amp envelope (takes the height the knob sections leave): the curve to drag, plus a value slot per stage for precise/keyboard edits. */
 export function AmpEnv({ state, frame, store, track: t, machine }: Props) {
   const params = ENV_NAMES.slice(0, ENV_SHOWN).map((_, i) => ENV_BASE + i)
   const row = rowParams(state, t)
   return (
-    <section aria-label="Amp envelope" className="flex flex-col gap-hair border-b border-line p-inset">
-      <div className="h-graph">
+    <section aria-label="Amp envelope" className="flex min-h-0 flex-1 flex-col gap-hair border-b border-line p-inset">
+      <div className="min-h-graph flex-1">
         <EnvGraph values={params.map((p) => row[p] ?? machine.params[p].default)} onChange={(i, v) => store.setParam(t, ENV_BASE + i, v)} />
       </div>
       <div className="grid grid-cols-3 gap-hair">

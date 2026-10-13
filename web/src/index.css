@@ -156,6 +156,9 @@
   --spacing-group: 12px;
   --spacing-control: 20px;
   --spacing-knob: 60px;
+  /* knob height after cropping the empty bottom of the dial; whole pixels keep every hairline sharp */
+  --spacing-knob-h: 52px;
+  --spacing-dial-h: 21px;
   --spacing-knob-2: calc(var(--spacing-knob) * 2 + var(--spacing-group));
   --spacing-wave: 300px;
   --spacing-fader: 48px;
