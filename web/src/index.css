@@ -127,6 +127,10 @@
   html {
     @apply font-sans;
     }
+  /* preflight resets buttons to text-transform: none; the app's lowercase must reach them too */
+  button, select {
+    text-transform: inherit;
+  }
 }
 /*
  * utero design tokens: every colour, size and spacing in the UI comes from here.
