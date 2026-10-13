@@ -174,8 +174,12 @@
   --spacing-readout: 5ch;
   --spacing-graph: 40px;
   --spacing-track: 52px;
-  /* the right unit (machine / macros / master) grows with the screen between these bounds */
-  --spacing-side: clamp(400px, 30vw, 520px);
+  /* one gap between knobs everywhere */
+  --spacing-knob-gap: 24px;
+  /* the right unit is exactly four knobs wide (with their gaps and the pane inset) */
+  --spacing-side: calc(2 * var(--spacing-inset) + 4 * var(--spacing-knob) + 3 * var(--spacing-knob-gap));
+  /* a macro fader: two side by side under one knob */
+  --spacing-macro: calc((var(--spacing-knob) - var(--spacing-tight)) / 2);
   --spacing-strip: 190px;
   --spacing-mixer: 200px;
 
@@ -185,13 +189,22 @@
   --text-label--line-height: 1;
 }
 
-/* four equal knob slots across the row, each knob centred in its slot */
+/* a row of four knobs, one knob gap apart; the block is exactly as wide as its knobs */
 @utility knob-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  justify-items: center;
-  column-gap: var(--spacing-tight);
+  grid-template-columns: repeat(4, var(--spacing-knob));
+  column-gap: var(--spacing-knob-gap);
   row-gap: var(--spacing-group);
+}
+
+/* eight macro faders, two under each knob column of the right unit (fader, tight, fader, knob gap, …) */
+@utility macro-row {
+  display: grid;
+  grid-template-columns:
+    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro) var(--spacing-knob-gap)
+    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro) var(--spacing-knob-gap)
+    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro) var(--spacing-knob-gap)
+    var(--spacing-macro) var(--spacing-tight) var(--spacing-macro);
 }
 
 
@@ -205,12 +218,6 @@
   column-gap: var(--spacing-hair);
 }
 
-/* four equal columns of the right unit: machine, fx and master knobs sit on them, two macro faders per column */
-@utility side-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: var(--spacing-tight);
-}
 
 /* one focus style for every control */
 @utility focus-ring {

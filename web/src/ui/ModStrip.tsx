@@ -45,12 +45,12 @@ export function ModStrip({ state, frame, store }: Props) {
     if (state.modulators[i].kind === 0) store.updateModulator(i, { kind: 1 })
   }
   return (
-    // on the left unit's columns: the page over beats 1–2 (with the name column), the tiles over beats 3–4 and the rate column
-    <section aria-label="Modulators" className="col-span-full grid min-h-0 grid-cols-subgrid border-t border-line">
+    // the page is four knobs wide (like the right unit), the tiles take the rest
+    <section aria-label="Modulators" className="col-span-full grid min-h-0 grid-cols-[auto_minmax(0,1fr)] border-t border-line">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
         {/* the tiles fill their pane: the pane edges are the grid's outer lines */}
-        <div className="col-[12/-1] min-h-0">
+        <div className="min-h-0">
           <div className="grid h-full min-h-0 grid-cols-4 grid-rows-4 gap-hair bg-line 2xl:grid-cols-8 2xl:grid-rows-2">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
@@ -172,7 +172,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
     m.kind !== 0 ? <Knob key="smooth" size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} /> : null,
   ]
   return (
-    <div className="col-[1/12] grid min-h-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden border-r border-line p-inset">
+    <div className="grid min-h-0 grid-cols-[auto_auto] overflow-hidden border-r border-line p-inset">
       <div className="knob-row content-center">
         {slots.map((k, i) => <div key={i} className="flex h-knob-cell w-knob items-center justify-center">{k ?? <EmptyKnob />}</div>)}
       </div>

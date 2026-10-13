@@ -10,24 +10,25 @@ The decisions below were made with the owner. Read this before any UI change. If
 - Text roles: labels use ink-mute, values ink-soft, selected items bold ink.
 - Either/or settings use `Segmented`, which shows every option with the active one filled white.
 - Segmented options and toggles sit flush against each other, with no 1 px seams.
-- Use knobs and draggable handles instead of selects or steppers. All knobs are one size: 60 px wide, with the empty bottom of the dial cropped.
+- Use knobs and draggable handles instead of selects or steppers. All knobs are one size: 60 px wide, with the empty bottom of the dial cropped. Knobs are the same 24 px gap apart everywhere, and a section is as wide as its knobs plus their gaps.
 - The knob caption (label and value) is a single click/drag target.
 - Do not over-segment panels. Add no divider lines or group boxes between controls the user can tell apart on their own.
 
 ## Layout: two responsive units on three shared rows
 - This is a fluid, responsive system. Do not fit things to exact screen pixels.
 - **Left unit** has three rows: sequencer, modulators, mixer.
-  - The sequencer and the modulator row sit on one column grid through subgrid: track names | 4 beats × 4 steps | rate. The modulator page covers the name column plus beats 1–2, and the tiles cover beats 3–4 plus the rate column.
-  - The mixer is **not** on that grid: 8 equal strips fill the whole width, with 1 px lines between them and the slider names (flt/drv/pan) inside the sliders. Do not change this without asking.
+  - The sequencer sits on its column grid: track names | 4 beats × 4 steps | rate.
+  - The modulator row holds the modulator page, which is four knobs wide (like the right unit), and the tiles take the rest of the width.
+  - The mixer is 8 equal strips filling the width, with 1 px lines between them and the slider names (flt/drv/pan) inside the sliders. The narrow upright master output fader ("out") closes the row. Do not change this without asking.
 - **Right unit** has three rows: machine, macros, master.
-  - Machine and FX knobs use 4 equal columns, with each knob centred in its slot. Each column holds two macro faders.
+  - The right unit is exactly four knobs wide: 4 × 60 px knobs, 24 px gaps, plus the pane inset. Machine, FX and master knobs share those columns, and each knob column holds two macro faders.
 - **Machine page:**
   - Amp envelope at the top: AHD curve plus value slots. It has a *fixed, modest height*; it does not stretch.
   - The machine knob section and the FX knob section share the remaining height equally, with their knobs centred vertically.
 - **Master:**
   - Header: master, mute q, limit|clip, lufs.
   - Four knobs: comp, eq, sat, **limit** (a knob, showing its gain-reduction ring), centred.
-  - A **narrow upright** output fader at the right.
+  - The output fader lives at the right end of the mixer (see above).
   - Signal chain: sat → eq → comp → −6 dB trim → limiter → fader. Fader full travel is 0 dB.
 
 ## Controls keep their place

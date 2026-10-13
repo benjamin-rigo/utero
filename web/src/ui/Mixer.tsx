@@ -33,11 +33,11 @@ const editValueOf = (state: AppState) => (row: number, p: number) => {
   return t ? t[learn.side] : base
 }
 
-/** The eight buses: equal strips across the left unit, the slider names inside the sliders. */
+/** The eight buses as equal strips, the slider names inside the sliders; the master output fader closes the row. */
 export function Mixer({ state, frame, store }: Props) {
   const editValue = editValueOf(state)
   return (
-    <section aria-label="Mixer" className="col-span-full grid min-h-0 grid-cols-[repeat(8,minmax(0,1fr))] gap-hair border-t border-line bg-line">
+    <section aria-label="Mixer" className="col-span-full grid min-h-0 grid-cols-[repeat(8,minmax(0,1fr))_auto] gap-hair border-t border-line bg-line">
       {state.buses.map((bus, b) => {
         const row = busRow(b)
         const meter = frame ? busMeterOf(frame, b) : { peak: 0, rms: 0 }
@@ -63,36 +63,38 @@ export function Mixer({ state, frame, store }: Props) {
           </div>
         )
       })}
+      <div className="grid min-h-0 grid-rows-[auto_1fr] gap-tight bg-background p-inset">
+        <span className="flex h-control items-center text-ink-soft">out</span>
+        <div className="flex min-h-0 w-fader">
+          <Fader label="MASTER level" pos={editValue(MASTER_ROW, MASTER_LEVEL)} defaultPos={MASTER_PARAMS[MASTER_LEVEL].default}
+            valueText={outputDb(editValue(MASTER_ROW, MASTER_LEVEL))} meter={frame ? Math.max(masterMeterOf(frame).peakL, masterMeterOf(frame).peakR) : 0}
+            onPos={(p) => store.setParam(MASTER_ROW, MASTER_LEVEL, p)} />
+        </div>
+      </div>
     </section>
   )
 }
 
-/** The master: header, comp / eq / sat / limit knobs (centred), the narrow upright output fader at the right. */
+/** The master: header, then comp / eq / sat / limit on the right unit's knob row (the output fader closes the mixer row). */
 export function Master({ state, frame, store }: Props) {
-  const editValue = editValueOf(state)
   const master = frame ? masterMeterOf(frame) : { peakL: 0, peakR: 0, lufs: -70, gr: 0, limGr: 0 }
   const clip = state.master.params[MASTER_MODE] >= 0.5
   return (
-    <section aria-label="Master" className="grid min-h-0 grid-cols-[minmax(0,1fr)_var(--spacing-fader)] gap-group border-t border-line p-inset">
-      <div className="flex min-h-0 flex-col gap-tight">
-        <div className="flex h-control items-center gap-group">
-          <span className="text-ink-soft">master</span>
-          <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
-          <Segmented label="Master mode" options={['limit', 'clip']} index={clip ? 1 : 0}
-            onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
-          <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
-        </div>
-        <div className="knob-row flex-1 content-center">
-          {MASTER_KNOBS.map(({ param, label }) => (
-            <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
-              label={label} ariaLabel={`MASTER ${label}`}
-              reduction={param === MASTER_COMP ? master.gr : param === MASTER_CEIL && !clip ? master.limGr : undefined} />
-          ))}
-        </div>
+    <section aria-label="Master" className="flex min-h-0 flex-col gap-tight border-t border-line p-inset">
+      <div className="flex h-control items-center gap-group">
+        <span className="text-ink-soft">master</span>
+        <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
+        <Segmented label="Master mode" options={['limit', 'clip']} index={clip ? 1 : 0}
+          onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
+        <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
       </div>
-      <Fader label="MASTER level" pos={editValue(MASTER_ROW, MASTER_LEVEL)} defaultPos={MASTER_PARAMS[MASTER_LEVEL].default}
-        valueText={outputDb(editValue(MASTER_ROW, MASTER_LEVEL))} meter={Math.max(master.peakL, master.peakR)}
-        onPos={(p) => store.setParam(MASTER_ROW, MASTER_LEVEL, p)} />
+      <div className="knob-row flex-1 content-center">
+        {MASTER_KNOBS.map(({ param, label }) => (
+          <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
+            label={label} ariaLabel={`MASTER ${label}`}
+            reduction={param === MASTER_COMP ? master.gr : param === MASTER_CEIL && !clip ? master.limGr : undefined} />
+        ))}
+      </div>
     </section>
   )
 }
