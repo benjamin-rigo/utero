@@ -103,7 +103,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
           <div key={tr.name}
             className="grid min-h-0 flex-1 grid-cols-[var(--spacing-track)_repeat(16,1fr)_auto] items-stretch gap-hair">
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
-              className={`flex flex-col justify-center px-tight text-left lowercase focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute hover:text-ink-soft'}`}>
+              className={`flex flex-col justify-center px-tight text-left focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute hover:text-ink-soft'}`}>
               {tr.name}
               {tuner[t] && ' '}{tuner[t] && <span className="text-micro tabular-nums text-ink-mute">{tuner[t]}</span>}
             </button>
@@ -173,7 +173,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   }}
                   onPointerCancel={() => { drag.current = null }}
                   className={[
-                    'relative overflow-hidden text-body font-bold leading-none focus-ring',
+                    'relative overflow-hidden text-label font-bold leading-none focus-ring',
                     st.trig ? 'bg-ink-soft text-on-ink' : selected ? 'bg-raised' : 'bg-well',
                     beyond ? 'opacity-30 [background-image:repeating-linear-gradient(45deg,transparent_0_3px,var(--color-raised)_3px_6px)]' : '',
                     melodic ? 'touch-none' : '',

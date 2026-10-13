@@ -87,7 +87,7 @@ export function ModStrip({ state, frame, store }: Props) {
                       <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
                         className="stroke-ink/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                     </svg>
-                    <span className="relative self-start truncate bg-background/80 px-tight text-micro lowercase text-ink">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
+                    <span className="relative self-start truncate bg-background/80 px-tight text-micro text-ink">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
                     {targets > 0 && (
                       <span className="absolute top-0 right-0 px-tight text-micro tabular-nums text-ink-mute">{targets}</span>
                     )}
@@ -223,7 +223,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
                 {targets.map(({ r, i }) => {
                   const name = paramLabel(tracks, r.track, r.param).toLowerCase()
                   return (
-                    <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight lowercase">
+                    <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight">
                       <span className="text-ink-soft">{name}</span>
                       <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
                       <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}

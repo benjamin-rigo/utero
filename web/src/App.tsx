@@ -71,7 +71,7 @@ export default function App() {
   useEffect(() => { toggleRef.current = () => { void togglePlay() } })
 
   return (
-    <div className="grid h-dvh grid-rows-[auto_1fr_var(--spacing-mixer)] bg-background font-mono text-body text-foreground">
+    <div className="grid h-dvh grid-rows-[auto_1fr_var(--spacing-mixer)] bg-background font-mono text-label text-ink-soft lowercase">
       <TransportBar bpm={state.bpm} playing={state.playing} starting={starting} error={error} onTogglePlay={togglePlay} onBpm={store.setBpm} />
       {/* the side column shared by machine, macros (ModStrip) and master (Mixer) so their edges line up */}
       <main className="grid min-h-0 grid-cols-[1fr_var(--spacing-side)] grid-rows-[minmax(0,1fr)_var(--spacing-strip)]">

@@ -40,7 +40,7 @@ export function MacroFaders({ state, store }: Props) {
                 ) : (
                   <button type="button" aria-pressed={selected} onClick={() => store.selectMacro(m)} onDoubleClick={() => startRename(m)}
                     onKeyDown={(e) => { if (e.key === 'F2') { e.preventDefault(); startRename(m) } }} aria-keyshortcuts="F2"
-                    className={`min-w-0 truncate lowercase focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
+                    className={`min-w-0 truncate focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
                     {mac.name}
                   </button>
                 )}
@@ -62,7 +62,7 @@ export function MacroFaders({ state, store }: Props) {
             const name = paramName(t.track, t.param)
             return (
               <button key={i} type="button" aria-label={`Remove ${name} from ${sel.name}`} onClick={() => store.removeMacroTarget(state.selectedMacro, i)}
-                className="px-tight text-label lowercase text-ink-mute hover:text-ink focus-ring">
+                className="px-tight text-label text-ink-mute hover:text-ink focus-ring">
                 {name} ×
               </button>
             )

@@ -178,7 +178,7 @@ export function Knob({
           </>
         )}
         <div className="relative flex h-full items-center justify-between gap-tight px-tight">
-          <span className="truncate lowercase text-ink-soft">{label}</span>
+          <span className="truncate text-ink-soft">{label}</span>
           <span className={`tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>{shown}</span>
         </div>
       </div>
@@ -220,11 +220,11 @@ export function Knob({
         <>
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
         draggable={onLabelDragStart !== undefined} onDragStart={onLabelDragStart}
-        className={`text-label lowercase tracking-wider focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
+        className={`text-label focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
         {label}
       </button>
       {learning && <span aria-hidden="true" className="bg-alert px-tight text-micro font-bold text-ink">L</span>}
-      <span className={`text-label tabular-nums ${map ? 'text-mod' : ''}`}>
+      <span className={`tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>
         {shown}
       </span>
         </>

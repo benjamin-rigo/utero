@@ -22,7 +22,7 @@ const MASTER_KNOBS = [
 ]
 
 const toggle = (on: boolean) =>
-  `h-control px-tight text-label lowercase focus-ring ${on ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink-soft'}`
+  `h-control px-tight text-label focus-ring ${on ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink-soft'}`
 
 export function Mixer({ state, frame, store }: Props) {
   // The fader edits the base (or the armed macro endpoint), like every knob.
@@ -47,7 +47,7 @@ export function Mixer({ state, frame, store }: Props) {
         return (
           <div key={bus.name} className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-tight bg-background p-inset">
             <div className="flex h-control items-center justify-between">
-              <span className={`lowercase ${bus.muted ? 'text-ink-mute line-through' : 'text-ink-soft'}`}>{bus.name}</span>
+              <span className={`${bus.muted ? 'text-ink-mute line-through' : 'text-ink-soft'}`}>{bus.name}</span>
               <button type="button" aria-label={`Mute ${bus.name}${pending ? ', pending' : ''}`} aria-pressed={bus.muted} onClick={() => store.toggleMute(b)}
                 className={`h-control w-control focus-ring ${bus.muted ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink'}`}>
                 {pending ? 'q' : 'm'}

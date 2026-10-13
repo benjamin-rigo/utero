@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { parseBpmDraft } from './bpmDraft'
 import { Logo } from './Logo'
 
@@ -41,10 +40,10 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
   return (
     <header className="flex items-center gap-group border-b border-line p-inset">
       <Logo className="size-control shrink-0 text-ink" />
-      <Button size="xs" className="h-control rounded-none px-inset text-label" variant={playing ? 'default' : 'outline'} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
+      <button type="button" className={`h-control px-inset focus-ring disabled:opacity-50 ${playing ? 'bg-ink text-on-ink' : 'bg-well text-ink-soft hover:text-ink'}`} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
         {playing ? '■ STOP' : '▶ PLAY'}
-      </Button>
-      <label className="flex items-center gap-tight text-label text-ink-mute">
+      </button>
+      <label className="flex items-center gap-tight text-ink-mute">
         BPM
         <input type="text" inputMode="decimal" value={draft}
           onFocus={() => setEditing(true)}

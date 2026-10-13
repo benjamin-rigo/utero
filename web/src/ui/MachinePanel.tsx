@@ -22,7 +22,7 @@ export function MachinePanel({ state, frame, store }: Props) {
         // keyed by track so page and selected param reset when switching tracks
         <MachineBody key={t} state={state} frame={frame} store={store} track={t} machine={machine} />
       ) : (
-        <p className="p-inset lowercase text-ink-mute">{state.tracks[t].name} · no machine</p>
+        <p className="p-inset text-ink-mute">{state.tracks[t].name} · no machine</p>
       )}
     </aside>
   )
