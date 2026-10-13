@@ -95,13 +95,14 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
         lengthDrag.current = null
         setPreview(null)
       }}
-      className="flex min-h-0 flex-1 flex-col gap-hair border-r border-line p-inset">
+      style={{ gridTemplateRows: `repeat(${state.tracks.length}, minmax(0, 1fr))` }}
+      className="col-span-full grid min-h-0 grid-cols-subgrid gap-y-hair p-inset">
       {state.tracks.map((tr, t) => {
         const selected = state.selected === t
         const melodic = isMelodic(t)
         return (
           <div key={tr.name}
-            className="seq-row min-h-0 flex-1">
+            className="col-span-full grid min-h-0 grid-cols-subgrid">
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
               className={`flex flex-col justify-center px-tight text-left focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute hover:text-ink-soft'}`}>
               {tr.name}

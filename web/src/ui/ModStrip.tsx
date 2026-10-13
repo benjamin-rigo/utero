@@ -6,7 +6,6 @@ import {
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
 import { Knob } from './Knob'
-import { MacroFaders } from './MacroFaders'
 import { Segmented } from './Segmented'
 import { envMeta, ENV_NAMES, formatParam, paramLabel } from '@/state/machines'
 import { EnvGraph } from './EnvGraph'
@@ -56,12 +55,12 @@ export function ModStrip({ state, frame, store }: Props) {
   }
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_var(--spacing-side)] border-t border-line">
-      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[auto_minmax(0,1fr)] border-r border-line">
-        <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
+    // on the left unit's columns: the page over beats 1–2 (with the name column), the tiles over beats 3–4 and the rate column
+    <section aria-label="Modulators" className="col-span-full grid min-h-0 grid-cols-subgrid border-t border-line">
+        <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes} live={live(slot)}
           tracks={state.tracks.map((t) => t.name)} store={store} />
         {/* the tiles fill their pane: the pane edges are the grid's outer lines */}
-        <div className="min-h-0">
+        <div className="col-[12/-1] min-h-0">
           <div className="grid h-full min-h-0 grid-cols-4 grid-rows-4 gap-hair bg-line 2xl:grid-cols-8 2xl:grid-rows-2">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
@@ -106,9 +105,7 @@ export function ModStrip({ state, frame, store }: Props) {
           })}
         </div>
         </div>
-      </section>
-      <MacroFaders state={state} store={store} />
-    </div>
+    </section>
   )
 }
 
@@ -117,6 +114,8 @@ interface PageProps {
   m: ModulatorState
   routes: AppState['routes']
   mapping: boolean
+  /** The modulator's current output, drawn as a level line in the display. */
+  live: number
   tracks: string[]
   store: Store
 }
@@ -127,14 +126,15 @@ interface ChoiceKnobProps {
   index: number
   defaultIndex?: number
   onIndex(i: number): void
+  size?: 'sm' | 'slot'
 }
 
 /** A knob over a short list of named positions (shape, mode, trigger…). */
-function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: ChoiceKnobProps) {
+function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex, size = 'sm' }: ChoiceKnobProps) {
   const last = options.length - 1
   const at = (v: number) => Math.round(v * last)
   return (
-    <Knob size="sm" label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
+    <Knob size={size} label={label} steps={options.length} value={index / last} defaultValue={defaultIndex / last}
       format={(v) => options[at(v)]} onChange={(v) => { if (at(v) !== index) onIndex(at(v)) }} />
   )
 }
@@ -152,19 +152,21 @@ function Cell({ col, knob, choice }: { col: string; knob?: ReactNode; choice?: R
   )
 }
 
-function ModPage({ slot, m, tracks, routes, store }: PageProps) {
+function ModPage({ slot, m, tracks, routes, live, store }: PageProps) {
   const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
   const update = (patch: Parameters<Store['updateModulator']>[1]) => store.updateModulator(slot, patch)
-  const timed = m.kind === 1
   const pct = (v: number) => `${Math.round(v * 100)}%`
-  const envKnob = (i: number) => (
-    <Knob size="sm" label={ENV_NAMES[i]} ariaLabel={`${modLabel(slot, m)} ${ENV_NAMES[i]}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
+  const name = modLabel(slot, m)
+  const envSlot = (i: number) => (
+    <Knob size="slot" label={ENV_NAMES[i]} ariaLabel={`${name} ${ENV_NAMES[i]}`} value={m.env[i]} defaultValue={DEFAULT_ENV[i]}
       format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
   )
+  const level = m.bipolar ? live : live * 2 - 1
   return (
-    <div className="mod-grid h-full min-h-0 overflow-hidden border-r border-line p-inset pr-mod-tail">
-      {/* top row: the waveform / colour / curve slot over the type's own knobs (fixed size for every type), the type over the shared knobs */}
-      <div className="col-span-3 col-start-1 row-start-1 flex h-control items-center">
+    // Ableton LFO layout: waveform choice over a big display with its sliders under it; rate / depth / smooth knobs to the right,
+    // trigger under them. Every type keeps the same slots; what a type doesn't have stays empty.
+    <div className="mod-grid col-[1/12] h-full min-h-0 overflow-hidden border-r border-line p-inset">
+      <div className="col-start-1 row-start-1 flex h-control items-center">
         {m.kind === 1 && (
           <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-hair">
             {SHAPES.map((sh) => (
@@ -189,42 +191,63 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
           </div>
         )}
         {m.kind === 2 && <Segmented label="Noise colour" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />}
-        {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
       </div>
       <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
-        className="col-span-3 col-start-4 row-start-1"
+        className="col-span-3 col-start-2 row-start-1"
         onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
-      {/* fixed knob slots: [rate|atk + sync/hz] [phase|hold] [fade|dec] [depth + bi/uni] [smooth] [trig + mode]; unused slots stay empty.
-          Knobs sit centred in the space above, every choice sits on one shared bottom line. */}
-      <Cell col="col-start-1"
-        knob={m.kind === 1 ? (m.sync ? (
-          <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
-        ) : (
-          <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
-        )) : m.kind === 4 ? envKnob(0) : null}
+
+      <div className="col-start-1 row-start-2 min-h-0 bg-well">
+        {m.kind === 4 ? <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} /> : m.kind !== 0 && (
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
+            <line x1={0} x2={W} y1={toY(0)} y2={toY(0)} className="stroke-raised" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            <path d={pathOf(previewShape(m, 128))} fill="none" className="stroke-ink-soft" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+            <line x1={0} x2={W} y1={toY(level)} y2={toY(level)} className="stroke-ink/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          </svg>
+        )}
+      </div>
+      <Cell col="col-start-2" knob={m.kind === 1 && (m.sync ? (
+        <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
+      ) : (
+        <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
+      ))}
         choice={m.kind === 1 && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />} />
-      <Cell col="col-start-2" knob={m.kind === 1 ? <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
-        : m.kind === 4 ? envKnob(1) : null} />
-      <Cell col="col-start-3" knob={m.kind === 1 ? <Knob size="sm" label="FADE" value={(m.fade + 1) / 2} defaultValue={0.5} format={fadeLabel} onChange={(v) => update({ fade: v * 2 - 1 })} />
-        : m.kind === 4 ? envKnob(2) : null} />
-      <Cell col="col-start-4"
+      <Cell col="col-start-3"
         knob={m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
         choice={m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />} />
-      <Cell col="col-start-5" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
-      <Cell col="col-start-6"
-        knob={(m.kind === 1 || m.kind === 4) && (
-          <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
-        )}
-        choice={m.kind === 1 && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />} />
+      <Cell col="col-start-4" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
+
+      {/* sliders under the display: [phase|atk] [fade|hold] [jitter|dec] */}
+      <div className="col-start-1 row-start-3 grid grid-cols-3 gap-hair">
+        {m.kind === 1 ? (
+          <>
+            <Knob size="slot" label="PHASE" ariaLabel={`${name} PHASE`} value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
+            <Knob size="slot" bipolar label="FADE" ariaLabel={`${name} FADE`} value={(m.fade + 1) / 2} defaultValue={0.5} format={fadeLabel} onChange={(v) => update({ fade: v * 2 - 1 })} />
+            <Knob size="slot" label="JITTER" ariaLabel={`${name} JITTER`} value={m.jitter} defaultValue={0} format={pct} onChange={(v) => update({ jitter: v })} />
+          </>
+        ) : m.kind === 4 ? (
+          <>{envSlot(0)}{envSlot(1)}{envSlot(2)}</>
+        ) : null}
+      </div>
+      {/* trigger under the knobs: source slider + mode (the mode's space is kept when a type has no mode) */}
+      <div className="col-span-3 col-start-2 row-start-3 flex gap-tight">
+        <div className="min-w-0 flex-1">
+          {(m.kind === 1 || m.kind === 4) && (
+            <ChoiceKnob size="slot" label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
+          )}
+        </div>
+        <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })}
+          className={m.kind === 1 ? '' : 'invisible'} />
+      </div>
+
       {targets.length > 0 && (
-        <div aria-label={`${modLabel(slot, m)} targets`} className="col-start-7 row-span-2 row-start-1 ml-group flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
+        <div aria-label={`${name} targets`} className="col-start-5 row-span-3 row-start-1 ml-group flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
           {targets.map(({ r, i }) => {
-            const name = paramLabel(tracks, r.track, r.param).toLowerCase()
+            const target = paramLabel(tracks, r.track, r.param).toLowerCase()
             return (
               <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight">
-                <span className="text-ink-soft">{name}</span>
+                <span className="text-ink-soft">{target}</span>
                 <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
-                <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
+                <button type="button" aria-label={`Remove ${target} route`} onClick={() => store.removeRoute(i)}
                   className="h-full px-tight text-ink-mute hover:text-ink focus-ring">×</button>
               </span>
             )

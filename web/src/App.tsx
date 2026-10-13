@@ -4,7 +4,8 @@ import { kickPitchOf, playheadOf, SNAP_KICK_TRACKS, SNAP_TRACKS } from '@/audio/
 import { hzToNote } from '@/state/machines'
 import { createStore } from '@/state/store'
 import { MachinePanel } from '@/ui/MachinePanel'
-import { Mixer } from '@/ui/Mixer'
+import { MacroFaders } from '@/ui/MacroFaders'
+import { Master, Mixer } from '@/ui/Mixer'
 import { ModStrip } from '@/ui/ModStrip'
 import { SequencerMatrix } from '@/ui/SequencerMatrix'
 import { TransportBar } from '@/ui/TransportBar'
@@ -71,21 +72,23 @@ export default function App() {
   useEffect(() => { toggleRef.current = () => { void togglePlay() } })
 
   return (
-    <div className="grid h-dvh grid-rows-[auto_1fr_var(--spacing-mixer)] bg-background font-mono text-label text-ink-soft lowercase">
+    <div className="grid h-dvh grid-rows-[auto_minmax(0,1fr)] bg-background font-mono text-label text-ink-soft lowercase">
       <TransportBar bpm={state.bpm} playing={state.playing} starting={starting} error={error} onTogglePlay={togglePlay} onBpm={store.setBpm} />
-      {/* the side column shared by machine, macros (ModStrip) and master (Mixer) so their edges line up */}
-      <main className="grid min-h-0 grid-cols-[1fr_var(--spacing-side)] grid-rows-[minmax(0,1fr)_var(--spacing-strip)]">
-        <div className="flex min-h-0 flex-col">
+      {/* two units on shared rows: left = sequencer / modulators / mixer on one column grid, right = machine / macros / master */}
+      <main className="grid min-h-0 grid-cols-[minmax(0,1fr)_var(--spacing-side)] grid-rows-[minmax(0,1fr)_var(--spacing-strip)_var(--spacing-mixer)]">
+        <div className="left-grid row-span-3 grid-rows-subgrid min-h-0">
           <SequencerMatrix state={state} playheads={playheads} onToggle={store.toggleStep} onSetLength={store.setLength}
             onSetSpeed={store.setSpeed} onSelect={store.select} onSetNote={store.setStepNote}
             tuner={frame ? Array.from({ length: SNAP_KICK_TRACKS }, (_, k) => (kickPitchOf(frame, k) > 0 ? hzToNote(kickPitchOf(frame, k)) : null)) : []} />
-        </div>
-        <MachinePanel state={state} frame={frame} store={store} />
-        <div className="col-span-2 min-h-0">
           <ModStrip state={state} frame={frame} store={store} />
+          <Mixer state={state} frame={frame} store={store} />
+        </div>
+        <div className="row-span-3 grid min-h-0 grid-rows-subgrid border-l border-line">
+          <MachinePanel state={state} frame={frame} store={store} />
+          <MacroFaders state={state} store={store} />
+          <Master state={state} frame={frame} store={store} />
         </div>
       </main>
-      <Mixer state={state} frame={frame} store={store} />
     </div>
   )
 }

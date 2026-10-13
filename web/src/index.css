@@ -163,19 +163,14 @@
   /* knob height after cropping the empty bottom of the dial; whole pixels keep every hairline sharp */
   --spacing-knob-h: 52px;
   --spacing-dial-h: 21px;
-  /* modulator knobs: one equal gap; the widest choice (free|retrig|oneshot) centred under trig still clears the next knob column */
-  --spacing-mod-gap: 48px;
-  /* right edge of the modulator page: the trig choice (128) overhangs its knob column by 34, then the usual inset */
-  --spacing-mod-tail: calc(34px + var(--spacing-inset));
   --spacing-wave: 300px;
-  --spacing-fader: var(--spacing-knob);
   --spacing-dial: 24px;
   --spacing-option: 28px;
   --spacing-readout: 36px;
   --spacing-graph: 40px;
   --spacing-track: 52px;
-  /* 436: 4 knob slots of 102 (machine), 4 of 84 (master, beside a knob-wide fader) and 8 macro columns of 49 all land on whole pixels */
-  --spacing-side: 436px;
+  /* the right unit (machine / macros / master) grows with the screen between these bounds */
+  --spacing-side: clamp(400px, 30vw, 520px);
   --spacing-strip: 190px;
   --spacing-mixer: 200px;
 
@@ -194,24 +189,31 @@
   row-gap: var(--spacing-group);
 }
 
-/* the modulator page: six knob-wide slots on one equal pitch under a top row (choices centre under their knob);
-   the target list, when present, falls into an implicit column after it */
+/* the modulator page (Ableton LFO layout): display column + three knob columns; rows: choices, display/knobs, sliders */
 @utility mod-grid {
   display: grid;
-  grid-template-columns: repeat(6, var(--spacing-knob));
-  grid-template-rows: var(--spacing-control) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) repeat(3, var(--spacing-knob));
+  grid-template-rows: var(--spacing-control) minmax(0, 1fr) var(--spacing-control);
   grid-auto-columns: auto;
-  column-gap: var(--spacing-mod-gap);
-  row-gap: var(--spacing-group);
+  column-gap: var(--spacing-group);
+  row-gap: var(--spacing-tight);
 }
 
-/* a sequencer row: name | 4 beats of 4 equal steps, a hairline spacer after each beat | rate */
-@utility seq-row {
+/* the left unit's shared columns (sequencer, modulators, mixer all sit on them through subgrid):
+   track names | 4 beats of 4 steps, a hairline spacer after each beat | rate. Column numbers: name 1, step s at 2 + s + floor(s / 4), rate 22. */
+@utility left-grid {
   display: grid;
   grid-template-columns: var(--spacing-track)
     repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) var(--spacing-hair)
     repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) var(--spacing-hair) auto;
-  gap: var(--spacing-hair);
+  column-gap: var(--spacing-hair);
+}
+
+/* four equal columns of the right unit: machine, fx and master knobs sit on them, two macro faders per column */
+@utility side-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--spacing-tight);
 }
 
 /* one focus style for every control */

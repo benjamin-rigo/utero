@@ -4,13 +4,13 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { MOD_DRAG_TYPE } from '@/state/modulation'
 import { createStore, type Store } from '@/state/store'
-import { Mixer } from './Mixer'
+import { Master, Mixer } from './Mixer'
 
 afterEach(cleanup)
 
 function Harness({ store }: { store: Store }) {
   const state = useSyncExternalStore(store.subscribe, store.getState)
-  return <Mixer state={state} frame={null} store={store} />
+  return <><Mixer state={state} frame={null} store={store} /><Master state={state} frame={null} store={store} /></>
 }
 
 const setup = () => {
