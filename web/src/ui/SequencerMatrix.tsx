@@ -95,17 +95,17 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
         lengthDrag.current = null
         setPreview(null)
       }}
-      className="flex min-h-0 flex-1 flex-col gap-px border-r border-zinc-800 p-2">
+      className="flex min-h-0 flex-1 flex-col gap-hair border-r border-line p-inset">
       {state.tracks.map((tr, t) => {
         const selected = state.selected === t
         const melodic = isMelodic(t)
         return (
           <div key={tr.name}
-            className="grid min-h-0 flex-1 grid-cols-[52px_repeat(16,1fr)_auto] items-stretch gap-px">
+            className="grid min-h-0 flex-1 grid-cols-[var(--spacing-track)_repeat(16,1fr)_auto] items-stretch gap-hair">
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
-              className={`flex flex-col justify-center px-1 text-left lowercase leading-tight outline-none focus-visible:ring-1 focus-visible:ring-zinc-100 ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}>
+              className={`flex flex-col justify-center px-tight text-left lowercase focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute hover:text-ink-soft'}`}>
               {tr.name}
-              {tuner[t] && ' '}{tuner[t] && <span className="text-[9px] tabular-nums text-zinc-400">{tuner[t]}</span>}
+              {tuner[t] && ' '}{tuner[t] && <span className="text-micro tabular-nums text-ink-mute">{tuner[t]}</span>}
             </button>
             {tr.steps.slice(0, VISIBLE).map((st, s) => {
               const length = preview?.t === t ? preview.len : tr.length
@@ -173,19 +173,18 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   }}
                   onPointerCancel={() => { drag.current = null }}
                   className={[
-                    'relative overflow-hidden text-xs font-bold leading-none outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100',
-                    st.trig ? 'bg-zinc-200 text-black' : selected ? 'bg-zinc-800' : 'bg-zinc-900',
-                    beyond ? 'opacity-30 [background-image:repeating-linear-gradient(45deg,transparent_0_3px,#27272a_3px_6px)]' : '',
+                    'relative overflow-hidden text-body font-bold leading-none focus-ring',
+                    st.trig ? 'bg-ink-soft text-on-ink' : selected ? 'bg-raised' : 'bg-well',
+                    beyond ? 'opacity-30 [background-image:repeating-linear-gradient(45deg,transparent_0_3px,var(--color-raised)_3px_6px)]' : '',
                     melodic ? 'touch-none' : '',
                     noteEdit ? 'cursor-ns-resize' : '',
-                    s % 4 === 0 ? 'ml-0.5' : '',
-
-                    isHead ? 'ring-1 ring-inset ring-zinc-500' : '',
+                    s % 4 === 0 ? 'ml-hair' : '',
+                    isHead ? 'ring-1 ring-inset ring-faint' : '',
                   ].join(' ')}>
                   {noteEdit ? noteName(st.note) : null}
                   {isEnd && (
                     <span aria-hidden="true" data-length-handle
-                      className="absolute inset-y-0 right-0 w-1 cursor-ew-resize touch-none bg-zinc-500 hover:w-1.5 hover:bg-zinc-300"
+                      className="absolute inset-y-0 right-0 w-tight cursor-ew-resize touch-none bg-faint hover:bg-ink-soft"
                       onPointerDown={(e) => {
                         // capture on the section: this handle moves (re-mounts) as the length changes
                         e.stopPropagation()
@@ -196,7 +195,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                 </button>
               )
             })}
-            <div className="flex items-center gap-1.5 pl-1.5 text-[10px] text-zinc-400">
+            <div className="flex items-center gap-tight pl-inset text-label text-ink-mute">
               <Knob size="xs" tone="mono" label="RATE" ariaLabel={`${tr.name} rate`} steps={SPEED_ORDER.length}
                 value={speedIndex(tr.speed) / (SPEED_ORDER.length - 1)} defaultValue={speedIndex(1) / (SPEED_ORDER.length - 1)}
                 format={(v) => speedLabel(SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))])}
@@ -204,7 +203,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                   const code = SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))]
                   if (code !== tr.speed) onSetSpeed(t, code)
                 }} />
-              <span className="w-9 tabular-nums text-zinc-400">{speedLabel(tr.speed)}</span>
+              <span className="w-readout tabular-nums text-ink-mute">{speedLabel(tr.speed)}</span>
             </div>
           </div>
         )

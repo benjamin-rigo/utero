@@ -39,12 +39,12 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
   }
 
   return (
-    <header className="flex items-center gap-3 border-b border-zinc-800 px-3 py-1.5">
-      <Logo className="size-5 shrink-0 text-zinc-100" />
-      <Button size="sm" variant={playing ? 'default' : 'outline'} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
+    <header className="flex items-center gap-group border-b border-line p-inset">
+      <Logo className="size-control shrink-0 text-ink" />
+      <Button size="xs" className="h-control rounded-none px-inset text-label" variant={playing ? 'default' : 'outline'} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
         {playing ? '■ STOP' : '▶ PLAY'}
       </Button>
-      <label className="flex items-center gap-1 text-zinc-400">
+      <label className="flex items-center gap-tight text-label text-ink-mute">
         BPM
         <input type="text" inputMode="decimal" value={draft}
           onFocus={() => setEditing(true)}
@@ -61,9 +61,9 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
               nudge(e.key === 'ArrowUp' ? step : -step)
             }
           }}
-          className="w-16 rounded bg-zinc-900 px-1 py-0.5 text-zinc-100 focus-visible:ring-2 focus-visible:ring-acc" />
+          className="h-control w-knob bg-well px-tight text-ink focus-ring" />
       </label>
-      {error && <span role="alert" className="text-red-400">{error}</span>}
+      {error && <span role="alert" className="text-alert">{error}</span>}
     </header>
   )
 }

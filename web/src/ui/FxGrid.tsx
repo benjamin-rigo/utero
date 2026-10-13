@@ -28,8 +28,6 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
   const mode = Math.round((rowParams(state, t)[FX_FILTER_MODE] ?? 0) * (FILTER_MODES.length - 1))
   const drive = Math.round(rowParams(state, t)[FX_DRIVE_MODE] ?? 0)
 
-
-
   const close = useCallback(() => setPage(null), [])
   const params = page === 'delay' ? MASTER_DELAY : MASTER_REVERB
 
@@ -37,7 +35,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
     <>
     {page && (
       <Modal title={`${page} settings`} onClose={close}>
-        <div className="grid grid-cols-4 gap-x-3 gap-y-2 p-3">
+        <div className="grid grid-cols-4 gap-group p-inset">
           {params.map((p) => (
             <ParamKnob key={p} state={state} frame={frame} store={store} row={MASTER_ROW} param={p} meta={MASTER_PARAMS[p]}
               label={MASTER_PARAMS[p].name.split(' ')[1].toLowerCase()} ariaLabel={MASTER_PARAMS[p].name} />
@@ -45,7 +43,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
         </div>
       </Modal>
     )}
-    <section aria-label="Insert FX" className="grid grid-cols-4 gap-y-1 border-t border-zinc-800 px-2 py-1">
+    <section aria-label="Insert FX" className="grid grid-cols-4 gap-y-tight border-t border-line p-inset">
       {order.map((id, pos) => {
         const param = FX_BASE + id
         const label = id === FX_FILTER ? FILTER_MODES[mode] : id === FX_DRIVE ? DRIVE_MODES[drive] : FX_NAMES[id]

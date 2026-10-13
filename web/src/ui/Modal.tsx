@@ -20,12 +20,12 @@ export function Modal({ title, onClose, children }: Props) {
     }
   }, [onClose])
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div ref={box} role="dialog" aria-modal="true" aria-label={title} className="flex flex-col border border-zinc-700 bg-background">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-1.5 text-[10px] lowercase">
-          <span className="text-zinc-100">{title}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-on-ink/70" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div ref={box} role="dialog" aria-modal="true" aria-label={title} className="flex flex-col border border-strong bg-background">
+        <div className="flex h-control items-center justify-between border-b border-line pl-inset text-label lowercase">
+          <span className="text-ink">{title}</span>
           <button type="button" aria-label={`Close ${title}`} onClick={onClose}
-            className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
+            className="h-full px-inset text-ink-mute hover:text-ink focus-ring">×</button>
         </div>
         {children}
       </div>

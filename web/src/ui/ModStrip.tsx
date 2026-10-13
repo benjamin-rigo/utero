@@ -49,11 +49,12 @@ export function ModStrip({ state, frame, store }: Props) {
   }
   const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_440px] border-t border-zinc-800">
-      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[auto_minmax(0,1fr)] gap-2 p-2">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_var(--spacing-side)] border-t border-line">
+      <section aria-label="Modulators" className="grid min-h-0 grid-cols-[auto_minmax(0,1fr)]">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
-        <div className="grid min-h-0 grid-cols-4 grid-rows-4 gap-px bg-zinc-800 2xl:grid-cols-8 2xl:grid-rows-2">
+        <div className="min-h-0 p-inset">
+          <div className="grid h-full min-h-0 grid-cols-4 grid-rows-4 gap-hair border border-line bg-line 2xl:grid-cols-8 2xl:grid-rows-2">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
@@ -74,27 +75,28 @@ export function ModStrip({ state, frame, store }: Props) {
                   e.dataTransfer.effectAllowed = 'link'
                 }}
                 className={[
-                  'relative flex min-h-0 min-w-0 overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100',
-                  off ? 'cursor-pointer items-center justify-center bg-background text-[9px] text-zinc-400 hover:text-zinc-200'
-                    : slot === i ? 'cursor-grab bg-zinc-700' : onHovered ? 'cursor-grab bg-zinc-800' : 'cursor-grab bg-zinc-900',
-                  slot === i && mapping ? 'ring-1 ring-inset ring-zinc-100' : '',
+                  'relative flex min-h-0 min-w-0 overflow-hidden focus-ring',
+                  off ? 'cursor-pointer items-center justify-center bg-background text-micro text-ink-mute hover:text-ink-soft'
+                    : slot === i ? 'cursor-grab bg-strong' : onHovered ? 'cursor-grab bg-raised' : 'cursor-grab bg-well',
+                  slot === i && mapping ? 'ring-1 ring-inset ring-ink' : '',
                 ].join(' ')}>
                 {off ? '+' : (
                   <>
                     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                      <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-zinc-300" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+                      <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-ink-soft" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
                       <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
-                        className="stroke-zinc-100/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                        className="stroke-ink/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                     </svg>
-                    <span className="relative self-start truncate bg-zinc-950/80 px-1 text-[9px] lowercase text-zinc-100">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
+                    <span className="relative self-start truncate bg-background/80 px-tight text-micro lowercase text-ink">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
                     {targets > 0 && (
-                      <span className="absolute top-0.5 right-1 text-[9px] tabular-nums text-zinc-400">{targets}</span>
+                      <span className="absolute top-0 right-0 px-tight text-micro tabular-nums text-ink-mute">{targets}</span>
                     )}
                   </>
                 )}
               </div>
             )
           })}
+        </div>
         </div>
       </section>
       <MacroFaders state={state} store={store} />
@@ -132,21 +134,20 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
 /** Modulator types offered in the UI (STEP stays in the engine but is not offered). */
 const KIND_CODES: ModKind[] = [0, 1, 2, 4]
 
-/** One fixed knob slot (and the choice under it); the same size whether it holds a control or not. */
-/** Fixed slot widths (fit their content, never change between types): knob 48 px, knob + 2-way choice 64 px, trig + mode 144 px. */
-const CELL = { knob: 'w-16', pair: 'w-16', trig: 'w-36' } as const
+/** Fixed slot widths (never change between types): one knob, or two knobs wide for trig + its 3-way mode. */
+const CELL = { knob: 'w-knob', pair: 'w-knob', trig: 'w-knob-2' } as const
 
 function Cell({ knob, choice, w = 'knob' }: { knob?: ReactNode; choice?: ReactNode; w?: keyof typeof CELL }) {
-  // the knob is centred in the free height, the choice row (20 px, reserved even when empty) is the shared bottom line
+  // the knob is centred in the free height, the choice row (reserved even when empty) is the shared bottom line
   return (
     <div className={`flex h-full flex-col items-center ${CELL[w]}`}>
       <div className="flex min-h-0 flex-1 items-center justify-center">{knob}</div>
-      <div className="flex h-5 shrink-0 items-end">{choice}</div>
+      <div className="flex h-control shrink-0 items-end">{choice}</div>
     </div>
   )
 }
 
-const Divider = () => <div aria-hidden="true" className="w-px self-stretch bg-zinc-800" />
+const Divider = () => <div aria-hidden="true" className="w-hair self-stretch bg-line" />
 
 function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
@@ -158,14 +159,14 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
       format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
   )
   return (
-    <div className="flex h-full w-fit min-h-0 min-w-0 flex-col gap-1.5 overflow-hidden p-1 text-[10px]">
+    <div className="flex h-full w-fit min-h-0 min-w-0 flex-col gap-group overflow-hidden border-r border-line p-inset text-label">
       {/* first row: type on the left, the fixed waveform / colour / curve slot on the right (same size for every type) */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex h-control items-center justify-between gap-group">
         <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
           onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
-        <div className="flex h-[22px] w-[300px] items-center">
+        <div className="flex h-control w-wave items-center">
           {m.kind === 1 && (
-            <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-px">
+            <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-hair">
               {SHAPES.map((sh) => (
                 <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
                   tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
@@ -178,10 +179,10 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
                     update({ shape: next.code })
                     ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
                   }}
-                  className={`h-full flex-1 px-1 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-100 ${m.shape === sh.code ? 'bg-zinc-100' : 'bg-zinc-900 hover:bg-zinc-800'}`}>
+                  className={`h-full flex-1 px-tight focus-ring ${m.shape === sh.code ? 'bg-ink' : 'bg-well hover:bg-raised'}`}>
                   <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
                     <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
-                      className={m.shape === sh.code ? 'stroke-black' : 'stroke-zinc-300'} />
+                      className={m.shape === sh.code ? 'stroke-on-ink' : 'stroke-ink-soft'} />
                   </svg>
                 </button>
               ))}
@@ -193,7 +194,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
       </div>
       {/* fixed knob slots: [rate|atk] [phase|hold] [—|dec] │ [depth + bi/uni] [smooth] │ [trig + mode]; unused slots stay empty.
           Knobs sit centred in the space above, every choice sits on one shared bottom line. */}
-      <div className="flex min-h-0 flex-1 items-stretch gap-3">
+      <div className="flex min-h-0 flex-1 items-stretch gap-group">
         <Cell w="pair"
           knob={m.kind === 1 ? (m.sync ? (
             <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
@@ -218,15 +219,15 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
           {targets.length > 0 && (
             <>
               <Divider />
-              <div aria-label={`${modLabel(slot, m)} targets`} className="flex max-w-64 min-w-0 flex-wrap content-start gap-px">
+              <div aria-label={`${modLabel(slot, m)} targets`} className="flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
                 {targets.map(({ r, i }) => {
                   const name = paramLabel(tracks, r.track, r.param).toLowerCase()
                   return (
-                    <span key={i} className="flex items-center gap-1 bg-zinc-900 pl-1.5 lowercase">
-                      <span className="text-zinc-300">{name}</span>
-                      <span className="tabular-nums text-zinc-100">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+                    <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight lowercase">
+                      <span className="text-ink-soft">{name}</span>
+                      <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
                       <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
-                        className="px-1 text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-100">×</button>
+                        className="h-full px-tight text-ink-mute hover:text-ink focus-ring">×</button>
                     </span>
                   )
                 })}

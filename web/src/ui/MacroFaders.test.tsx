@@ -102,6 +102,6 @@ test('armed learn button keeps full opacity text with a ring', () => {
   const store = setup()
   act(() => { store.armLearn(0, 'a') })
   const cls = screen.getByRole('button', { name: 'Learn M1 A' }).className
-  expect(cls).toContain('bg-red-600')
+  expect(cls).toContain('bg-alert')
   expect(cls).not.toContain('animate-pulse')
 })

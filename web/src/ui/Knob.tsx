@@ -35,8 +35,8 @@ export interface KnobProps {
   onModAmount?(delta: number): void
   onDropModulator?(slot: number): void
   onSelect?(): void
-  /** 'sm' (the default everywhere) renders 60 px, 'xs' a bare 24 px dial (no label/value), 'slot' a full-width value bar, 'md' 56 px. */
-  size?: 'md' | 'sm' | 'xs' | 'slot'
+  /** 'sm' (the default everywhere) is the knob token size, 'xs' a bare dial (no label/value), 'slot' a full-width value bar. */
+  size?: 'sm' | 'xs' | 'slot'
   /** Slot fill grows from the centre (filters, pan, tilt). */
   bipolar?: boolean
   /** Live gain reduction in dB (comp/limiter), drawn as an inner arc over 0–12 dB. */
@@ -164,37 +164,35 @@ export function Knob({
     const span = (from: number, to: number) => ({ left: `${Math.min(from, to) * 100}%`, width: `${Math.abs(to - from) * 100}%` })
     return (
       <div {...slider}
-        className={`relative h-5 w-full cursor-ns-resize touch-none overflow-hidden bg-zinc-900 text-[10px] outline-none select-none focus-visible:ring-1 focus-visible:ring-zinc-100 ${learning ? 'ring-1 ring-red-500' : ''}`}>
-        <div className="absolute inset-y-0 bg-zinc-700" style={span(bipolar ? 0.5 : 0, display)} />
-        <div className="absolute inset-y-0 w-px bg-zinc-300" style={{ left: `${value * 100}%` }} />
+        className={`relative h-control w-full cursor-ns-resize touch-none overflow-hidden bg-well text-label select-none focus-ring ${learning ? 'ring-1 ring-alert' : ''}`}>
+        <div className="absolute inset-y-0 bg-strong" style={span(bipolar ? 0.5 : 0, display)} />
+        <div className="absolute inset-y-0 w-hair bg-ink-soft" style={{ left: `${value * 100}%` }} />
         {ring !== 0 && <div className="absolute bottom-0 h-0.5 bg-mod" style={span(value, clamp01(value + ring))} />}
         {map && <div className="absolute inset-0 border border-dashed border-mod/50" />}
         {markers && (
           <>
-            <div className="absolute top-0 h-1 w-px bg-zinc-500" style={{ left: `${markers.a * 100}%` }} />
-            <div className="absolute top-0 h-1.5 w-0.5 bg-zinc-100" style={{ left: `${markers.b * 100}%` }} />
+            <div className="absolute top-0 h-tight w-hair bg-faint" style={{ left: `${markers.a * 100}%` }} />
+            <div className="absolute top-0 h-1.5 w-0.5 bg-ink" style={{ left: `${markers.b * 100}%` }} />
           </>
         )}
-        <div className="relative flex h-full items-center justify-between gap-1 px-1 leading-none">
-          <span className="truncate lowercase text-zinc-300">{label}</span>
-          <span className={`tabular-nums ${map ? 'text-mod' : 'text-zinc-200'}`}>{shown}</span>
+        <div className="relative flex h-full items-center justify-between gap-tight px-tight">
+          <span className="truncate lowercase text-ink-soft">{label}</span>
+          <span className={`tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>{shown}</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center gap-0.5 select-none">
+    <div className="flex flex-col items-center gap-tight select-none">
       <svg
         {...slider}
-        width={size === 'xs' ? 24 : size === 'sm' ? 60 : SIZE}
-        height={size === 'xs' ? 24 : size === 'sm' ? 60 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
+        className={`${size === 'xs' ? 'size-dial' : 'size-knob'} cursor-ns-resize touch-none rounded-full focus-ring ${learning ? 'ring-1 ring-alert' : ''}`}
       >
-        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-zinc-800"
+        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-raised"
           strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
-        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className={tone === 'mono' ? 'stroke-zinc-300' : 'stroke-acc'}
+        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className={tone === 'mono' ? 'stroke-ink-soft' : 'stroke-acc'}
           strokeDasharray={`${0.75 * C * value} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
         {map && (
           <circle cx={MID} cy={MID} r={RM} fill="none" strokeWidth={1} className="stroke-mod/40"
@@ -206,25 +204,25 @@ export function Knob({
         )}
         {markers && (
           <>
-            <circle cx={pointAt(markers.a, RM).x} cy={pointAt(markers.a, RM).y} r={2} className="fill-zinc-500" />
-            <circle cx={pointAt(markers.b, RM).x} cy={pointAt(markers.b, RM).y} r={3} className="fill-zinc-100" />
+            <circle cx={pointAt(markers.a, RM).x} cy={pointAt(markers.a, RM).y} r={2} className="fill-faint" />
+            <circle cx={pointAt(markers.b, RM).x} cy={pointAt(markers.b, RM).y} r={3} className="fill-ink" />
           </>
         )}
         {reduction !== undefined && reduction > 0.05 && (
-          <circle cx={MID} cy={MID} r={RR} fill="none" strokeWidth={3} className="stroke-zinc-100"
+          <circle cx={MID} cy={MID} r={RR} fill="none" strokeWidth={3} className="stroke-ink"
             strokeDasharray={`${Math.min(1, reduction / 12) * 0.75 * CR} ${CR}`} transform={`rotate(135 ${MID} ${MID})`} />
         )}
-        <circle cx={dot.x} cy={dot.y} r={2} className="fill-zinc-100" />
+        <circle cx={dot.x} cy={dot.y} r={2} className="fill-ink" />
       </svg>
 {size !== 'xs' && (
         <>
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
         draggable={onLabelDragStart !== undefined} onDragStart={onLabelDragStart}
-        className={`rounded text-[10px] lowercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
+        className={`text-label lowercase tracking-wider focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
         {label}
       </button>
-      {learning && <span aria-hidden="true" className="-mt-0.5 rounded bg-red-600 px-1 text-[9px] leading-tight font-bold text-white">L</span>}
-      <span className={`${size === 'sm' ? 'text-[10px]' : 'text-sm'} tabular-nums ${map ? 'text-mod' : ''}`}>
+      {learning && <span aria-hidden="true" className="bg-alert px-tight text-micro font-bold text-ink">L</span>}
+      <span className={`text-label tabular-nums ${map ? 'text-mod' : ''}`}>
         {shown}
       </span>
         </>

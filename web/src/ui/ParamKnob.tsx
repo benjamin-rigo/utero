@@ -14,7 +14,7 @@ interface Props {
   row: number
   param: number
   meta: ParamMeta
-  size?: 'md' | 'sm' | 'xs' | 'slot'
+  size?: 'sm' | 'xs' | 'slot'
   bipolar?: boolean
   /** Visible label when it differs from the param name (e.g. 'eq' for TILT). */
   label?: string

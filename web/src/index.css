@@ -128,7 +128,59 @@
     @apply font-sans;
     }
 }
+/*
+ * utero design tokens: every colour, size and spacing in the UI comes from here.
+ * Spacing ladder: hair (1) < tight (4) < inset (8) < group (12). Panes are split by 1 px lines.
+ */
 @theme {
-  --color-acc: #e4e4e7;
-  --color-mod: #a1a1aa;
+  --color-well: oklch(21% 0.006 285.885);
+  --color-raised: oklch(27.4% 0.006 286.033);
+  --color-line: oklch(27.4% 0.006 286.033);
+  --color-strong: oklch(37% 0.013 285.805);
+  --color-faint: oklch(55.2% 0.016 285.938);
+  --color-ink-mute: oklch(70.5% 0.015 286.067);
+  --color-ink-soft: oklch(87.1% 0.006 286.286);
+  --color-ink: oklch(96.7% 0.001 286.375);
+  --color-on-ink: #000;
+  --color-acc: oklch(92% 0.004 286.32);
+  --color-mod: oklch(70.5% 0.015 286.067);
+  --color-alert: oklch(57.7% 0.245 27.325);
+  --color-alert-soft: oklch(80.8% 0.114 19.571);
+  --color-meter-low: oklch(69.6% 0.17 162.48);
+  --color-meter-mid: oklch(82.8% 0.189 84.429);
+  --color-meter-high: oklch(63.7% 0.237 25.331);
+
+  --spacing-hair: 1px;
+  --spacing-tight: 4px;
+  --spacing-inset: 8px;
+  --spacing-group: 12px;
+  --spacing-control: 20px;
+  --spacing-knob: 60px;
+  --spacing-knob-2: calc(var(--spacing-knob) * 2 + var(--spacing-group));
+  --spacing-wave: 300px;
+  --spacing-fader: 48px;
+  --spacing-dial: 24px;
+  --spacing-option: 28px;
+  --spacing-readout: 36px;
+  --spacing-graph: 40px;
+  --spacing-track: 52px;
+  --spacing-side: 440px;
+  --spacing-strip: 190px;
+  --spacing-mixer: 200px;
+
+  --text-micro: 9px;
+  --text-micro--line-height: 1;
+  --text-label: 10px;
+  --text-label--line-height: 1;
+  --text-body: 12px;
+  --text-body--line-height: 1.25;
+}
+
+/* one focus style for every control */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    outline: 1px solid var(--color-ink);
+    outline-offset: -1px;
+  }
 }

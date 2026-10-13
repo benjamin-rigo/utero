@@ -62,18 +62,18 @@ export function EnvGraph({ values, onChange }: Props) {
   }
 
   return (
-    <div aria-hidden="true" className="relative h-full min-h-12 w-full cursor-ew-resize touch-none bg-zinc-900"
+    <div aria-hidden="true" className="relative h-full w-full cursor-ew-resize touch-none bg-well"
       onPointerDown={onDown} onPointerMove={onMove}
       onPointerUp={() => { drag.current = null }} onPointerCancel={() => { drag.current = null }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
         {[1, 2].map((k) => (
-          <line key={k} x1={X0 + k * SEG} x2={X0 + k * SEG} y1={TOP} y2={BOTTOM} className="stroke-zinc-800" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          <line key={k} x1={X0 + k * SEG} x2={X0 + k * SEG} y1={TOP} y2={BOTTOM} className="stroke-raised" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         ))}
-        <path d={`${path} L${xd.toFixed(2)},${BOTTOM} Z`} className="fill-zinc-800" />
-        <path d={path} fill="none" className="stroke-zinc-200" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+        <path d={`${path} L${xd.toFixed(2)},${BOTTOM} Z`} className="fill-raised" />
+        <path d={path} fill="none" className="stroke-ink-soft" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
       </svg>
       {handles.map((hx, i) => (
-        <span key={i} className="pointer-events-none absolute size-2.5 -translate-1/2 rounded-full border border-zinc-900 bg-zinc-100"
+        <span key={i} className="pointer-events-none absolute size-2.5 -translate-1/2 rounded-full border border-well bg-ink"
           style={{ left: `${hx}%`, top: `${(handleY[i] / H) * 100}%` }} />
       ))}
     </div>

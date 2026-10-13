@@ -17,17 +17,17 @@ export function MacroFaders({ state, store }: Props) {
   const startRename = (m: number) => { cancelRename.current = false; setEditing(m) }
 
   return (
-    <section aria-label="Macros" className="flex min-h-0 flex-col gap-1 border-l border-zinc-800 p-2">
-      <div className="grid min-h-0 flex-1 grid-cols-8 gap-1.5">
+    <section aria-label="Macros" className="flex min-h-0 flex-col gap-tight border-l border-line p-inset">
+      <div className="grid min-h-0 flex-1 grid-cols-8 gap-tight">
         {state.macros.map((mac, m) => {
           const armed = state.learn?.macro === m ? state.learn.side : null
           const selected = state.selectedMacro === m
           return (
-            <div key={m} className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] gap-1">
-              <div className="flex items-baseline justify-between gap-1 text-[10px]">
+            <div key={m} className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] gap-tight">
+              <div className="flex h-control items-center justify-between gap-tight text-label">
                 {editing === m ? (
                   <input aria-label={`Rename ${mac.name}`} autoFocus defaultValue={mac.name}
-                    className="w-full min-w-0 bg-zinc-900 text-[10px] outline-none focus-visible:ring-1 focus-visible:ring-acc"
+                    className="w-full min-w-0 bg-well text-label focus-ring"
                     onBlur={(e) => {
                       if (!cancelRename.current) store.renameMacro(m, e.target.value)
                       cancelRename.current = false
@@ -40,11 +40,13 @@ export function MacroFaders({ state, store }: Props) {
                 ) : (
                   <button type="button" aria-pressed={selected} onClick={() => store.selectMacro(m)} onDoubleClick={() => startRename(m)}
                     onKeyDown={(e) => { if (e.key === 'F2') { e.preventDefault(); startRename(m) } }} aria-keyshortcuts="F2"
-                    className={`min-w-0 truncate lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${selected ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
+                    className={`min-w-0 truncate lowercase focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
                     {mac.name}
                   </button>
                 )}
-                <span className="tabular-nums text-zinc-400" aria-label={`${mac.targets.length} targets`}>{mac.targets.length}</span>
+                {mac.targets.length > 0 && (
+                  <span className="tabular-nums text-ink-mute" aria-label={`${mac.targets.length} targets`}>{mac.targets.length}</span>
+                )}
               </div>
               <ArmButton label={`${mac.name} A`} side="a" armed={armed === 'a'} onClick={() => store.armLearn(m, 'a')} />
               <Fader label={`${mac.name} macro`} pos={mac.pos} defaultPos={0} empty={mac.targets.length === 0} tone="mod" invert
@@ -55,12 +57,12 @@ export function MacroFaders({ state, store }: Props) {
         })}
       </div>
       {sel.targets.length > 0 && (
-        <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
+        <div className="flex h-control gap-tight overflow-x-auto whitespace-nowrap">
           {sel.targets.map((t, i) => {
             const name = paramName(t.track, t.param)
             return (
               <button key={i} type="button" aria-label={`Remove ${name} from ${sel.name}`} onClick={() => store.removeMacroTarget(state.selectedMacro, i)}
-                className="px-1 text-[10px] lowercase text-zinc-400 outline-none hover:text-zinc-100 focus-visible:ring-1 focus-visible:ring-acc">
+                className="px-tight text-label lowercase text-ink-mute hover:text-ink focus-ring">
                 {name} ×
               </button>
             )
@@ -75,8 +77,8 @@ function ArmButton({ label, side, armed, onClick }: { label: string; side: 'a' |
   return (
     <button type="button" aria-label={`Learn ${label}`} aria-pressed={armed} onClick={onClick}
       className={[
-        'w-full text-[10px] outline-none focus-visible:ring-1 focus-visible:ring-acc',
-        armed ? 'bg-red-600 text-white ring-1 ring-red-300' : 'bg-zinc-900 text-zinc-300 hover:text-zinc-100',
+        'h-control w-full text-label focus-ring',
+        armed ? 'bg-alert text-ink ring-1 ring-alert-soft' : 'bg-well text-ink-soft hover:text-ink',
       ].join(' ')}>
       {side.toUpperCase()}
     </button>

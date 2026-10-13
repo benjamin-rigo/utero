@@ -17,11 +17,11 @@ export function AmpEnv({ state, frame, store, track: t, machine }: Props) {
   const params = ENV_NAMES.slice(0, ENV_SHOWN).map((_, i) => ENV_BASE + i)
   const row = rowParams(state, t)
   return (
-    <section aria-label="Amp envelope" className="flex flex-col gap-px border-b border-zinc-800 px-2 py-1.5">
-      <div className="h-12">
+    <section aria-label="Amp envelope" className="flex flex-col gap-hair border-b border-line p-inset">
+      <div className="h-graph">
         <EnvGraph values={params.map((p) => row[p] ?? machine.params[p].default)} onChange={(i, v) => store.setParam(t, ENV_BASE + i, v)} />
       </div>
-      <div className="grid grid-cols-3 gap-px">
+      <div className="grid grid-cols-3 gap-hair">
         {params.map((p, i) => (
           <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]} size="slot"
             label={ENV_NAMES[i].toLowerCase()} ariaLabel={`amp ${ENV_NAMES[i]}`} />

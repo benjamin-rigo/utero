@@ -55,16 +55,16 @@ export function Fader({ label, pos: value, defaultPos, valueText, meter, empty =
       onPointerCancel={() => { drag.current = null }}
       onDoubleClick={() => setValue(defaultPos)}
       onKeyDown={onKey}
-      className="relative h-full min-h-8 w-full cursor-ns-resize touch-none overflow-hidden bg-zinc-900 outline-none focus-visible:ring-1 focus-visible:ring-acc">
-      <div className={`absolute inset-x-0 bottom-0 ${empty ? 'bg-zinc-800' : tone === 'mod' ? 'bg-mod/35' : 'bg-zinc-700'}`}
+      className="relative h-full min-h-knob w-full cursor-ns-resize touch-none overflow-hidden bg-well focus-ring">
+      <div className={`absolute inset-x-0 bottom-0 ${empty ? 'bg-raised' : tone === 'mod' ? 'bg-mod/35' : 'bg-strong'}`}
         style={{ height: `${pos * 100}%` }} />
-      <div className={`absolute inset-x-0 h-px ${empty ? 'bg-zinc-600' : tone === 'mod' ? 'bg-mod' : 'bg-zinc-200'}`}
+      <div className={`absolute inset-x-0 h-hair ${empty ? 'bg-faint' : tone === 'mod' ? 'bg-mod' : 'bg-ink-soft'}`}
         style={{ bottom: `${pos * 100}%` }} />
       {meter !== undefined && (
-        <div className="absolute right-0 bottom-0 w-[3px] bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500"
+        <div className="absolute right-0 bottom-0 w-tight bg-gradient-to-t from-meter-low via-meter-mid to-meter-high"
           style={{ height: `${meterHeight(meter)}%` }} />
       )}
-      {valueText && <span className="absolute inset-x-0 top-1 text-center text-[10px] tabular-nums text-zinc-300">{valueText}</span>}
+      {valueText && <span className="absolute inset-x-0 top-tight text-center text-label tabular-nums text-ink-soft">{valueText}</span>}
     </div>
   )
 }

@@ -22,7 +22,7 @@ const MASTER_KNOBS = [
 ]
 
 const toggle = (on: boolean) =>
-  `px-1 text-[10px] lowercase outline-none focus-visible:ring-1 focus-visible:ring-acc ${on ? 'bg-zinc-100 text-black' : 'text-zinc-400 hover:text-zinc-200'}`
+  `h-control px-tight text-label lowercase focus-ring ${on ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink-soft'}`
 
 export function Mixer({ state, frame, store }: Props) {
   // The fader edits the base (or the armed macro endpoint), like every knob.
@@ -37,7 +37,7 @@ export function Mixer({ state, frame, store }: Props) {
   const clip = state.master.params[MASTER_MODE] >= 0.5
 
   return (
-    <section aria-label="Mixer" className="grid h-full min-h-0 grid-cols-[repeat(8,minmax(0,1fr))_440px] gap-px border-t border-zinc-800 bg-zinc-800 text-[10px]">
+    <section aria-label="Mixer" className="grid h-full min-h-0 grid-cols-[repeat(8,minmax(0,1fr))_var(--spacing-side)] gap-hair border-t border-line bg-line text-label">
       {state.buses.map((bus, b) => {
         const row = busRow(b)
         const meter = frame ? busMeterOf(frame, b) : { peak: 0, rms: 0 }
@@ -45,15 +45,15 @@ export function Mixer({ state, frame, store }: Props) {
         const pending = applied !== bus.muted
         const level = editValue(row, BUS_LEVEL)
         return (
-          <div key={bus.name} className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-1 bg-background p-1.5">
-            <div className="flex items-center justify-between">
-              <span className={`lowercase ${bus.muted ? 'text-zinc-400 line-through' : 'text-zinc-200'}`}>{bus.name}</span>
+          <div key={bus.name} className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-tight bg-background p-inset">
+            <div className="flex h-control items-center justify-between">
+              <span className={`lowercase ${bus.muted ? 'text-ink-mute line-through' : 'text-ink-soft'}`}>{bus.name}</span>
               <button type="button" aria-label={`Mute ${bus.name}${pending ? ', pending' : ''}`} aria-pressed={bus.muted} onClick={() => store.toggleMute(b)}
-                className={`w-5 outline-none focus-visible:ring-1 focus-visible:ring-acc ${bus.muted ? 'bg-zinc-100 text-black' : 'text-zinc-400 hover:text-zinc-100'}`}>
+                className={`h-control w-control focus-ring ${bus.muted ? 'bg-ink text-on-ink' : 'text-ink-mute hover:text-ink'}`}>
                 {pending ? 'q' : 'm'}
               </button>
             </div>
-            <div className="flex flex-col gap-px">
+            <div className="flex flex-col gap-hair">
               <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_FILTER} meta={BUS_PARAMS[BUS_FILTER]} size="slot" bipolar label="flt" ariaLabel={`${bus.name} FLT`} />
               <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_DRIVE} meta={BUS_PARAMS[BUS_DRIVE]} size="slot" label="drv" ariaLabel={`${bus.name} DRV`} />
               <ParamKnob state={state} frame={frame} store={store} row={row} param={BUS_PAN} meta={BUS_PARAMS[BUS_PAN]} size="slot" bipolar label="pan" ariaLabel={`${bus.name} PAN`} />
@@ -63,14 +63,14 @@ export function Mixer({ state, frame, store }: Props) {
           </div>
         )
       })}
-      <div className="grid min-h-0 grid-cols-[1fr_3rem] gap-2 bg-background p-1.5">
-        <div className="flex min-h-0 flex-col gap-1">
-          <div className="flex items-center gap-1">
-            <span className="mr-1 text-zinc-200">master</span>
+      <div className="grid min-h-0 grid-cols-[1fr_var(--spacing-fader)] gap-group bg-background p-inset">
+        <div className="flex min-h-0 flex-col gap-tight">
+          <div className="flex h-control items-center gap-tight">
+            <span className="mr-tight text-ink-soft">master</span>
             <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
             <Segmented label="Master mode" options={['limit', 'clip']} index={clip ? 1 : 0}
               onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
-            <span className="ml-auto tabular-nums text-zinc-300">{master.lufs.toFixed(1)} lufs</span>
+            <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
           </div>
           <div className="grid flex-1 grid-cols-4 place-items-center">
             {MASTER_KNOBS.map(({ param, label }) => (
