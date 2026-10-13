@@ -186,7 +186,7 @@ export function Knob({
   }
 
   return (
-    <div className="flex flex-col items-center gap-tight select-none">
+    <div className={`relative flex flex-col items-center gap-tight select-none ${size === 'xs' ? '' : 'w-knob'}`}>
       <svg
         {...slider}
         viewBox={`0 0 ${SIZE} ${VIEW_H}`} overflow="visible"
@@ -217,18 +217,15 @@ export function Knob({
         <circle cx={dot.x} cy={dot.y} r={2} className="fill-ink" />
       </svg>
 {size !== 'xs' && (
-        <>
-      <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
-        draggable={onLabelDragStart !== undefined} onDragStart={onLabelDragStart}
-        className={`text-label focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute'}`}>
-        {label}
-      </button>
-      {learning && <span aria-hidden="true" className="bg-alert px-tight text-micro font-bold text-ink">L</span>}
-      <span className={`tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>
-        {shown}
-      </span>
-        </>
+        // label + value form one target: select (click) and FX reorder (drag) work on the whole caption
+        <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={ariaLabel ?? label}
+          draggable={onLabelDragStart !== undefined} onDragStart={onLabelDragStart}
+          className="flex w-full flex-col items-center gap-tight focus-ring">
+          <span className={selected ? 'font-bold text-ink' : 'text-ink-mute'}>{label}</span>
+          <span className={`tabular-nums ${map ? 'text-mod' : 'text-ink-soft'}`}>{shown}</span>
+        </button>
       )}
+      {learning && <span aria-hidden="true" className="absolute top-0 right-0 bg-alert px-tight text-micro font-bold text-ink">L</span>}
     </div>
   )
 }
