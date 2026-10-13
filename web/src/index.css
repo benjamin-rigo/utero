@@ -185,6 +185,16 @@
   gap: var(--spacing-group);
 }
 
+/* the modulator page: [3 knobs] | [2 knobs] | [trig, two knobs wide], a top row above the knob row;
+   the target list, when present, falls into implicit columns after it */
+@utility mod-grid {
+  display: grid;
+  grid-template-columns: repeat(3, var(--spacing-knob)) var(--spacing-hair) repeat(2, var(--spacing-knob)) var(--spacing-hair) var(--spacing-knob-2);
+  grid-template-rows: var(--spacing-control) minmax(0, 1fr);
+  grid-auto-columns: auto;
+  gap: var(--spacing-group);
+}
+
 /* one focus style for every control */
 @utility focus-ring {
   outline: none;

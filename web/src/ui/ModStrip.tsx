@@ -137,17 +137,18 @@ const KIND_CODES: ModKind[] = [0, 1, 2, 4]
 /** Fixed slot widths (never change between types): one knob, or two knobs wide for trig + its 3-way mode. */
 const CELL = { knob: 'w-knob', pair: 'w-knob', trig: 'w-knob-2' } as const
 
-function Cell({ knob, choice, w = 'knob' }: { knob?: ReactNode; choice?: ReactNode; w?: keyof typeof CELL }) {
+function Cell({ col, knob, choice, w = 'knob' }: { col: string; knob?: ReactNode; choice?: ReactNode; w?: keyof typeof CELL }) {
   // the knob is centred in the free height, the choice row (reserved even when empty) is the shared bottom line
   return (
-    <div className={`flex h-full flex-col items-center ${CELL[w]}`}>
+    <div className={`row-start-2 flex h-full min-h-0 flex-col items-center gap-hair ${col} ${CELL[w]}`}>
       <div className="flex min-h-0 flex-1 items-center justify-center">{knob}</div>
       <div className="flex h-control shrink-0 items-end">{choice}</div>
     </div>
   )
 }
 
-const Divider = () => <div aria-hidden="true" className="w-hair self-stretch bg-line" />
+/** Group separator: spans both rows of the page. */
+const Divider = ({ col }: { col: string }) => <div aria-hidden="true" className={`row-span-2 row-start-1 w-hair bg-line ${col}`} />
 
 function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
@@ -159,82 +160,79 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
       format={(v) => formatParam(envMeta(i, 0), v)} onChange={(v) => store.setModEnv(slot, i, v)} />
   )
   return (
-    <div className="flex h-full w-fit min-h-0 min-w-0 flex-col gap-group overflow-hidden border-r border-line p-inset text-label">
-      {/* first row: type on the left, the fixed waveform / colour / curve slot on the right (same size for every type) */}
-      <div className="flex h-control items-center justify-between gap-group">
-        <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
-          onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
-        <div className="flex h-control w-wave items-center">
-          {m.kind === 1 && (
-            <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-hair">
-              {SHAPES.map((sh) => (
-                <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
-                  tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
-                  onKeyDown={(e) => {
-                    const i = SHAPES.findIndex((x) => x.code === m.shape)
-                    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
-                    if (!d) return
-                    e.preventDefault()
-                    const next = SHAPES[(i + d + SHAPES.length) % SHAPES.length]
-                    update({ shape: next.code })
-                    ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
-                  }}
-                  className={`h-full flex-1 px-tight focus-ring ${m.shape === sh.code ? 'bg-ink' : 'bg-well hover:bg-raised'}`}>
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
-                    <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
-                      className={m.shape === sh.code ? 'stroke-on-ink' : 'stroke-ink-soft'} />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          )}
-          {m.kind === 2 && <Segmented label="Noise colour" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />}
-          {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
-        </div>
+    <div className="mod-grid h-full min-h-0 overflow-hidden border-r border-line p-inset">
+      {/* top row: the waveform / colour / curve slot over the generator knobs (fixed size for every type), the type over the output knobs */}
+      <div className="col-span-3 col-start-1 row-start-1 flex h-control items-center">
+        {m.kind === 1 && (
+          <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-hair">
+            {SHAPES.map((sh) => (
+              <button key={sh.code} type="button" role="radio" aria-checked={m.shape === sh.code} aria-label={sh.label}
+                tabIndex={m.shape === sh.code ? 0 : -1} onClick={() => update({ shape: sh.code })}
+                onKeyDown={(e) => {
+                  const i = SHAPES.findIndex((x) => x.code === m.shape)
+                  const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+                  if (!d) return
+                  e.preventDefault()
+                  const next = SHAPES[(i + d + SHAPES.length) % SHAPES.length]
+                  update({ shape: next.code })
+                  ;(e.currentTarget.parentElement?.children[SHAPES.indexOf(next)] as HTMLElement | undefined)?.focus()
+                }}
+                className={`h-full flex-1 px-tight focus-ring ${m.shape === sh.code ? 'bg-ink' : 'bg-well hover:bg-raised'}`}>
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
+                  <path d={pathOf(previewShape({ ...m, shape: sh.code }, 24))} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                    className={m.shape === sh.code ? 'stroke-on-ink' : 'stroke-ink-soft'} />
+                </svg>
+              </button>
+            ))}
+          </div>
+        )}
+        {m.kind === 2 && <Segmented label="Noise colour" options={NOISE_COLORS} index={m.color} onIndex={(i) => update({ color: i })} />}
+        {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
       </div>
+      <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
+        className="col-span-4 col-start-5 row-start-1"
+        onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
       {/* fixed knob slots: [rate|atk] [phase|hold] [—|dec] │ [depth + bi/uni] [smooth] │ [trig + mode]; unused slots stay empty.
           Knobs sit centred in the space above, every choice sits on one shared bottom line. */}
-      <div className="flex min-h-0 flex-1 items-stretch gap-group">
-        <Cell w="pair"
-          knob={m.kind === 1 ? (m.sync ? (
-            <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
-          ) : (
-            <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
-          )) : m.kind === 4 ? envKnob(0) : null}
-          choice={m.kind === 1 && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />} />
-        <Cell knob={m.kind === 1 ? <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
-          : m.kind === 4 ? envKnob(1) : null} />
-        <Cell knob={m.kind === 4 ? envKnob(2) : null} />
-        <Divider />
-        <Cell w="pair"
-          knob={m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
-          choice={m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />} />
-        <Cell knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
-        <Divider />
-        <Cell w="trig"
-          knob={(m.kind === 1 || m.kind === 4) && (
-            <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
-          )}
-          choice={m.kind === 1 && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />} />
-          {targets.length > 0 && (
-            <>
-              <Divider />
-              <div aria-label={`${modLabel(slot, m)} targets`} className="flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
-                {targets.map(({ r, i }) => {
-                  const name = paramLabel(tracks, r.track, r.param).toLowerCase()
-                  return (
-                    <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight">
-                      <span className="text-ink-soft">{name}</span>
-                      <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
-                      <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
-                        className="h-full px-tight text-ink-mute hover:text-ink focus-ring">×</button>
-                    </span>
-                  )
-                })}
-              </div>
-            </>
-          )}
-      </div>
+      <Cell col="col-start-1" w="pair"
+        knob={m.kind === 1 ? (m.sync ? (
+          <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
+        ) : (
+          <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
+        )) : m.kind === 4 ? envKnob(0) : null}
+        choice={m.kind === 1 && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />} />
+      <Cell col="col-start-2" knob={m.kind === 1 ? <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
+        : m.kind === 4 ? envKnob(1) : null} />
+      <Cell col="col-start-3" knob={m.kind === 4 ? envKnob(2) : null} />
+      <Divider col="col-start-4" />
+      <Cell col="col-start-5" w="pair"
+        knob={m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
+        choice={m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />} />
+      <Cell col="col-start-6" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
+      <Divider col="col-start-7" />
+      <Cell col="col-start-8" w="trig"
+        knob={(m.kind === 1 || m.kind === 4) && (
+          <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
+        )}
+        choice={m.kind === 1 && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />} />
+        {targets.length > 0 && (
+          <>
+            <Divider col="col-start-9" />
+            <div aria-label={`${modLabel(slot, m)} targets`} className="col-start-10 row-span-2 row-start-1 flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
+              {targets.map(({ r, i }) => {
+                const name = paramLabel(tracks, r.track, r.param).toLowerCase()
+                return (
+                  <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight">
+                    <span className="text-ink-soft">{name}</span>
+                    <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+                    <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
+                      className="h-full px-tight text-ink-mute hover:text-ink focus-ring">×</button>
+                  </span>
+                )
+              })}
+            </div>
+          </>
+        )}
     </div>
   )
 }
