@@ -45,7 +45,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
         </div>
       </Modal>
     )}
-    <section aria-label="Insert FX" className="grid grid-cols-4 gap-y-2 border-t border-zinc-800 p-2">
+    <section aria-label="Insert FX" className="grid grid-cols-4 gap-y-1 border-t border-zinc-800 px-2 py-1">
       {order.map((id, pos) => {
         const param = FX_BASE + id
         const label = id === FX_FILTER ? FILTER_MODES[mode] : id === FX_DRIVE ? DRIVE_MODES[drive] : FX_NAMES[id]

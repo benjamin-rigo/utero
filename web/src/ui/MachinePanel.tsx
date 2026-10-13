@@ -50,7 +50,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
         ))}
       </div>}
       <AmpEnv state={state} frame={frame} store={store} track={t} machine={machine} />
-      <div className="grid grid-cols-4 gap-y-2 p-2">
+      <div className="grid grid-cols-4 gap-y-1 px-2 py-1">
         {machine.pages[page].params.map((p, i) => (p < 0 ? <div key={`empty${i}`} aria-hidden="true" /> : (
           <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}
             selected={selParam === p} onSelect={() => setSelParam(p)} />

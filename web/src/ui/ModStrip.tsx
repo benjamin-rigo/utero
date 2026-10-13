@@ -134,7 +134,7 @@ const KIND_CODES: ModKind[] = [0, 1, 2, 4]
 
 /** One fixed knob slot (and the choice under it); the same size whether it holds a control or not. */
 /** Fixed slot widths (fit their content, never change between types): knob 48 px, knob + 2-way choice 64 px, trig + mode 144 px. */
-const CELL = { knob: 'w-12', pair: 'w-16', trig: 'w-36' } as const
+const CELL = { knob: 'w-16', pair: 'w-16', trig: 'w-36' } as const
 
 function Cell({ knob, choice, w = 'knob' }: { knob?: ReactNode; choice?: ReactNode; w?: keyof typeof CELL }) {
   // the knob is centred in the free height, the choice row (20 px, reserved even when empty) is the shared bottom line

@@ -35,7 +35,7 @@ export interface KnobProps {
   onModAmount?(delta: number): void
   onDropModulator?(slot: number): void
   onSelect?(): void
-  /** 'sm' (the default everywhere) renders 40 px, 'xs' a bare 24 px dial (no label/value), 'slot' a full-width value bar, 'md' 56 px. */
+  /** 'sm' (the default everywhere) renders 60 px, 'xs' a bare 24 px dial (no label/value), 'slot' a full-width value bar, 'md' 56 px. */
   size?: 'md' | 'sm' | 'xs' | 'slot'
   /** Slot fill grows from the centre (filters, pan, tilt). */
   bipolar?: boolean
@@ -187,8 +187,8 @@ export function Knob({
     <div className="flex flex-col items-center gap-0.5 select-none">
       <svg
         {...slider}
-        width={size === 'xs' ? 24 : size === 'sm' ? 40 : SIZE}
-        height={size === 'xs' ? 24 : size === 'sm' ? 40 : SIZE}
+        width={size === 'xs' ? 24 : size === 'sm' ? 60 : SIZE}
+        height={size === 'xs' ? 24 : size === 'sm' ? 60 : SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className={`cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-acc ${learning ? 'ring-1 ring-red-500' : ''}`}
       >
