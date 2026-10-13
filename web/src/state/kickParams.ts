@@ -1,6 +1,8 @@
 /** How a normalised 0..1 value is shown under a knob. */
 export type Display =
   | { kind: 'db' }
+  /** master output fader: full travel = 0 dB (mirrors master::output_gain) */
+  | { kind: 'outdb' }
   | { kind: 'pct' }
   | { kind: 'range'; min: number; max: number; curve?: 'lin' | 'exp'; unit: string; digits?: number; signed?: boolean }
   | { kind: 'choice'; options: string[] }

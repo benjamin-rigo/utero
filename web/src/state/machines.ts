@@ -53,7 +53,7 @@ export const MASTER_PARAMS: ParamMeta[] = [
   { name: 'LOW CUT', default: 0, display: hz(10, 150) },
   { name: 'CEIL', default: 0.975, display: { kind: 'range', min: -12, max: 0, unit: 'dB', digits: 1 } },
   { name: 'MODE', default: 0, display: { kind: 'choice', options: ['LIMIT', 'CLIP'] } },
-  { name: 'LEVEL', default: 0.6402, display: db },
+  { name: 'LEVEL', default: 1, display: { kind: 'outdb' } },
   // global insert-FX settings shared by every machine's delay / reverb (mirrors master.rs 11..26)
   { name: 'DLY TIME', default: 0.4, display: { kind: 'choice', options: ['1/16', '1/8', '1/8D', '1/4', '1/4D', '1/2'] } },
   { name: 'DLY FB', default: 0.45, display: { kind: 'range', min: 0, max: 95, unit: '%' } },
@@ -173,6 +173,9 @@ export function faderDb(norm: number): string {
   return `${db >= 0 ? '+' : ''}${db.toFixed(1)} dB`
 }
 
+/** The master output fader's dB (post-limiter, full travel = 0 dB). */
+export const outputDb = (norm: number) => faderDb(norm * 0.8)
+
 function rangeValue(d: Extract<Display, { kind: 'range' }>, norm: number): number {
   return d.curve === 'exp' ? d.min * (d.max / d.min) ** norm : d.min + (d.max - d.min) * norm
 }
@@ -182,6 +185,7 @@ export function formatParam(meta: ParamMeta, norm: number): string {
   const d = meta.display
   if (!d || d.kind === 'pct') return `${Math.round(norm * 100)}%`
   if (d.kind === 'db') return faderDb(norm)
+  if (d.kind === 'outdb') return outputDb(norm)
   if (d.kind === 'choice') return d.options[Math.min(d.options.length - 1, Math.max(0, Math.round(norm * (d.options.length - 1))))]
   if (d.kind === 'djfilter') {
     if (norm < 0.48) return `LP ${formatHz(20 * 1000 ** (norm / 0.48))}`

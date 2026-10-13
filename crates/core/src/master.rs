@@ -31,6 +31,13 @@ pub const REV_TILT: usize = 24;
 pub const REV_SPEED: usize = 25;
 pub const REV_DEPTH: usize = 26;
 pub const MASTER_PARAM_COUNT: usize = 27;
+/// Fixed −6 dB trim into the limiter (the headroom the master fader used to provide before it moved post-limiter).
+const LIMITER_TRIM: f32 = 0.5;
+
+/// Master output fader: the bus fader law squeezed so full travel is 0 dB (it sits after the limiter, so it never boosts past the ceiling).
+pub fn output_gain(norm: f32) -> f32 {
+    fader_gain(norm * 0.8)
+}
 
 /// Order and default_norm are mirrored in web/src/state/machines.ts.
 pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
@@ -47,8 +54,8 @@ pub const MASTER_PARAMS: [ParamDesc; MASTER_PARAM_COUNT] = [
     ParamDesc { name: "CEIL", min: -12.0, max: 0.0, default_norm: 0.975, curve: Curve::Lin },
     // < 0.5 limiter, ≥ 0.5 soft clip
     ParamDesc { name: "MODE", min: 0.0, max: 1.0, default_norm: 0.0, curve: Curve::Step },
-    // −6 dB on the fader law (bus::fader_norm_for_db(-6.0)): headroom into the limiter by default
-    ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 0.640_2, curve: Curve::Lin },
+    // output volume after the limiter (output_gain): 1 = 0 dB
+    ParamDesc { name: "LEVEL", min: 0.0, max: 1.0, default_norm: 1.0, curve: Curve::Lin },
     // index into fx::DELAY_BEATS (1/16 1/8 1/8D 1/4 1/4D 1/2); default 1/8D
     ParamDesc { name: "DLY TIME", min: 0.0, max: 5.0, default_norm: 0.4, curve: Curve::Step },
     ParamDesc { name: "DLY FB", min: 0.0, max: 0.95, default_norm: 0.45, curve: Curve::Lin },
@@ -179,11 +186,11 @@ impl Master {
         let amount = p.get(COMP);
         let (attack, release, mix) = (p.get(ATTACK), p.get(RELEASE), p.get(MIX));
         let (sat, curve) = (p.get(SAT), p.get(CURVE));
-        let level = fader_gain(p.get(LEVEL));
+        let level = output_gain(p.get(LEVEL));
         let ceiling = db_to_gain(p.get(CEILING));
         let clip = p.get(MODE) >= 0.5;
 
-        // chain order: sat → eq → comp → level → limiter
+        // chain order: sat → eq → comp → trim → limiter → level (output volume)
         // 1) saturation
         let mut x = [l, r];
         for (c, v) in x.iter_mut().enumerate() {
@@ -207,10 +214,10 @@ impl Master {
         let makeup = -threshold * (1.0 - 1.0 / ratio) * 0.5;
         let comp_gain = db_to_gain(makeup - self.gr_db);
 
-        // 4) level
+        // 4) compressor mix, then the fixed headroom trim into the limiter
         for v in x.iter_mut() {
             *v += (*v * comp_gain - *v) * mix;
-            *v *= level;
+            *v *= LIMITER_TRIM;
         }
 
         // 5) limiter or soft clip to the ceiling
@@ -231,8 +238,9 @@ impl Master {
                 *v *= self.lim_gain;
             }
         }
+        // 6) output volume: at most 0 dB, so the result stays under the ceiling
         for c in 0..2 {
-            x[c] = x[c].clamp(-ceiling, ceiling);
+            x[c] = x[c].clamp(-ceiling, ceiling) * level;
             let k = self.k2[c].process(self.k1[c].process(x[c]));
             self.ms[c] += (k * k - self.ms[c]) * self.lufs_coef;
             let a = x[c].abs();
@@ -266,11 +274,11 @@ mod tests {
     }
 
     fn neutral() -> Master {
-        master(&[(COMP, 0.0), (SAT, 0.0), (LOW_CUT, 0.0), (TILT, 0.5), (LEVEL, 0.8), (CEILING, 1.0), (MODE, 0.0)])
+        master(&[(COMP, 0.0), (SAT, 0.0), (LOW_CUT, 0.0), (TILT, 0.5), (LEVEL, 1.0), (CEILING, 1.0), (MODE, 0.0)])
     }
 
     #[test]
-    fn neutral_settings_are_transparent() {
+    fn neutral_settings_only_apply_the_limiter_trim() {
         let mut m = neutral();
         let mut sum_in = 0.0;
         let mut sum_out = 0.0;
@@ -282,7 +290,7 @@ mod tests {
                 sum_out += y * y;
             }
         }
-        let ratio = (sum_out / sum_in as f32).sqrt();
+        let ratio = (sum_out / sum_in as f32).sqrt() / LIMITER_TRIM;
         assert!((0.98..1.02).contains(&ratio), "{ratio}");
     }
 
@@ -290,7 +298,7 @@ mod tests {
     fn limiter_reports_its_gain_reduction() {
         let mut m = master(&[(COMP, 0.0), (SAT, 0.0), (LEVEL, 1.0), (CEILING, 0.5), (MODE, 0.0)]);
         for i in 0..4_800 {
-            let x = (i as f32 * 0.05).sin();
+            let x = 2.0 * (i as f32 * 0.05).sin();
             m.process(x, x);
         }
         assert!(m.limiter_gr_db() > 3.0, "{}", m.limiter_gr_db());
@@ -322,12 +330,33 @@ mod tests {
     #[test]
     fn lufs_reads_minus_20_for_a_minus_20_dbfs_sine() {
         let mut m = neutral();
-        let a = db_to_gain(-20.0);
+        // the input sits 6 dB hot so the output after the limiter trim is −20 dBFS
+        let a = db_to_gain(-20.0) / LIMITER_TRIM;
         for i in 0..8 * 48_000 {
             let x = sine(997.0, a, i);
             m.process(x, x);
         }
         assert!((m.lufs() + 20.0).abs() < 1.0, "{}", m.lufs());
+    }
+
+    #[test]
+    fn output_level_sits_after_the_limiter() {
+        // pushing the output fader up must not drive the limiter harder, and full travel never passes the ceiling
+        let run = |level: f32| {
+            let mut m = master(&[(COMP, 0.0), (SAT, 0.0), (LEVEL, level), (MODE, 0.0)]);
+            let mut peak = 0.0f32;
+            for i in 0..24_000 {
+                let (l, _) = m.process(sine(100.0, 3.0, i), sine(100.0, 3.0, i));
+                peak = peak.max(l.abs());
+            }
+            (m.limiter_gr_db(), peak)
+        };
+        let (gr_low, peak_low) = run(0.5);
+        let (gr_full, peak_full) = run(1.0);
+        assert!((gr_low - gr_full).abs() < 0.01, "{gr_low} vs {gr_full}");
+        assert!(peak_full <= db_to_gain(MASTER_PARAMS[CEILING].map(MASTER_PARAMS[CEILING].default_norm)) + 1e-6);
+        assert!(peak_low < peak_full * 0.5, "{peak_low} vs {peak_full}");
+        assert!((output_gain(1.0) - 1.0).abs() < 1e-6);
     }
 
     #[test]

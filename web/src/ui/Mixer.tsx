@@ -1,6 +1,6 @@
 import { busMeterOf, busMutedOf, masterMeterOf } from '@/audio/snapshot'
 import {
-  BUS_DEFAULT_DB, BUS_DRIVE, BUS_FILTER, BUS_LEVEL, BUS_PAN, BUS_PARAMS, busRow, faderDb, faderNormForDb, MASTER_LEVEL, MASTER_MODE, MASTER_PARAMS, MASTER_ROW,
+  BUS_DEFAULT_DB, BUS_DRIVE, BUS_FILTER, BUS_LEVEL, BUS_PAN, BUS_PARAMS, busRow, faderDb, faderNormForDb, MASTER_LEVEL, outputDb, MASTER_MODE, MASTER_PARAMS, MASTER_ROW,
 } from '@/state/machines'
 import { rowParams, type Store } from '@/state/store'
 import type { AppState } from '@/state/types'
@@ -81,7 +81,7 @@ export function Mixer({ state, frame, store }: Props) {
           </div>
         </div>
         <Fader label="MASTER level" pos={editValue(MASTER_ROW, MASTER_LEVEL)} defaultPos={MASTER_PARAMS[MASTER_LEVEL].default}
-          valueText={faderDb(editValue(MASTER_ROW, MASTER_LEVEL))} meter={Math.max(master.peakL, master.peakR)}
+          valueText={outputDb(editValue(MASTER_ROW, MASTER_LEVEL))} meter={Math.max(master.peakL, master.peakR)}
           onPos={(p) => store.setParam(MASTER_ROW, MASTER_LEVEL, p)} />
       </div>
     </section>
