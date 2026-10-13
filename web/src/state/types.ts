@@ -47,6 +47,8 @@ export interface ModulatorState {
   depth: number
   /** LFO fade from each restart: < 0 in, > 0 out, 0 off (mirrors ModSettings::fade). */
   fade: number
+  /** LFO jitter 0..1 (mirrors ModSettings::jitter). */
+  jitter: number
   steps: number[]
   stepLen: number
   /** ENV kind: ATK HOLD DEC SUS REL, normalised (same ranges as the amp envelope). */

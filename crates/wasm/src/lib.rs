@@ -102,23 +102,25 @@ pub extern "C" fn utero_playhead(track: u32) -> i32 {
 #[no_mangle]
 #[allow(clippy::too_many_arguments)]
 pub extern "C" fn utero_set_modulator(
-    slot: u32, kind: u32, shape: u32, color: u32, sync: u32, rate_index: u32, hz: f32, phase: f32,
-    bipolar: u32, trig_mode: u32, trig_src: i32, smooth: f32, depth: f32, fade: f32,
+    slot: u32, kind: u32, shape: u32, color: u32, flags: u32, rate_index: u32, hz: f32, phase: f32,
+    trig_mode: u32, trig_src: i32, smooth: f32, depth: f32, fade: f32, jitter: f32,
 ) {
+    // flags: bit 0 = tempo sync, bit 1 = bipolar (packed so the command fits the 16-word ring slot)
     let s = ModSettings {
         kind: ModKind::from_code(byte(kind)),
         shape: Shape::from_code(byte(shape)),
         color: NoiseColor::from_code(byte(color)),
-        sync: sync != 0,
+        sync: flags & 1 != 0,
         rate_index: byte(rate_index),
         hz,
         phase,
-        bipolar: bipolar != 0,
+        bipolar: flags & 2 != 0,
         trig_mode: TrigMode::from_code(byte(trig_mode)),
         trig_src: trig_src.clamp(-1, 127) as i8,
         smooth,
         depth,
         fade,
+        jitter,
     };
     eng().set_modulator(slot as usize, s);
 }

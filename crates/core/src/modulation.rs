@@ -116,6 +116,8 @@ pub struct ModSettings {
     pub depth: f32,
     /// LFO fade from each restart: < 0 fades in, > 0 fades out, 0 off; |fade|² × FADE_MAX_CYCLES cycles long.
     pub fade: f32,
+    /// LFO jitter: random added to the output, 0..1 (Smooth softens it).
+    pub jitter: f32,
 }
 
 impl Default for ModSettings {
@@ -134,6 +136,7 @@ impl Default for ModSettings {
             smooth: 0.0,
             depth: 1.0,
             fade: 0.0,
+            jitter: 0.0,
         }
     }
 }
@@ -149,6 +152,7 @@ impl ModSettings {
             smooth: finite_or(self.smooth, 0.0).clamp(0.0, 1.0),
             depth: finite_or(self.depth, 1.0).clamp(0.0, 1.0),
             fade: finite_or(self.fade, 0.0).clamp(-1.0, 1.0),
+            jitter: finite_or(self.jitter, 0.0).clamp(0.0, 1.0),
             trig_src: self.trig_src.max(-1),
             ..self
         }
@@ -260,7 +264,10 @@ impl Modulator {
                 self.out = 0.0;
                 return 0.0;
             }
-            ModKind::Lfo => self.lfo(s, inc) * self.fade_gain(s.fade, inc),
+            ModKind::Lfo => {
+                let x = self.lfo(s, inc) * self.fade_gain(s.fade, inc);
+                if s.jitter > 0.0 { (x + s.jitter * self.rng.bipolar()).clamp(-1.0, 1.0) } else { x }
+            }
             ModKind::Noise => self.noise(s.color),
             ModKind::Env => self.env.next(&self.env_times, sample_rate) * 2.0 - 1.0,
             ModKind::Step => {
@@ -613,6 +620,16 @@ mod tests {
         run(&mut m, 1_000, 0.01);
         m.on_trigger();
         assert!(m.next(0.01, 48_000.0).abs() < 0.05);
+    }
+
+    #[test]
+    fn jitter_adds_bounded_randomness_to_the_lfo() {
+        let mut m = Modulator::new(1);
+        m.set_settings(ModSettings { kind: ModKind::Lfo, shape: Shape::Sqr, jitter: 0.3, ..ModSettings::default() });
+        let out = run(&mut m, 2_000, 0.0001);
+        assert!(out.iter().all(|v| (-1.0..=1.0).contains(v)));
+        let spread = out.iter().fold(f32::MIN, |a, &v| a.max(v)) - out.iter().fold(f32::MAX, |a, &v| a.min(v));
+        assert!(spread > 0.2 && spread <= 0.6 + 1e-6, "{spread}");
     }
 
     #[test]

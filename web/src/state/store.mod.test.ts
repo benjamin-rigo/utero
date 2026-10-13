@@ -76,7 +76,7 @@ describe('modulators', () => {
     store.updateModulator(5, { kind: 1, shape: 2, rateIndex: 3 })
     const m = store.getState().modulators[5]
     expect([m.kind, m.shape, m.rateIndex, m.bipolar]).toEqual([1, 2, 3, true])
-    expect(sent).toEqual([[Op.SetModulator, 5, 1, 2, 0, 1, 3, 1, 0, 1, 0, -1, 0, 1, 0]])
+    expect(sent).toEqual([[Op.SetModulator, 5, 1, 2, 0, 3, 3, 1, 0, 0, -1, 0, 1, 0, 0]])
   })
 
   test('hz is clamped to 0.01–40 and non-finite hz is ignored', () => {

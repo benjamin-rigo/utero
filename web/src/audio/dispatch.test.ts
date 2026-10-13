@@ -37,7 +37,7 @@ function fake() {
 test('every command builder reaches the matching export with its arguments in order', () => {
   const { ex, calls } = fake()
   const step = { trig: true, vel: 0.5, prob: 60, cond: 1 as const, a: 2, b: 4, micro: -3, note: 53 }
-  const mod = { ...defaultModulator(), kind: 1 as const, shape: 2, color: 1, sync: false, rateIndex: 3, hz: 0.5, phase: 0.25, bipolar: false, trigMode: 1, trigSrc: 4, smooth: 0.3, depth: 0.8, fade: -0.5 }
+  const mod = { ...defaultModulator(), kind: 1 as const, shape: 2, color: 1, sync: false, rateIndex: 3, hz: 0.5, phase: 0.25, bipolar: false, trigMode: 1, trigSrc: 4, smooth: 0.3, depth: 0.8, fade: -0.5, jitter: 0.2 }
   for (const cmd of [
     cmdSetParam(1, 2, 0.25), cmdSetStep(0, 5, step), cmdSetLength(1, 13), cmdSetSpeed(1, 2),
     cmdPlay(), cmdStop(), cmdSetBpm(128), cmdSetFill(true),
@@ -57,7 +57,7 @@ test('every command builder reaches the matching export with its arguments in or
     ['stop', []],
     ['set_bpm', [128]],
     ['set_fill', [1]],
-    ['set_modulator', [3, 1, 2, 1, 0, 3, 0.5, 0.25, 0, 1, 4, 0.3, 0.8, -0.5]],
+    ['set_modulator', [3, 1, 2, 1, 0, 3, 0.5, 0.25, 1, 4, 0.3, 0.8, -0.5, 0.2]],
     ['set_mod_step', [3, 7, -0.5]],
     ['set_mod_step_len', [3, 8]],
     ['set_route', [10, 3, 0, 4, -0.25]],

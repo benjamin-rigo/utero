@@ -44,7 +44,7 @@ test('a routed LFO moves the effective value in the snapshot', async () => {
   const ex = await load()
   ex.utero_init(48000)
   // slot 0: LFO square, unsynced 0.01 Hz → output stays +1 during the test
-  ex.utero_set_modulator(0, 1, 6, 0, 0, 6, 0.01, 0, 1, 0, -1, 0, 1, 0)
+  ex.utero_set_modulator(0, 1, 6, 0, 2, 6, 0.01, 0, 0, -1, 0, 1, 0, 0)
   ex.utero_set_route(0, 0, 0, 1, 0.3)
   for (let i = 0; i < 100; i++) ex.utero_process(128)
   const snap = new Float32Array(ex.memory.buffer, ex.utero_snapshot(), SNAP_FLOATS)
@@ -54,8 +54,8 @@ test('a routed LFO moves the effective value in the snapshot', async () => {
 test('garbage modulation commands do not trap', async () => {
   const ex = await load()
   ex.utero_init(48000)
-  ex.utero_set_modulator(99, 9, 99, 9, 1, 255, NaN, NaN, 1, 9, 999, NaN, NaN, NaN)
-  ex.utero_set_modulator(0, 1, 0, 0, 1, 255, NaN, NaN, 1, 9, 999, NaN, NaN, NaN)
+  ex.utero_set_modulator(99, 9, 99, 9, 3, 255, NaN, NaN, 9, 999, NaN, NaN, NaN, NaN)
+  ex.utero_set_modulator(0, 1, 0, 0, 3, 255, NaN, NaN, 9, 999, NaN, NaN, NaN, NaN)
   ex.utero_set_route(999, 99, 99, 99, NaN)
   ex.utero_set_route(0, 0, 0, 0, Infinity)
   ex.utero_clear_route(999)

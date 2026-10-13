@@ -17,8 +17,9 @@ export const cmdStop = () => [Op.Stop]
 export const cmdSetBpm = (bpm: number) => [Op.SetBpm, bpm]
 export const cmdSetFill = (on: boolean) => [Op.SetFill, on ? 1 : 0]
 export const cmdSetModulator = (slot: number, m: ModulatorState) => [
-  Op.SetModulator, slot, m.kind, m.shape, m.color, m.sync ? 1 : 0, m.rateIndex, m.hz, m.phase,
-  m.bipolar ? 1 : 0, m.trigMode, m.trigSrc, m.smooth, m.depth, m.fade,
+  // flags: bit 0 sync, bit 1 bipolar (one word, so the command fits CMD_WORDS)
+  Op.SetModulator, slot, m.kind, m.shape, m.color, (m.sync ? 1 : 0) | (m.bipolar ? 2 : 0), m.rateIndex, m.hz, m.phase,
+  m.trigMode, m.trigSrc, m.smooth, m.depth, m.fade, m.jitter,
 ]
 export const cmdSetModStep = (slot: number, i: number, v: number) => [Op.SetModStep, slot, i, v]
 export const cmdSetModStepLen = (slot: number, len: number) => [Op.SetModStepLen, slot, len]
