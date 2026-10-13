@@ -40,11 +40,11 @@ export function TransportBar({ bpm, playing, starting, error, onTogglePlay, onBp
   return (
     <header className="flex items-center gap-group border-b border-line p-inset">
       <Logo className="size-control shrink-0 text-ink" />
-      <button type="button" className={`h-control px-inset focus-ring disabled:opacity-50 ${playing ? 'bg-ink text-on-ink' : 'bg-well text-ink-soft hover:text-ink'}`} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
+      <button type="button" className={`h-control w-knob focus-ring disabled:opacity-50 ${playing ? 'bg-ink text-on-ink' : 'bg-well text-ink-soft hover:text-ink'}`} onClick={onTogglePlay} disabled={starting} aria-busy={starting} aria-label={playing ? 'Stop' : 'Play'}>
         {playing ? '■ STOP' : '▶ PLAY'}
       </button>
       <label className="flex items-center gap-tight text-ink-mute">
-        BPM
+        <span className="w-dial">BPM</span>
         <input type="text" inputMode="decimal" value={draft}
           onFocus={() => setEditing(true)}
           onChange={(e) => setDraft(e.target.value)}

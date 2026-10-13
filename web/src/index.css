@@ -171,7 +171,8 @@
   --spacing-readout: 36px;
   --spacing-graph: 40px;
   --spacing-track: 52px;
-  --spacing-side: 440px;
+  /* 436 = 2 x 8 inset + 4 knobs + 3 knob-wide gaps: every knob row, the master row and the 8 macro columns land on whole pixels */
+  --spacing-side: 436px;
   --spacing-strip: 190px;
   --spacing-mixer: 200px;
 
