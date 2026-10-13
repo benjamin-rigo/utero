@@ -53,8 +53,9 @@ export function ModStrip({ state, frame, store }: Props) {
       <section aria-label="Modulators" className="grid min-h-0 grid-cols-[auto_minmax(0,1fr)] border-r border-line">
         <ModPage slot={slot} m={state.modulators[slot]} mapping={mapping} routes={state.routes}
           tracks={state.tracks.map((t) => t.name)} store={store} />
-        <div className="min-h-0 p-inset">
-          <div className="grid h-full min-h-0 grid-cols-4 grid-rows-4 gap-hair border border-line bg-line 2xl:grid-cols-8 2xl:grid-rows-2">
+        {/* the tiles fill their pane: the pane edges are the grid's outer lines */}
+        <div className="min-h-0">
+          <div className="grid h-full min-h-0 grid-cols-4 grid-rows-4 gap-hair bg-line 2xl:grid-cols-8 2xl:grid-rows-2">
           {state.modulators.map((m, i) => {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
@@ -134,8 +135,8 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
 /** Modulator types offered in the UI (STEP stays in the engine but is not offered). */
 const KIND_CODES: ModKind[] = [0, 1, 2, 4]
 
-/** Fixed slot widths (never change between types): one knob, or two knobs wide for trig + its 3-way mode. */
-const CELL = { knob: 'w-knob', pair: 'w-knob', trig: 'w-knob-2' } as const
+/** Fixed slot widths (never change between types): one slot, or two slots wide for trig + its 3-way mode. */
+const CELL = { knob: 'w-slot', pair: 'w-slot', trig: 'w-slot-2' } as const
 
 function Cell({ col, knob, choice, w = 'knob' }: { col: string; knob?: ReactNode; choice?: ReactNode; w?: keyof typeof CELL }) {
   // the knob is centred in the free height, the choice row (reserved even when empty) is the shared bottom line
@@ -146,9 +147,6 @@ function Cell({ col, knob, choice, w = 'knob' }: { col: string; knob?: ReactNode
     </div>
   )
 }
-
-/** Group separator: spans both rows of the page. */
-const Divider = ({ col }: { col: string }) => <div aria-hidden="true" className={`row-span-2 row-start-1 w-hair bg-line ${col}`} />
 
 function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   const targets = routes.flatMap((r, i) => (r && r.src === slot ? [{ r, i }] : []))
@@ -190,7 +188,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
         {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
       </div>
       <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
-        className="col-span-4 col-start-5 row-start-1"
+        className="col-span-3 col-start-4 row-start-1"
         onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
       {/* fixed knob slots: [rate|atk] [phase|hold] [—|dec] │ [depth + bi/uni] [smooth] │ [trig + mode]; unused slots stay empty.
           Knobs sit centred in the space above, every choice sits on one shared bottom line. */}
@@ -204,35 +202,30 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
       <Cell col="col-start-2" knob={m.kind === 1 ? <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
         : m.kind === 4 ? envKnob(1) : null} />
       <Cell col="col-start-3" knob={m.kind === 4 ? envKnob(2) : null} />
-      <Divider col="col-start-4" />
-      <Cell col="col-start-5" w="pair"
+      <Cell col="col-start-4" w="pair"
         knob={m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
         choice={m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />} />
-      <Cell col="col-start-6" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
-      <Divider col="col-start-7" />
-      <Cell col="col-start-8" w="trig"
+      <Cell col="col-start-5" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
+      <Cell col="col-start-6" w="trig"
         knob={(m.kind === 1 || m.kind === 4) && (
           <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
         )}
         choice={m.kind === 1 && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />} />
-        {targets.length > 0 && (
-          <>
-            <Divider col="col-start-9" />
-            <div aria-label={`${modLabel(slot, m)} targets`} className="col-start-10 row-span-2 row-start-1 flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
-              {targets.map(({ r, i }) => {
-                const name = paramLabel(tracks, r.track, r.param).toLowerCase()
-                return (
-                  <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight">
-                    <span className="text-ink-soft">{name}</span>
-                    <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
-                    <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
-                      className="h-full px-tight text-ink-mute hover:text-ink focus-ring">×</button>
-                  </span>
-                )
-              })}
-            </div>
-          </>
-        )}
+      {targets.length > 0 && (
+        <div aria-label={`${modLabel(slot, m)} targets`} className="col-start-7 row-span-2 row-start-1 ml-group flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
+          {targets.map(({ r, i }) => {
+            const name = paramLabel(tracks, r.track, r.param).toLowerCase()
+            return (
+              <span key={i} className="flex h-control items-center gap-tight bg-well pl-tight">
+                <span className="text-ink-soft">{name}</span>
+                <span className="tabular-nums text-ink">{r.amount > 0 ? '+' : ''}{Math.round(r.amount * 100)}</span>
+                <button type="button" aria-label={`Remove ${name} route`} onClick={() => store.removeRoute(i)}
+                  className="h-full px-tight text-ink-mute hover:text-ink focus-ring">×</button>
+              </span>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

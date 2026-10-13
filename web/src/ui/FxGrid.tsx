@@ -35,7 +35,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
     <>
     {page && (
       <Modal title={`${page} settings`} onClose={close}>
-        <div className="knob-row p-inset">
+        <div className="knob-row w-side p-inset">
           {params.map((p) => (
             <ParamKnob key={p} state={state} frame={frame} store={store} row={MASTER_ROW} param={p} meta={MASTER_PARAMS[p]}
               label={MASTER_PARAMS[p].name.split(' ')[1].toLowerCase()} ariaLabel={MASTER_PARAMS[p].name} />

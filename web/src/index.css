@@ -163,15 +163,17 @@
   /* knob height after cropping the empty bottom of the dial; whole pixels keep every hairline sharp */
   --spacing-knob-h: 52px;
   --spacing-dial-h: 21px;
-  --spacing-knob-2: calc(var(--spacing-knob) * 2 + var(--spacing-group));
+  /* a modulator knob slot: knob + 12 px each side, so the choice under it (sync|hz, bi|uni) fits inside */
+  --spacing-slot: 84px;
+  --spacing-slot-2: calc(var(--spacing-slot) * 2 + var(--spacing-tight));
   --spacing-wave: 300px;
-  --spacing-fader: 48px;
+  --spacing-fader: var(--spacing-knob);
   --spacing-dial: 24px;
   --spacing-option: 28px;
   --spacing-readout: 36px;
   --spacing-graph: 40px;
   --spacing-track: 52px;
-  /* 436 = 2 x 8 inset + 4 knobs + 3 knob-wide gaps: every knob row, the master row and the 8 macro columns land on whole pixels */
+  /* 436: 4 knob slots of 102 (machine), 4 of 84 (master, beside a knob-wide fader) and 8 macro columns of 49 all land on whole pixels */
   --spacing-side: 436px;
   --spacing-strip: 190px;
   --spacing-mixer: 200px;
@@ -182,22 +184,24 @@
   --text-label--line-height: 1;
 }
 
-/* a row of four knobs spread edge to edge: the first and last knob sit on the pane's inset lines */
+/* four equal knob slots across the row, each knob centred in its slot */
 @utility knob-row {
   display: grid;
-  grid-template-columns: repeat(4, var(--spacing-knob));
-  justify-content: space-between;
-  gap: var(--spacing-group);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  justify-items: center;
+  column-gap: var(--spacing-tight);
+  row-gap: var(--spacing-group);
 }
 
-/* the modulator page: [3 knobs] | [2 knobs] | [trig, two knobs wide], a top row above the knob row;
-   the target list, when present, falls into implicit columns after it */
+/* the modulator page: one row of knob slots (trig two slots wide) under a top row;
+   the target list, when present, falls into an implicit column after it */
 @utility mod-grid {
   display: grid;
-  grid-template-columns: repeat(3, var(--spacing-knob)) var(--spacing-hair) repeat(2, var(--spacing-knob)) var(--spacing-hair) var(--spacing-knob-2);
+  grid-template-columns: repeat(5, var(--spacing-slot)) var(--spacing-slot-2);
   grid-template-rows: var(--spacing-control) minmax(0, 1fr);
   grid-auto-columns: auto;
-  gap: var(--spacing-group);
+  column-gap: var(--spacing-tight);
+  row-gap: var(--spacing-group);
 }
 
 /* a sequencer row: name | 4 beats of 4 equal steps, a hairline spacer after each beat | rate */
