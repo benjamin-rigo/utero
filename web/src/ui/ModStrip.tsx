@@ -135,13 +135,10 @@ function ChoiceKnob({ label, options, index, defaultIndex = 0, onIndex }: Choice
 /** Modulator types offered in the UI (STEP stays in the engine but is not offered). */
 const KIND_CODES: ModKind[] = [0, 1, 2, 4]
 
-/** Fixed slot widths (never change between types): one slot, or two slots wide for trig + its 3-way mode. */
-const CELL = { knob: 'w-slot', pair: 'w-slot', trig: 'w-slot-2' } as const
-
-function Cell({ col, knob, choice, w = 'knob' }: { col: string; knob?: ReactNode; choice?: ReactNode; w?: keyof typeof CELL }) {
+function Cell({ col, knob, choice }: { col: string; knob?: ReactNode; choice?: ReactNode }) {
   // the knob is centred in the free height, the choice row (reserved even when empty) is the shared bottom line
   return (
-    <div className={`row-start-2 flex h-full min-h-0 flex-col items-center gap-hair ${col} ${CELL[w]}`}>
+    <div className={`row-start-2 flex h-full min-h-0 flex-col items-center gap-hair ${col}`}>
       <div className="flex min-h-0 flex-1 items-center justify-center">{knob}</div>
       <div className="flex h-control shrink-0 items-end">{choice}</div>
     </div>
@@ -159,8 +156,8 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   )
   return (
     <div className="mod-grid h-full min-h-0 overflow-hidden border-r border-line p-inset">
-      {/* top row: the waveform / colour / curve slot over the generator knobs (fixed size for every type), the type over the output knobs */}
-      <div className="col-span-3 col-start-1 row-start-1 flex h-control items-center">
+      {/* top row: the type over the shared knobs, the waveform / colour / curve slot over the type's own knobs (fixed size for every type) */}
+      <div className="col-span-3 col-start-4 row-start-1 flex h-control items-center">
         {m.kind === 1 && (
           <div role="radiogroup" aria-label="Shape" className="flex h-full w-full gap-hair">
             {SHAPES.map((sh) => (
@@ -188,29 +185,29 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
         {m.kind === 4 && <EnvGraph values={m.env} onChange={(i, v) => store.setModEnv(slot, i, v)} />}
       </div>
       <Segmented label="Modulator type" options={KIND_CODES.map((k) => MOD_KINDS[k])} index={Math.max(0, KIND_CODES.indexOf(m.kind))}
-        className="col-span-3 col-start-4 row-start-1"
+        className="col-span-3 col-start-1 row-start-1"
         onIndex={(i) => update(KIND_CODES[i] === 4 ? { kind: 4, bipolar: false } : { kind: KIND_CODES[i] })} />
-      {/* fixed knob slots: [rate|atk] [phase|hold] [—|dec] │ [depth + bi/uni] [smooth] │ [trig + mode]; unused slots stay empty.
+      {/* fixed knob slots: [depth + bi/uni] [smooth] [trig + mode] [rate|atk] [phase|hold] [—|dec]; shared ones first, so an unused slot is only ever at the end.
           Knobs sit centred in the space above, every choice sits on one shared bottom line. */}
-      <Cell col="col-start-1" w="pair"
+      <Cell col="col-start-1"
+        knob={m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
+        choice={m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />} />
+      <Cell col="col-start-2" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
+      <Cell col="col-start-3"
+        knob={(m.kind === 1 || m.kind === 4) && (
+          <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
+        )}
+        choice={m.kind === 1 && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />} />
+      <Cell col="col-start-4"
         knob={m.kind === 1 ? (m.sync ? (
           <ChoiceKnob label="RATE" options={SYNC_LABELS} index={m.rateIndex} defaultIndex={DEFAULT_RATE} onIndex={(i) => update({ rateIndex: i })} />
         ) : (
           <Knob size="sm" label="RATE" value={normOfHz(m.hz)} defaultValue={normOfHz(1)} format={(v) => formatHz(hzOf(v))} onChange={(v) => update({ hz: hzOf(v) })} />
         )) : m.kind === 4 ? envKnob(0) : null}
         choice={m.kind === 1 && <Segmented label="Rate mode" options={['SYNC', 'HZ']} index={m.sync ? 0 : 1} onIndex={(i) => update({ sync: i === 0 })} />} />
-      <Cell col="col-start-2" knob={m.kind === 1 ? <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
+      <Cell col="col-start-5" knob={m.kind === 1 ? <Knob size="sm" label="PHASE" value={m.phase} defaultValue={0} format={(v) => `${Math.round(v * 360)}°`} onChange={(v) => update({ phase: v })} />
         : m.kind === 4 ? envKnob(1) : null} />
-      <Cell col="col-start-3" knob={m.kind === 4 ? envKnob(2) : null} />
-      <Cell col="col-start-4" w="pair"
-        knob={m.kind !== 0 && <Knob size="sm" label="DEPTH" value={m.depth} defaultValue={1} format={pct} onChange={(v) => update({ depth: v })} />}
-        choice={m.kind !== 0 && <Segmented label="Polarity" options={['BI', 'UNI']} index={m.bipolar ? 0 : 1} onIndex={(i) => update({ bipolar: i === 0 })} />} />
-      <Cell col="col-start-5" knob={m.kind !== 0 && <Knob size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} />} />
-      <Cell col="col-start-6" w="trig"
-        knob={(m.kind === 1 || m.kind === 4) && (
-          <ChoiceKnob label="TRIG" options={['—', ...tracks]} index={m.trigSrc + 1} onIndex={(i) => update({ trigSrc: i - 1 })} />
-        )}
-        choice={m.kind === 1 && <Segmented label="Trigger mode" options={TRIG_MODES} index={m.trigMode} onIndex={(i) => update({ trigMode: i })} />} />
+      <Cell col="col-start-6" knob={m.kind === 4 ? envKnob(2) : null} />
       {targets.length > 0 && (
         <div aria-label={`${modLabel(slot, m)} targets`} className="col-start-7 row-span-2 row-start-1 ml-group flex max-w-wave min-w-0 flex-wrap content-start gap-hair">
           {targets.map(({ r, i }) => {

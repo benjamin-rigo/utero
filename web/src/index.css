@@ -163,9 +163,8 @@
   /* knob height after cropping the empty bottom of the dial; whole pixels keep every hairline sharp */
   --spacing-knob-h: 52px;
   --spacing-dial-h: 21px;
-  /* a modulator knob slot: knob + 12 px each side, so the choice under it (sync|hz, bi|uni) fits inside */
-  --spacing-slot: 84px;
-  --spacing-slot-2: calc(var(--spacing-slot) * 2 + var(--spacing-tight));
+  /* modulator knobs: the smallest equal gap that keeps the widest choice (free|retrig|oneshot) a group gap from its neighbour's */
+  --spacing-mod-gap: 48px;
   --spacing-wave: 300px;
   --spacing-fader: var(--spacing-knob);
   --spacing-dial: 24px;
@@ -193,14 +192,14 @@
   row-gap: var(--spacing-group);
 }
 
-/* the modulator page: one row of knob slots (trig two slots wide) under a top row;
+/* the modulator page: six knob-wide slots on one equal pitch under a top row (choices centre under their knob);
    the target list, when present, falls into an implicit column after it */
 @utility mod-grid {
   display: grid;
-  grid-template-columns: repeat(5, var(--spacing-slot)) var(--spacing-slot-2);
+  grid-template-columns: repeat(6, var(--spacing-knob));
   grid-template-rows: var(--spacing-control) minmax(0, 1fr);
   grid-auto-columns: auto;
-  column-gap: var(--spacing-tight);
+  column-gap: var(--spacing-mod-gap);
   row-gap: var(--spacing-group);
 }
 
