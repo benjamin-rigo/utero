@@ -101,7 +101,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
         const melodic = isMelodic(t)
         return (
           <div key={tr.name}
-            className="grid min-h-0 flex-1 grid-cols-[var(--spacing-track)_repeat(16,1fr)_auto] items-stretch gap-hair">
+            className="seq-row min-h-0 flex-1">
             <button type="button" onClick={() => onSelect(t)} aria-pressed={selected}
               className={`flex flex-col justify-center px-tight text-left focus-ring ${selected ? 'font-bold text-ink' : 'text-ink-mute hover:text-ink-soft'}`}>
               {tr.name}
@@ -114,7 +114,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
               const isHead = playheads[t] === s
               const noteEdit = melodic && st.trig
               return (
-                <button key={s} type="button" aria-pressed={st.trig} data-track={t} data-step={s}
+                <button key={s} type="button" aria-pressed={st.trig} data-track={t} data-step={s} style={{ gridColumn: 2 + s + Math.floor(s / 4) }}
                   aria-label={melodic ? `${tr.name} step ${s + 1}, ${noteName(st.note)}` : `${tr.name} step ${s + 1}`}
                   onClick={(e) => {
                     if (dragged.current) {
@@ -178,7 +178,6 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                     beyond ? 'opacity-30 [background-image:repeating-linear-gradient(45deg,transparent_0_3px,var(--color-raised)_3px_6px)]' : '',
                     melodic ? 'touch-none' : '',
                     noteEdit ? 'cursor-ns-resize' : '',
-                    s % 4 === 0 ? 'ml-hair' : '',
                     isHead ? 'ring-1 ring-inset ring-faint' : '',
                   ].join(' ')}>
                   {noteEdit ? noteName(st.note) : null}
@@ -195,7 +194,7 @@ export function SequencerMatrix({ state, playheads, onToggle, onSetLength, onSet
                 </button>
               )
             })}
-            <div className="flex items-center gap-tight pl-inset text-label text-ink-mute">
+            <div className="col-start-22 flex items-center gap-tight pl-inset text-ink-mute">
               <Knob size="xs" tone="mono" label="RATE" ariaLabel={`${tr.name} rate`} steps={SPEED_ORDER.length}
                 value={speedIndex(tr.speed) / (SPEED_ORDER.length - 1)} defaultValue={speedIndex(1) / (SPEED_ORDER.length - 1)}
                 format={(v) => speedLabel(SPEED_ORDER[Math.round(v * (SPEED_ORDER.length - 1))])}

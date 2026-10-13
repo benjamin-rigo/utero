@@ -199,6 +199,15 @@
   gap: var(--spacing-group);
 }
 
+/* a sequencer row: name | 4 beats of 4 equal steps, a hairline spacer after each beat | rate */
+@utility seq-row {
+  display: grid;
+  grid-template-columns: var(--spacing-track)
+    repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) var(--spacing-hair)
+    repeat(4, minmax(0, 1fr)) var(--spacing-hair) repeat(4, minmax(0, 1fr)) var(--spacing-hair) auto;
+  gap: var(--spacing-hair);
+}
+
 /* one focus style for every control */
 @utility focus-ring {
   outline: none;
