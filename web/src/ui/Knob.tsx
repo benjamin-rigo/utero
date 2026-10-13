@@ -35,7 +35,7 @@ export interface KnobProps {
   onModAmount?(delta: number): void
   onDropModulator?(slot: number): void
   onSelect?(): void
-  /** 'sm' renders 40 px, 'xs' a bare 24 px dial (no label/value), 'slot' a full-width value bar (mixer/master/mod), default 56 px. */
+  /** 'sm' (the default everywhere) renders 40 px, 'xs' a bare 24 px dial (no label/value), 'slot' a full-width value bar, 'md' 56 px. */
   size?: 'md' | 'sm' | 'xs' | 'slot'
   /** Slot fill grows from the centre (filters, pan, tilt). */
   bipolar?: boolean
@@ -65,7 +65,7 @@ export interface KnobProps {
 /** Vertical drag (⇧ = fine); outer ring drag = mod amount; double-click = default; drop a modulator to route it. */
 export function Knob({
   label, value, display = value, defaultValue, modAmount = 0, markers = null, learning = false, selected = false,
-  onChange, onModAmount, onDropModulator, onSelect, size = 'md', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart,
+  onChange, onModAmount, onDropModulator, onSelect, size = 'sm', ariaLabel, format, map = null, onMap, onMapClear, onHover, steps, tone = 'acc', bipolar = false, reduction, onTap, onOpen, onLabelDragStart,
 }: KnobProps) {
   const drag = useRef<{ x: number; y: number; mode: 'value' | 'mod'; travel: number } | null>(null)
   const current = useRef(value)
