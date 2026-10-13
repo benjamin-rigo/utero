@@ -10,7 +10,7 @@ The decisions below were made with the owner. Read this before any UI change. If
 - Text roles: labels use ink-mute, values ink-soft, selected items bold ink.
 - Either/or settings use `Segmented`, which shows every option with the active one filled white.
 - Segmented options and toggles sit flush against each other, with no 1 px seams.
-- Use knobs and draggable handles instead of selects or steppers. All knobs are one size: 60 px wide, with the empty bottom of the dial cropped. Knobs are the same 24 px gap apart everywhere, and a section is as wide as its knobs plus their gaps.
+- Use knobs and draggable handles instead of selects or steppers. All knobs are one size: 60 px wide, with the empty bottom of the dial cropped. Knobs are the same 24 px gap apart everywhere, and a section is as wide as its knobs plus their gaps. Knob panes have the same 12 px padding on all four sides and don't stretch; rows of knobs are 8 px apart.
 - The knob caption (label and value) is a single click/drag target.
 - Do not over-segment panels. Add no divider lines or group boxes between controls the user can tell apart on their own.
 
@@ -23,8 +23,7 @@ The decisions below were made with the owner. Read this before any UI change. If
 - **Right unit** has three rows: machine, macros, master.
   - The right unit is exactly four knobs wide: 4 × 60 px knobs, 24 px gaps, plus the pane inset. Machine, FX and master knobs share those columns, and each knob column holds two macro faders.
 - **Machine page:**
-  - Amp envelope at the top: AHD curve plus value slots. It has a *fixed, modest height*; it does not stretch.
-  - The machine knob section and the FX knob section share the remaining height equally, with their knobs centred vertically.
+  - Amp envelope at the top: AHD curve plus value slots. Below it the machine and FX knob sections, each with 12 px around its knobs. Any height left over goes to the envelope curve (at 1440×900 only a few pixels).
 - **Master:**
   - Header: master, mute q, limit|clip, lufs.
   - Four knobs: comp, eq, sat, **limit** (a knob, showing its gain-reduction ring), centred.

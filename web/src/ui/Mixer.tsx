@@ -80,7 +80,7 @@ export function Master({ state, frame, store }: Props) {
   const master = frame ? masterMeterOf(frame) : { peakL: 0, peakR: 0, lufs: -70, gr: 0, limGr: 0 }
   const clip = state.master.params[MASTER_MODE] >= 0.5
   return (
-    <section aria-label="Master" className="flex min-h-0 flex-col gap-tight border-t border-line p-inset">
+    <section aria-label="Master" className="flex min-h-0 flex-col gap-group border-t border-line p-group">
       <div className="flex h-control items-center gap-group">
         <span className="text-ink-soft">master</span>
         <button type="button" className={toggle(state.muteQuantize)} aria-pressed={state.muteQuantize} aria-label="MUTE Q" onClick={() => store.setMuteQuantize(!state.muteQuantize)}>mute q</button>
@@ -88,7 +88,7 @@ export function Master({ state, frame, store }: Props) {
           onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
         <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
       </div>
-      <div className="knob-row flex-1 content-center">
+      <div className="knob-row">
         {MASTER_KNOBS.map(({ param, label }) => (
           <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
             label={label} ariaLabel={`MASTER ${label}`}

@@ -172,8 +172,8 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
     m.kind !== 0 ? <Knob key="smooth" size="sm" label="SMOOTH" value={m.smooth} defaultValue={0} format={pct} onChange={(v) => update({ smooth: v })} /> : null,
   ]
   return (
-    <div className="grid min-h-0 grid-cols-[auto_auto] overflow-hidden border-r border-line p-inset">
-      <div className="knob-row content-center">
+    <div className="grid min-h-0 grid-cols-[auto_auto] overflow-hidden border-r border-line p-group">
+      <div className="knob-row content-start">
         {slots.map((k, i) => <div key={i} className="flex h-knob-cell w-knob items-center justify-center">{k ?? <EmptyKnob />}</div>)}
       </div>
       {targets.length > 0 && (

@@ -177,10 +177,11 @@
   /* one gap between knobs everywhere */
   --spacing-knob-gap: 24px;
   /* the right unit is exactly four knobs wide (with their gaps and the pane inset) */
-  --spacing-side: calc(2 * var(--spacing-inset) + 4 * var(--spacing-knob) + 3 * var(--spacing-knob-gap));
+  --spacing-side: calc(2 * var(--spacing-group) + 4 * var(--spacing-knob) + 3 * var(--spacing-knob-gap));
   /* a macro fader: two side by side under one knob */
   --spacing-macro: calc((var(--spacing-knob) - var(--spacing-tight)) / 2);
-  --spacing-strip: 190px;
+  /* the modulator row: two knob rows with the knob pane's padding, plus the top hairline */
+  --spacing-strip: calc(2 * var(--spacing-knob-cell) + var(--spacing-inset) + 2 * var(--spacing-group) + var(--spacing-hair));
   --spacing-mixer: 200px;
 
   --text-micro: 9px;
@@ -189,12 +190,12 @@
   --text-label--line-height: 1;
 }
 
-/* a row of four knobs, one knob gap apart; the block is exactly as wide as its knobs */
+/* a row of four knobs, one knob gap apart; the block is exactly as wide as its knobs. Knob panes pad it by `group` on every side. */
 @utility knob-row {
   display: grid;
   grid-template-columns: repeat(4, var(--spacing-knob));
   column-gap: var(--spacing-knob-gap);
-  row-gap: var(--spacing-group);
+  row-gap: var(--spacing-inset);
 }
 
 /* eight macro faders, two under each knob column of the right unit (fader, tight, fader, knob gap, …) */

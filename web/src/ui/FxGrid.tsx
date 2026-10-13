@@ -35,7 +35,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
     <>
     {page && (
       <Modal title={`${page} settings`} onClose={close}>
-        <div className="knob-row w-side p-inset">
+        <div className="knob-row w-side p-group">
           {params.map((p) => (
             <ParamKnob key={p} state={state} frame={frame} store={store} row={MASTER_ROW} param={p} meta={MASTER_PARAMS[p]}
               label={MASTER_PARAMS[p].name.split(' ')[1].toLowerCase()} ariaLabel={MASTER_PARAMS[p].name} />
@@ -43,7 +43,7 @@ export function FxGrid({ state, frame, store, track: t, machine }: Props) {
         </div>
       </Modal>
     )}
-    <section aria-label="Insert FX" className="knob-row flex-1 content-center border-t border-line p-inset">
+    <section aria-label="Insert FX" className="knob-row shrink-0 border-t border-line p-group">
       {order.map((id, pos) => {
         const param = FX_BASE + id
         const label = id === FX_FILTER ? FILTER_MODES[mode] : id === FX_DRIVE ? DRIVE_MODES[drive] : FX_NAMES[id]
