@@ -10,4 +10,6 @@ These are next steps the owner asked for. The order is a suggestion. Before buil
 6. **Global settings for every insert FX.** Open each FX's global settings with a double-click, the way delay and reverb do now: filter, drive, feedback, chorus, disperse and noise.
 7. **Project management.** Save and load, slots (patterns or scenes), and similar.
 
+8. **Research what to model and build.** Read the documentation of reference instruments and effects (Elektron, the Ableton devices, the T-1, classic hardware), then pick the effects and machines worth modelling. Write the result up as a short list with a reason for each, for the owner to choose from, before any of items 2–6 start.
+
 UI work on any of these follows `docs/ui-spec.md`.
