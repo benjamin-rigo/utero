@@ -177,6 +177,14 @@
   --text-label--line-height: 1;
 }
 
+/* a row of four knobs spread edge to edge: the first and last knob sit on the pane's inset lines */
+@utility knob-row {
+  display: grid;
+  grid-template-columns: repeat(4, var(--spacing-knob));
+  justify-content: space-between;
+  gap: var(--spacing-group);
+}
+
 /* one focus style for every control */
 @utility focus-ring {
   outline: none;

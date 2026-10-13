@@ -72,7 +72,7 @@ export function Mixer({ state, frame, store }: Props) {
               onIndex={(i) => store.setParam(MASTER_ROW, MASTER_MODE, i)} />
             <span className="ml-auto tabular-nums text-ink-soft">{master.lufs.toFixed(1)} lufs</span>
           </div>
-          <div className="grid flex-1 grid-cols-4 place-items-center">
+          <div className="knob-row">
             {MASTER_KNOBS.map(({ param, label }) => (
               <ParamKnob key={param} state={state} frame={frame} store={store} row={MASTER_ROW} param={param} meta={MASTER_PARAMS[param]}
                 label={label} ariaLabel={`MASTER ${label}`}
