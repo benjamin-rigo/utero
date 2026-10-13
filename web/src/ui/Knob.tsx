@@ -229,3 +229,17 @@ export function Knob({
     </div>
   )
 }
+
+/** An unused knob slot: the dial's grey track only (no value, no caption), same footprint as a knob. */
+export function EmptyKnob() {
+  return (
+    <div aria-hidden="true" className="flex w-knob flex-col items-center gap-tight select-none">
+      <svg viewBox={`0 0 ${SIZE} ${VIEW_H}`} overflow="visible" className="h-knob-h w-knob">
+        <circle cx={MID} cy={MID} r={R} fill="none" strokeWidth={4} className="stroke-raised"
+          strokeDasharray={`${0.75 * C} ${C}`} transform={`rotate(135 ${MID} ${MID})`} />
+      </svg>
+      <span className="invisible">–</span>
+      <span className="invisible">–</span>
+    </div>
+  )
+}

@@ -67,29 +67,68 @@ function envAt([a, h, d, s, r]: number[], p: number): number {
 }
 
 const FIXED_RANDOM = [0.3, -0.7, 0.8, -0.2, 0.5, -0.9, 0.1, 0.6]
+/** Bars per cycle for each sync division, mirrors SYNC_BARS (T = triplet). */
+const T = 2 / 3
+const SYNC_BARS = [0.0625 * T, 0.0625, 0.125 * T, 0.09375, 0.125, 0.25 * T, 0.1875, 0.25, 0.5 * T, 0.375, 0.5, T, 0.75, 1, 1.5, 2, 4, 8, 16, 32]
+const SR = 48000
+const FADE_MAX_CYCLES = 16
+/** Deterministic −1..1 noise for previews (the same picture every render). */
+const hash = (i: number) => {
+  const x = Math.sin(i * 12.9898) * 43758.5453
+  return (x - Math.floor(x)) * 2 - 1
+}
 
-/** One cycle for tile/editor previews, values −1..1; random shapes use a fixed pattern. */
-export function previewShape(m: ModulatorState, n: number): number[] {
+/**
+ * What the modulator will output over one bar (at least one cycle), on the shared −1..1 axis: rate sets how many cycles fit,
+ * then fade, jitter, smooth, polarity (unipolar sits above the centre line) and depth are applied as the engine does.
+ */
+export function outputPreview(m: ModulatorState, bpm: number, n: number): number[] {
+  const barSec = 240 / bpm
+  const cycleBars = m.kind === 1 ? (m.sync ? SYNC_BARS[m.rateIndex] : 1 / (m.hz * barSec)) : 1
+  const cycles = Math.min(16, Math.max(1, 1 / cycleBars))
+  const windowSec = cycles * cycleBars * barSec
+  const k = 1 / (1 + m.smooth * 2000)
+  const a = 1 - (1 - k) ** ((windowSec * SR) / (n - 1))
+  const fadeLen = FADE_MAX_CYCLES * m.fade * m.fade
+  let smoothed = 0
   return Array.from({ length: n }, (_, i) => {
-    const p = i / (n - 1)
-    if (m.kind === 2) return FIXED_RANDOM[i % FIXED_RANDOM.length]
-    if (m.kind === 3) return m.steps[Math.min(m.stepLen - 1, Math.floor(p * m.stepLen))]
-    if (m.kind === 4) return envAt(m.env, p) * 2 - 1
-    switch (m.shape) {
-      case 0: return Math.sin(p * 2 * Math.PI)
-      case 2: return FIXED_RANDOM[Math.min(3, Math.floor(p * 4))]
-      case 3: return 1 - 4 * Math.abs(p - 0.5)
-      case 4: return 1 - 2 * p
-      case 5: return 2 * p - 1
-      case 6: return p < 0.5 ? 1 : -1
-      case 7: return 2 * Math.exp(-5 * p) - 1
-      default: {
-        const seg = Math.min(3, Math.floor(p * 4))
-        const t = p * 4 - seg
-        const a = FIXED_RANDOM[seg]
-        const b = FIXED_RANDOM[seg + 1]
-        return a + (b - a) * (0.5 - 0.5 * Math.cos(t * Math.PI))
+    const c = (i / (n - 1)) * (m.kind === 1 ? cycles : 1)
+    let raw: number
+    if (m.kind === 1) {
+      const cycle = Math.min(Math.floor(c), Math.ceil(cycles) - 1)
+      raw = shapeAt(m.shape, c - cycle, cycle)
+      if (fadeLen > 0) {
+        const x = Math.min(1, c / fadeLen)
+        raw *= m.fade < 0 ? x : 1 - x
       }
+      if (m.jitter > 0) raw = Math.max(-1, Math.min(1, raw + m.jitter * hash(i)))
+    } else if (m.kind === 2) {
+      raw = hash(Math.floor(i / 2) + 7)
+    } else if (m.kind === 4) {
+      raw = envAt(m.env, i / (n - 1)) * 2 - 1
+    } else {
+      raw = 0
     }
+    smoothed = i === 0 ? raw : smoothed + (raw - smoothed) * a
+    return (m.bipolar ? smoothed : (smoothed + 1) / 2) * m.depth
   })
 }
+
+/** One LFO cycle at phase p (0..1); random shapes take their values from the cycle number. */
+function shapeAt(shape: number, p: number, cycle: number): number {
+  const rnd = (j: number) => FIXED_RANDOM[(cycle * 4 + j) % FIXED_RANDOM.length]
+  switch (shape) {
+    case 0: return Math.sin(p * 2 * Math.PI)
+    case 2: return rnd(0)
+    case 3: return 1 - 4 * Math.abs(p - 0.5)
+    case 4: return 1 - 2 * p
+    case 5: return 2 * p - 1
+    case 6: return p < 0.5 ? 1 : -1
+    case 7: return 2 * Math.exp(-5 * p) - 1
+    default: {
+      const t = 0.5 - 0.5 * Math.cos(p * Math.PI)
+      return rnd(0) + (rnd(1) - rnd(0)) * t
+    }
+  }
+}
+

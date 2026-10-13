@@ -31,7 +31,7 @@ The decisions below were made with the owner. Read this before any UI change. If
   - Signal chain: sat → eq → comp → −6 dB trim → limiter → fader. Fader full travel is 0 dB.
 
 ## Controls keep their place
-- Controls never move between modes, types or machines. A control a type doesn't have leaves its slot empty; nothing reflows.
+- Controls never move between modes, types or machines. A control a type doesn't have leaves its slot empty; nothing reflows. An empty knob slot shows the knob's grey track only, with no indicator and no caption.
 
 ## Modulator page
 - **Eight knobs in two rows of four, nothing else** (owner's layout). The slots stay fixed for every type, and a slot a type doesn't use stays empty:
@@ -41,6 +41,7 @@ The decisions below were made with the owner. Read this before any UI change. If
 - No big waveform display: the tiles already show each modulator's shape. It was removed twice; do not bring it back.
 - No shape icons, segmented choices or sliders on this page. Phase and fade stay in the engine and are not shown.
 - Clicking the selected tile toggles map mode. The tiles fill their pane, with no inner frame.
+- A tile draws the modulator's output over one bar as it is currently set: rate (how many cycles fit), fade, jitter, smooth, polarity and depth. There is no moving scan line.
 
 ## Process
 - Verify every layout change with headless Chrome at 1440×900 and 2050×1100, and measure with element rectangles rather than eyeballing.

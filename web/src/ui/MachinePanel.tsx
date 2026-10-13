@@ -5,6 +5,7 @@ import type { AppState } from '@/state/types'
 import { AmpEnv } from './AmpEnv'
 import { FxGrid } from './FxGrid'
 import { Segmented } from './Segmented'
+import { EmptyKnob } from './Knob'
 import { ParamKnob } from './ParamKnob'
 
 interface Props {
@@ -50,7 +51,7 @@ function MachineBody({ state, frame, store, track: t, machine }: BodyProps) {
       </div>}
       <AmpEnv state={state} frame={frame} store={store} track={t} machine={machine} />
       <div className="knob-row flex-1 content-center p-inset">
-        {machine.pages[page].params.map((p, i) => (p < 0 ? <div key={`empty${i}`} aria-hidden="true" /> : (
+        {machine.pages[page].params.map((p, i) => (p < 0 ? <EmptyKnob key={`empty${i}`} /> : (
           <ParamKnob key={p} state={state} frame={frame} store={store} row={t} param={p} meta={machine.params[p]}
             selected={selParam === p} onSelect={() => setSelParam(p)} />
         )))}

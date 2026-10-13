@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
-import { modOutputOf } from '@/audio/snapshot'
 import {
-  DEFAULT_ENV, DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, previewShape, SHAPES, SYNC_LABELS, TRIG_MODES,
+  DEFAULT_ENV, DEFAULT_RATE, MOD_DRAG_TYPE, MOD_KINDS, modLabel, NOISE_COLORS, outputPreview, SHAPES, SYNC_LABELS, TRIG_MODES,
 } from '@/state/modulation'
 import type { Store } from '@/state/store'
 import type { AppState, ModKind, ModulatorState } from '@/state/types'
-import { Knob } from './Knob'
+import { EmptyKnob, Knob } from './Knob'
 import { Segmented } from './Segmented'
 import { envMeta, ENV_NAMES, formatParam, paramLabel } from '@/state/machines'
 
@@ -45,7 +44,6 @@ export function ModStrip({ state, frame, store }: Props) {
     if (mapping) store.setMapping(false)
     if (state.modulators[i].kind === 0) store.updateModulator(i, { kind: 1 })
   }
-  const live = (i: number) => (frame ? modOutputOf(frame, i) : 0)
   return (
     // on the left unit's columns: the page over beats 1–2 (with the name column), the tiles over beats 3–4 and the rate column
     <section aria-label="Modulators" className="col-span-full grid min-h-0 grid-cols-subgrid border-t border-line">
@@ -58,7 +56,6 @@ export function ModStrip({ state, frame, store }: Props) {
             const off = m.kind === 0
             const targets = state.routes.filter((r) => r?.src === i).length
             const onHovered = hover !== null && state.routes.some((r) => r?.src === i && r.track === hover.row && r.param === hover.param)
-            const v = live(i)
             return (
               <div key={i} role="button" tabIndex={0} draggable={!off} aria-pressed={slot === i}
                 aria-label={off ? `Slot ${i + 1} empty` : `${modLabel(i, m)}, ${targets} targets${slot === i && mapping ? ', mapping' : ''}`}
@@ -82,9 +79,9 @@ export function ModStrip({ state, frame, store }: Props) {
                 {off ? '+' : (
                   <>
                     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                      <path d={pathOf(previewShape(m, 24))} fill="none" className="stroke-ink-soft" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-                      <line x1={0} x2={W} y1={toY(m.bipolar ? v : v * 2 - 1)} y2={toY(m.bipolar ? v : v * 2 - 1)}
-                        className="stroke-ink/50" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                      {/* the output over one bar as currently set; a still centre line for reference */}
+                      <line x1={0} x2={W} y1={toY(0)} y2={toY(0)} className="stroke-raised" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                      <path d={pathOf(outputPreview(m, state.bpm, 96))} fill="none" className="stroke-ink-soft" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
                     </svg>
                     <span className="relative self-start truncate bg-background/80 px-tight text-micro text-ink">{modLabel(i, m)}{slot === i && mapping ? ' · map' : ''}</span>
                     {targets > 0 && (
@@ -177,7 +174,7 @@ function ModPage({ slot, m, tracks, routes, store }: PageProps) {
   return (
     <div className="col-[1/12] grid min-h-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden border-r border-line p-inset">
       <div className="knob-row content-center">
-        {slots.map((k, i) => <div key={i} className="flex h-knob-cell w-knob items-center justify-center">{k}</div>)}
+        {slots.map((k, i) => <div key={i} className="flex h-knob-cell w-knob items-center justify-center">{k ?? <EmptyKnob />}</div>)}
       </div>
       {targets.length > 0 && (
         <div aria-label={`${name} targets`} className="ml-group flex max-w-wave min-w-0 flex-wrap content-start gap-hair">

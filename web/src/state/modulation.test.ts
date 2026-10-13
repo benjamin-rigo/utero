@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { defaultModulator, initialModulators, modLabel, previewShape, rateLabel, SHAPES } from './modulation'
+import { defaultModulator, initialModulators, modLabel, outputPreview, rateLabel, SHAPES, SYNC_LABELS } from './modulation'
 
 test('defaults: 4 bar sync, bipolar, off', () => {
   const m = defaultModulator()
@@ -28,9 +28,20 @@ test('favourite shapes come first', () => {
 
 test('previews stay within −1..1 for every shape and kind', () => {
   for (const s of SHAPES) {
-    const v = previewShape({ ...defaultModulator(), kind: 1, shape: s.code }, 24)
-    expect(v).toHaveLength(24)
+    const v = outputPreview({ ...defaultModulator(), kind: 1, shape: s.code, jitter: 1 }, 128, 48)
+    expect(v).toHaveLength(48)
     expect(v.every((x) => x >= -1 && x <= 1)).toBe(true)
   }
-  expect(previewShape({ ...defaultModulator(), kind: 3, steps: Array(16).fill(0.5), stepLen: 4 }, 10).every((x) => x === 0.5)).toBe(true)
+  for (const kind of [2, 4] as const) expect(outputPreview({ ...defaultModulator(), kind }, 128, 48).every((x) => x >= -1 && x <= 1)).toBe(true)
+})
+
+test('the preview follows depth, polarity, rate and smooth', () => {
+  const lfo = { ...defaultModulator(), kind: 1 as const, shape: 0, sync: true, rateIndex: SYNC_LABELS.indexOf('1/4') }
+  const peak = (v: number[]) => Math.max(...v.map(Math.abs))
+  expect(peak(outputPreview({ ...lfo, depth: 0.5 }, 128, 96))).toBeCloseTo(0.5, 1)
+  expect(Math.min(...outputPreview({ ...lfo, bipolar: false }, 128, 96))).toBeGreaterThanOrEqual(0)
+  // 1/4 = four cycles per bar: four upward zero crossings
+  const ups = (v: number[]) => v.filter((x, i) => i > 0 && v[i - 1] < 0 && x >= 0).length
+  expect(ups(outputPreview(lfo, 128, 192))).toBe(3)
+  expect(peak(outputPreview({ ...lfo, smooth: 1 }, 128, 96))).toBeLessThan(peak(outputPreview(lfo, 128, 96)))
 })
